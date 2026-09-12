@@ -13,7 +13,7 @@ from .const import (
     to_alpha3,
 )
 
-_TOKEN = re.compile(r"[\w-]+", re.UNICODE)
+_TOKEN = re.compile(r"\w+", re.UNICODE)
 
 
 class TedQueryBuilder:

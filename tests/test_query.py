@@ -38,7 +38,7 @@ def test_buyer_filters_are_quoted_and_escaped() -> None:
     )
     assert Q.buyer_name_search("försvar") == "buyer-name ~ (försvar*)"
     assert Q.buyer_name_search(' Försvarets "materiel-verk" (FMV) ') == (
-        "buyer-name ~ (Försvarets* materiel-verk* FMV*)"
+        "buyer-name ~ (Försvarets* materiel* verk* FMV*)"
     )
     assert Q.buyer_name_search('"()') == ""
     assert Q.publication_number("626136-2026") == 'ND="626136-2026"'
