@@ -43,6 +43,8 @@ GROWTH_MIN_PROCEDURES = 5
 GROWTH_MIN_VALUE_EUR = Decimal("50000000")
 RANKING_LIMIT = 10
 RECENT_ITEMS_LIMIT = 10
+RAW_LIST_LIMIT = 15
+RAW_BUYERS_LIMIT = 20
 TITLE_MAX_LENGTH = 200
 EMITTED_EVENT_KEYS_LIMIT = 5000
 
@@ -60,6 +62,7 @@ CONF_PEER_COUNTRIES = "peer_countries"
 CONF_PEER_ORGANISATIONS = "peer_organisations"
 CONF_SELECTED_COUNTRY = "selected_country"
 CONF_PINNED_CATEGORIES = "pinned_categories"
+CONF_RAW_COUNTRIES = "raw_countries"
 CONF_WATCHLIST_COUNTRIES = "watchlist_countries"
 CONF_WATCHLIST_BUYERS = "watchlist_buyers"
 CONF_WATCHLIST_CATEGORIES = "watchlist_categories"
@@ -129,6 +132,58 @@ ALPHA2_TO_ALPHA3: dict[str, str] = {
     "GE": "GEO",
 }
 ALPHA3_TO_ALPHA2: dict[str, str] = {v: k for k, v in ALPHA2_TO_ALPHA3.items()}
+
+# English short names for device names (UI labels come from strings.json).
+COUNTRY_NAMES: dict[str, str] = {
+    "AT": "Austria",
+    "BE": "Belgium",
+    "BG": "Bulgaria",
+    "HR": "Croatia",
+    "CY": "Cyprus",
+    "CZ": "Czechia",
+    "DK": "Denmark",
+    "EE": "Estonia",
+    "FI": "Finland",
+    "FR": "France",
+    "DE": "Germany",
+    "GR": "Greece",
+    "HU": "Hungary",
+    "IE": "Ireland",
+    "IT": "Italy",
+    "LV": "Latvia",
+    "LT": "Lithuania",
+    "LU": "Luxembourg",
+    "MT": "Malta",
+    "NL": "Netherlands",
+    "PL": "Poland",
+    "PT": "Portugal",
+    "RO": "Romania",
+    "SK": "Slovakia",
+    "SI": "Slovenia",
+    "ES": "Spain",
+    "SE": "Sweden",
+    "NO": "Norway",
+    "IS": "Iceland",
+    "LI": "Liechtenstein",
+    "CH": "Switzerland",
+    "GB": "United Kingdom",
+    "UA": "Ukraine",
+    "MD": "Moldova",
+    "RS": "Serbia",
+    "ME": "Montenegro",
+    "MK": "North Macedonia",
+    "AL": "Albania",
+    "BA": "Bosnia and Herzegovina",
+    "TR": "Türkiye",
+    "XK": "Kosovo",
+    "GE": "Georgia",
+}
+
+
+def country_name(code: str) -> str:
+    """English short name for an alpha-2 code (the code itself when unknown)."""
+    return COUNTRY_NAMES.get(code.upper(), code.upper())
+
 
 EU_COUNTRIES: frozenset[str] = frozenset(
     {

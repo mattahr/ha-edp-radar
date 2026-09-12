@@ -71,6 +71,13 @@
           "watchlist_min_estimated_eur": "Minimum estimated value (EUR)",
           "watchlist_min_award_eur": "Minimum award value (EUR)"
         }
+      },
+      "raw_data": {
+        "title": "Raw data countries",
+        "description": "Each selected country gets a device that lists the latest notices per kind (competitions, results, changes, …) and stored-notice breakdowns, without aggregation. Use the edp_radar.get_notices action for full lists.",
+        "data": {
+          "raw_countries": "Countries"
+        }
       }
     },
     "error": {
@@ -164,7 +171,15 @@
           "organisation": "Selected organisation",
           "peers": "Peer comparison",
           "categories": "Pinned categories",
+          "raw_data": "Raw data countries",
           "watchlist": "Watchlist"
+        }
+      },
+      "raw_data": {
+        "title": "Raw data countries",
+        "description": "Each selected country gets a device that lists the latest notices per kind (competitions, results, changes, …) and stored-notice breakdowns, without aggregation. Use the edp_radar.get_notices action for full lists.",
+        "data": {
+          "raw_countries": "Countries"
         }
       }
     },
@@ -259,6 +274,17 @@
         "TR": "Türkiye",
         "XK": "Kosovo",
         "GE": "Georgia"
+      }
+    },
+    "stage": {
+      "options": {
+        "competition": "Competition",
+        "result": "Result",
+        "planning": "Planning",
+        "direct_award": "Direct award",
+        "modification": "Contract modification",
+        "change": "Change (corrigendum, cancellation)",
+        "other": "Other"
       }
     }
   },
@@ -410,6 +436,30 @@
       },
       "category_award_value_90d": {
         "name": "Award value 90 d"
+      },
+      "raw_notices_7d": {
+        "name": "Notices 7 d"
+      },
+      "raw_competitions_30d": {
+        "name": "Competitions 30 d"
+      },
+      "raw_results_30d": {
+        "name": "Results 30 d"
+      },
+      "raw_changes_30d": {
+        "name": "Changes 30 d"
+      },
+      "raw_planning_30d": {
+        "name": "Planning notices 30 d"
+      },
+      "raw_direct_awards_30d": {
+        "name": "Direct awards 30 d"
+      },
+      "raw_modifications_30d": {
+        "name": "Contract modifications 30 d"
+      },
+      "raw_stored_notices": {
+        "name": "Stored notices"
       }
     },
     "event": {
@@ -439,6 +489,47 @@
           }
         }
       }
+    }
+  },
+  "services": {
+    "get_notices": {
+      "name": "Get notices",
+      "description": "Return stored TED notices as raw facts, newest first.",
+      "fields": {
+        "country": {
+          "name": "Buyer country",
+          "description": "ISO 3166-1 alpha-2 code, for example SE."
+        },
+        "stage": {
+          "name": "Kind",
+          "description": "Notice kind: competition, result, planning, direct_award, modification, change (corrigenda etc.) or other."
+        },
+        "since": {
+          "name": "Published from",
+          "description": "Earliest publication date (inclusive)."
+        },
+        "until": {
+          "name": "Published until",
+          "description": "Latest publication date (inclusive)."
+        },
+        "category": {
+          "name": "Strategic category",
+          "description": "Only notices classified in this category."
+        },
+        "buyer_identifier": {
+          "name": "Buyer identifier",
+          "description": "Only notices where this identifier is among the buyers."
+        },
+        "limit": {
+          "name": "Limit",
+          "description": "Maximum number of notices to return (1–500, default 100)."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "The European Defence Procurement Radar is not set up."
     }
   }
 }

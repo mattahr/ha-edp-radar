@@ -34,6 +34,7 @@ from custom_components.edp_radar.const import (
     CONF_PEER_COUNTRIES,
     CONF_PEER_PRESET,
     CONF_PINNED_CATEGORIES,
+    CONF_RAW_COUNTRIES,
     CONF_RELEVANCE_MODE,
     CONF_SELECTED_COUNTRY,
     CONF_WATCHLIST_COUNTRIES,
@@ -178,6 +179,8 @@ async def test_full_flow_with_defaults(
     assert result["step_id"] == "categories"
     assert "land_systems" in option_values(result, CONF_PINNED_CATEGORIES)
     result = await configure(hass, result, {CONF_PINNED_CATEGORIES: []})
+    assert result["step_id"] == "raw_data"
+    result = await configure(hass, result, {})
     assert result["step_id"] == "watchlist"
     result = await configure(hass, result, {})
     await hass.async_block_till_done()
@@ -190,6 +193,7 @@ async def test_full_flow_with_defaults(
         CONF_MARKET_PRESET: "eu",
         CONF_PEER_PRESET: "none",
         CONF_PINNED_CATEGORIES: [],
+        CONF_RAW_COUNTRIES: [],
     }
     assert result["result"].unique_id == DOMAIN
     assert mock_setup_entry.call_count == 1
@@ -240,6 +244,9 @@ async def test_full_flow_with_everything(
     result = await configure(
         hass, result, {CONF_PINNED_CATEGORIES: ["land_systems", "cyber_it"]}
     )
+    assert result["step_id"] == "raw_data"
+    assert "SE" in option_values(result, CONF_RAW_COUNTRIES)
+    result = await configure(hass, result, {CONF_RAW_COUNTRIES: ["SE"]})
     assert result["step_id"] == "watchlist"
     result = await configure(
         hass,
@@ -263,6 +270,7 @@ async def test_full_flow_with_everything(
     assert options[CONF_PEER_COUNTRIES] == ["PL", "DE"]
     assert options[CONF_SELECTED_COUNTRY] == "SE"
     assert options[CONF_PINNED_CATEGORIES] == ["land_systems", "cyber_it"]
+    assert options[CONF_RAW_COUNTRIES] == ["SE"]
     assert options[CONF_WATCHLIST_COUNTRIES] == ["PL"]
     assert options[CONF_WATCHLIST_MIN_ESTIMATED_EUR] == 1e8
 
@@ -315,6 +323,7 @@ async def test_invalid_query_is_reported_on_the_last_step(
     result = await configure(hass, result, {CONF_PEER_PRESET: "none"})
     result = await configure(hass, result, {CONF_PINNED_CATEGORIES: []})
     result = await configure(hass, result, {})
+    result = await configure(hass, result, {})
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "watchlist"
     assert result["errors"] == {"base": "invalid_query"}
@@ -343,6 +352,7 @@ async def start_options(hass: HomeAssistant, entry: MockConfigEntry) -> dict:
         "organisation",
         "peers",
         "categories",
+        "raw_data",
         "watchlist",
     ]
     return result
@@ -440,6 +450,12 @@ async def test_options_peers_categories_and_watchlist(
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_PINNED_CATEGORIES] == ["naval_maritime"]
+
+    result = await start_options(hass, entry)
+    result = await options_configure(hass, result, {"next_step_id": "raw_data"})
+    result = await options_configure(hass, result, {CONF_RAW_COUNTRIES: ["SE", "FI"]})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_RAW_COUNTRIES] == ["SE", "FI"]
 
     result = await start_options(hass, entry)
     result = await options_configure(hass, result, {"next_step_id": "watchlist"})

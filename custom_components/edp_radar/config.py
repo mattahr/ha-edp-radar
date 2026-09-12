@@ -24,6 +24,7 @@ from .const import (
     CONF_PEER_ORGANISATIONS,
     CONF_PEER_PRESET,
     CONF_PINNED_CATEGORIES,
+    CONF_RAW_COUNTRIES,
     CONF_RELEVANCE_MODE,
     CONF_SELECTED_COUNTRY,
     CONF_WATCHLIST_BUYERS,
@@ -135,6 +136,11 @@ class RadarConfig:
             pinned_categories=tuple(
                 str(c) for c in options.get(CONF_PINNED_CATEGORIES) or []
             ),
+            raw_countries=tuple(
+                dict.fromkeys(
+                    str(c).upper() for c in options.get(CONF_RAW_COUNTRIES) or [] if c
+                )
+            ),
             watchlist=watchlist,
         )
         return cls(metrics, mode, preset, market)
@@ -150,6 +156,7 @@ class RadarConfig:
             return frozenset()
         extra: set[str] = set(self.metrics.peer_countries)
         extra |= self.metrics.watchlist.countries
+        extra |= set(self.metrics.raw_countries)
         own = self.metrics.own_organisation
         if own is not None and own.country:
             extra.add(own.country)

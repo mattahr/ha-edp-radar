@@ -71,6 +71,13 @@
           "watchlist_min_estimated_eur": "Lägsta uppskattade värde (EUR)",
           "watchlist_min_award_eur": "Lägsta tilldelade värde (EUR)"
         }
+      },
+      "raw_data": {
+        "title": "Rådataländer",
+        "description": "Varje valt land får en enhet som listar de senaste notiserna per slag (upphandlingar, tilldelningar, ändringar, …) och fördelningar av lagrade notiser, utan aggregering. Använd action:en edp_radar.get_notices för fullständiga listor.",
+        "data": {
+          "raw_countries": "Länder"
+        }
       }
     },
     "error": {
@@ -164,7 +171,15 @@
           "organisation": "Vald organisation",
           "peers": "Jämförelsegrupp",
           "categories": "Fästa kategorier",
+          "raw_data": "Rådataländer",
           "watchlist": "Bevakning"
+        }
+      },
+      "raw_data": {
+        "title": "Rådataländer",
+        "description": "Varje valt land får en enhet som listar de senaste notiserna per slag (upphandlingar, tilldelningar, ändringar, …) och fördelningar av lagrade notiser, utan aggregering. Använd action:en edp_radar.get_notices för fullständiga listor.",
+        "data": {
+          "raw_countries": "Länder"
         }
       }
     },
@@ -259,6 +274,17 @@
         "TR": "Turkiet",
         "XK": "Kosovo",
         "GE": "Georgien"
+      }
+    },
+    "stage": {
+      "options": {
+        "competition": "Upphandling",
+        "result": "Tilldelning",
+        "planning": "Förhandsannons",
+        "direct_award": "Direkttilldelning",
+        "modification": "Kontraktsändring",
+        "change": "Ändring (rättelse, avbrytande)",
+        "other": "Övrigt"
       }
     }
   },
@@ -410,6 +436,30 @@
       },
       "category_award_value_90d": {
         "name": "Tilldelat värde 90 d"
+      },
+      "raw_notices_7d": {
+        "name": "Notiser 7 d"
+      },
+      "raw_competitions_30d": {
+        "name": "Upphandlingar 30 d"
+      },
+      "raw_results_30d": {
+        "name": "Tilldelningar 30 d"
+      },
+      "raw_changes_30d": {
+        "name": "Ändringar 30 d"
+      },
+      "raw_planning_30d": {
+        "name": "Förhandsannonser 30 d"
+      },
+      "raw_direct_awards_30d": {
+        "name": "Direkttilldelningar 30 d"
+      },
+      "raw_modifications_30d": {
+        "name": "Kontraktsändringar 30 d"
+      },
+      "raw_stored_notices": {
+        "name": "Lagrade notiser"
       }
     },
     "event": {
@@ -439,6 +489,47 @@
           }
         }
       }
+    }
+  },
+  "services": {
+    "get_notices": {
+      "name": "Hämta notiser",
+      "description": "Returnerar lagrade TED-notiser som råa fakta, nyast först.",
+      "fields": {
+        "country": {
+          "name": "Köparland",
+          "description": "ISO 3166-1 alfa-2-kod, till exempel SE."
+        },
+        "stage": {
+          "name": "Slag",
+          "description": "Notisslag: competition, result, planning, direct_award, modification, change (rättelser m.m.) eller other."
+        },
+        "since": {
+          "name": "Publicerad från",
+          "description": "Tidigaste publiceringsdatum (inklusive)."
+        },
+        "until": {
+          "name": "Publicerad till",
+          "description": "Senaste publiceringsdatum (inklusive)."
+        },
+        "category": {
+          "name": "Strategisk kategori",
+          "description": "Bara notiser klassade i denna kategori."
+        },
+        "buyer_identifier": {
+          "name": "Köparidentifierare",
+          "description": "Bara notiser där denna identifierare finns bland köparna."
+        },
+        "limit": {
+          "name": "Gräns",
+          "description": "Högsta antal notiser att returnera (1–500, standard 100)."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "European Defence Procurement Radar är inte konfigurerad."
     }
   }
 }

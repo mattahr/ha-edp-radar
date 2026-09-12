@@ -26,11 +26,14 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .config import RadarConfig
+from .const import country_name
 from .coordinator import EdpRadarConfigEntry, EdpRadarCoordinator
 from .entity import DeviceKind, EdpRadarEntity
+from .fx_rates import FxRateTable
 from .metrics import (
     CategoryMetrics,
     CountMetric,
+    CountryRawMetrics,
     NoticeHighlight,
     OrganisationMetrics,
     PeerMetrics,
@@ -38,8 +41,10 @@ from .metrics import (
     RadarSnapshot,
     Ranking,
     RankingEntry,
+    RawList,
     SupplierMetrics,
     ValueMetric,
+    notice_list_attributes,
 )
 
 type SensorValue = StateType | datetime
@@ -255,6 +260,14 @@ class EdpRadarCategorySensorEntityDescription(SensorEntityDescription):
 
     value_fn: Callable[[CategoryMetrics], SensorValue]
     attributes_fn: Callable[[CategoryMetrics], dict[str, Any]] | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class EdpRadarRawSensorEntityDescription(SensorEntityDescription):
+    """A sensor created once per raw-data country."""
+
+    value_fn: Callable[[CountryRawMetrics, FxRateTable], SensorValue]
+    attributes_fn: Callable[[CountryRawMetrics, FxRateTable], dict[str, Any]]
 
 
 def _own(snapshot: RadarSnapshot) -> OrganisationMetrics | None:
@@ -719,6 +732,58 @@ CATEGORY_SENSORS: tuple[EdpRadarCategorySensorEntityDescription, ...] = (
     ),
 )
 
+
+def _raw_list_sensor(
+    key: str, pick: Callable[[CountryRawMetrics], RawList]
+) -> EdpRadarRawSensorEntityDescription:
+    return EdpRadarRawSensorEntityDescription(
+        key=key,
+        translation_key=f"raw_{key}",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda r, fx: pick(r).count_30d,
+        attributes_fn=lambda r, fx: {
+            "notices": [notice_list_attributes(n, fx) for n in pick(r).latest]
+        },
+    )
+
+
+RAW_SENSORS: tuple[EdpRadarRawSensorEntityDescription, ...] = (
+    EdpRadarRawSensorEntityDescription(
+        key="notices_7d",
+        translation_key="raw_notices_7d",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda r, fx: r.notices_7d,
+        attributes_fn=lambda r, fx: {
+            "notices": [notice_list_attributes(n, fx) for n in r.latest]
+        },
+    ),
+    _raw_list_sensor("competitions_30d", lambda r: r.competitions),
+    _raw_list_sensor("results_30d", lambda r: r.results),
+    _raw_list_sensor("changes_30d", lambda r: r.changes),
+    _raw_list_sensor("planning_30d", lambda r: r.planning),
+    _raw_list_sensor("direct_awards_30d", lambda r: r.direct_awards),
+    _raw_list_sensor("modifications_30d", lambda r: r.modifications),
+    EdpRadarRawSensorEntityDescription(
+        key="stored_notices",
+        translation_key="raw_stored_notices",
+        value_fn=lambda r, fx: r.stored_notices,
+        attributes_fn=lambda r, fx: {
+            "stored_versions": r.stored_versions,
+            "by_stage": dict(r.by_stage),
+            "by_month": dict(r.by_month),
+            "by_category": dict(r.by_category),
+            "top_buyers": [
+                {
+                    "name": b.name,
+                    "identifiers": list(b.identifiers),
+                    "notices": b.notices,
+                }
+                for b in r.top_buyers
+            ],
+        },
+    ),
+)
+
 FRESHNESS = SensorEntityDescription(
     key="ted_data_last_updated",
     translation_key="ted_data_last_updated",
@@ -750,6 +815,11 @@ async def async_setup_entry(
         entities.extend(
             EdpRadarCategorySensor(coordinator, description, category_id, label)
             for description in CATEGORY_SENSORS
+        )
+    for country in config.metrics.raw_countries:
+        entities.extend(
+            EdpRadarRawSensor(coordinator, description, country)
+            for description in RAW_SENSORS
         )
     async_add_entities(entities)
 
@@ -797,8 +867,8 @@ class EdpRadarCategorySensor(EdpRadarEntity, SensorEntity):
             coordinator,
             description,
             DeviceKind.CATEGORY,
-            category_id=category_id,
-            category_label=category_label,
+            suffix=category_id,
+            label=category_label,
         )
         self._category_id = category_id
 
@@ -819,6 +889,47 @@ class EdpRadarCategorySensor(EdpRadarEntity, SensorEntity):
         if metrics is None or self.entity_description.attributes_fn is None:
             return None
         return self.entity_description.attributes_fn(metrics)
+
+
+class EdpRadarRawSensor(EdpRadarEntity, SensorEntity):
+    """A raw-data sensor for one buyer country."""
+
+    entity_description: EdpRadarRawSensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: EdpRadarCoordinator,
+        description: EdpRadarRawSensorEntityDescription,
+        country: str,
+    ) -> None:
+        super().__init__(
+            coordinator,
+            description,
+            DeviceKind.RAW,
+            suffix=country,
+            label=country_name(country),
+        )
+        self._country = country
+
+    def _metrics(self) -> CountryRawMetrics | None:
+        snapshot = self.snapshot
+        if snapshot is None:
+            return None
+        return snapshot.raw.get(self._country)
+
+    @property
+    def native_value(self) -> SensorValue:
+        metrics = self._metrics()
+        if metrics is None:
+            return None
+        return self.entity_description.value_fn(metrics, self.coordinator.store.fx)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        metrics = self._metrics()
+        if metrics is None:
+            return None
+        return self.entity_description.attributes_fn(metrics, self.coordinator.store.fx)
 
 
 class EdpRadarFreshnessSensor(EdpRadarEntity, SensorEntity):

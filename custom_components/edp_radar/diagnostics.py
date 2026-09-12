@@ -77,6 +77,7 @@ async def async_get_config_entry_diagnostics(
             "peer_organisations": sorted(metrics.peer_organisation_identifiers),
             "selected_country": metrics.selected_country,
             "pinned_categories": list(metrics.pinned_categories),
+            "raw_countries": list(metrics.raw_countries),
             "own_organisation": (
                 {
                     "identifiers": sorted(own.identifiers),

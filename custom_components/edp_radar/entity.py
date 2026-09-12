@@ -22,6 +22,7 @@ class DeviceKind(StrEnum):
     PEERS = "peers"
     SUPPLIERS = "suppliers"
     CATEGORY = "category"
+    RAW = "raw"
 
 
 DEVICE_NAMES: dict[DeviceKind, str] = {
@@ -37,13 +38,17 @@ def device_info(
     entry_id: str,
     kind: DeviceKind,
     *,
-    category_id: str | None = None,
-    category_label: str | None = None,
+    suffix: str | None = None,
+    label: str | None = None,
 ) -> DeviceInfo:
-    """One service device per analytics group; pinned categories get their own."""
+    """One service device per analytics group; categories and raw-data countries
+    get one device each, keyed by ``suffix`` (category id or country code)."""
     if kind is DeviceKind.CATEGORY:
-        key = f"{kind.value}_{category_id}"
-        name = f"Pinned Category: {category_label or category_id}"
+        key = f"{kind.value}_{suffix}"
+        name = f"Pinned Category: {label or suffix}"
+    elif kind is DeviceKind.RAW:
+        key = f"{kind.value}_{suffix}"
+        name = f"Raw Data: {label or suffix}"
     else:
         key = kind.value
         name = DEVICE_NAMES[kind]
@@ -68,19 +73,19 @@ class EdpRadarEntity(CoordinatorEntity[EdpRadarCoordinator]):
         description: EntityDescription,
         kind: DeviceKind,
         *,
-        category_id: str | None = None,
-        category_label: str | None = None,
+        suffix: str | None = None,
+        label: str | None = None,
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
         entry_id = coordinator.entry.entry_id
-        if category_id is not None:
-            self._attr_unique_id = f"{entry_id}_cat_{category_id}_{description.key}"
+        if kind is DeviceKind.CATEGORY:
+            self._attr_unique_id = f"{entry_id}_cat_{suffix}_{description.key}"
+        elif kind is DeviceKind.RAW:
+            self._attr_unique_id = f"{entry_id}_raw_{suffix}_{description.key}"
         else:
             self._attr_unique_id = f"{entry_id}_{description.key}"
-        self._attr_device_info = device_info(
-            entry_id, kind, category_id=category_id, category_label=category_label
-        )
+        self._attr_device_info = device_info(entry_id, kind, suffix=suffix, label=label)
 
     @property
     def snapshot(self) -> RadarSnapshot | None:

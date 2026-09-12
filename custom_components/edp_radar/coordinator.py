@@ -217,6 +217,7 @@ class EdpRadarCoordinator(DataUpdateCoordinator[RadarSnapshot]):
             self._bootstrap_retry = async_call_later(
                 self.hass, BOOTSTRAP_RETRY_SECONDS, self._async_retry_bootstrap
             )
+            self.async_update_listeners()  # the freshness sensor shows the error
             return
         self.last_ted_error = None
         # Nothing ingested during bootstrap is an event (plan §42).

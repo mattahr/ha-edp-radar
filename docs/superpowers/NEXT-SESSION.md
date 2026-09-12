@@ -1,9 +1,5 @@
 # Start-prompt för nästa session
 
-Kopiera texten nedan som första meddelande i en ny Claude Code-session i `/Users/mattias/source/ha-edp-radar`.
-
----
-
 Vi bygger Home Assistant-integrationen **ha-edp-radar** (domän `edp_radar`, European Defence Procurement Radar: TED Search API + ECB-valutakurser). Plan 1 (kärnbiblioteket) är klar, testad och pushad till `main`. Nu ska du genomföra **Plan 2 – Home Assistant-skalet**.
 
 ## Läs först, i denna ordning

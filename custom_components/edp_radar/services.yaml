@@ -1,0 +1,53 @@
+get_notices:
+  fields:
+    country:
+      example: SE
+      selector:
+        country:
+    stage:
+      selector:
+        select:
+          translation_key: stage
+          options:
+            - competition
+            - result
+            - planning
+            - direct_award
+            - modification
+            - change
+            - other
+    since:
+      selector:
+        date:
+    until:
+      selector:
+        date:
+    category:
+      selector:
+        select:
+          translation_key: category
+          options:
+            - air_missile_defence
+            - ammunition_explosives
+            - land_systems
+            - naval_maritime
+            - air_systems
+            - uas_cuas
+            - c4isr_communications
+            - sensors_radar_ew
+            - cyber_it
+            - space
+            - logistics_support
+            - defence_rd
+            - other_defence
+    buyer_identifier:
+      example: "202100-0340"
+      selector:
+        text:
+    limit:
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box

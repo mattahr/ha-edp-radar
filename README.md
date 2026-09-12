@@ -25,6 +25,7 @@ rates are public.
 | **Peer Comparison** *(optional)* | Competition metrics for a peer group of countries, the rank of one selected country, and own-vs-peer deltas |
 | **Supplier Landscape** | Top supplier group by award value and top-5 share (disabled by default) |
 | **Pinned Category: …** *(optional, one per category)* | Competitions and values for a strategic category you pin |
+| **Raw Data: …** *(optional, one per country)* | The latest notices of each kind for one buyer country, unaggregated, plus breakdowns of everything stored for it |
 
 ## Data sources and update cadence
 
@@ -77,11 +78,14 @@ affected devices appear or disappear).
    countries) and/or one selected country to rank inside the market.
 4. **Pinned categories** *(optional)* – strategic categories that get their own
    device.
-5. **Watchlist** *(optional)* – countries and minimum EUR values that make a
+5. **Raw data countries** *(optional)* – countries whose notices you want to
+   see one by one (see *Raw Data* below).
+6. **Watchlist** *(optional)* – countries and minimum EUR values that make a
    new notice fire the separate `watchlist_activity` event.
 
-The countries of the peer group, the selected organisation and the watchlist
-are always fetched, even when they lie outside the market.
+The countries of the peer group, the selected organisation, the raw-data
+devices and the watchlist are always fetched, even when they lie outside the
+market.
 
 ## Entities
 
@@ -147,6 +151,47 @@ could be attributed.
 
 Per pinned category: `Competitions 30 d`, `Competitions change` (%),
 `Estimated value 90 d`, `Estimated value change` (%) and `Award value 90 d`.
+
+### Raw Data: one device per selected country
+
+For people who want to see the notices themselves rather than sums. Each
+sensor's state is a count and its `notices` attribute lists the latest
+15 notices of that kind (newest first) with plain facts: `publication_number`,
+`publication_date`, `stage`, `is_change`, `title`, `buyer`, `buyer_identifier`,
+`estimated_value` / `estimated_currency` / `estimated_value_eur`,
+`result_value` / `result_currency` / `result_value_eur`, `is_framework`,
+`categories`, `winners`, `tenders` and `ted_url`. Central purchasing notices
+are included here (the raw view hides nothing).
+
+| Entity | State | `notices` attribute |
+| --- | --- | --- |
+| `Notices 7 d` | Notice versions published in the last 7 days | Latest 15 of any kind, changes included |
+| `Competitions 30 d`, `Results 30 d`, `Planning notices 30 d`, `Direct awards 30 d`, `Contract modifications 30 d` | Original notices of that kind published in the last 30 days | Latest 15 of that kind |
+| `Changes 30 d` | Change notices (corrigenda, cancellations, …) in the last 30 days | Latest 15 changes |
+| `Stored notices` | Notices stored for the country (whole retention window) | `stored_versions`, `by_stage`, `by_month`, `by_category`, `top_buyers` (20) |
+
+The lists are capped so the attributes stay under Home Assistant's 16 kB
+recorder limit. For everything else there is the action
+**`edp_radar.get_notices`** (Developer tools → Actions), which returns up to
+500 stored notices as JSON with every stored field (identifiers, CPV codes,
+legal basis, winners with identifiers, tender counts, selection statuses,
+decision dates, change reasons, framework ceilings, …):
+
+```yaml
+action: edp_radar.get_notices
+data:
+  country: SE          # optional, alpha-2
+  stage: competition   # optional: competition, result, planning, direct_award, modification, change, other
+  since: "2026-08-01"  # optional, inclusive
+  until: "2026-09-12"  # optional, inclusive
+  category: cyber_it   # optional strategic category id
+  buyer_identifier: "202100-0340"  # optional
+  limit: 200           # 1–500, default 100
+```
+
+The response is `{count, returned, notices: [...]}`, newest first, restricted to
+the configured relevance mode. Use it from a script with `response_variable`
+or from a template.
 
 ### Events
 
@@ -256,6 +301,18 @@ content: >
 
 **Peer comparison** – an entities card with the own, peer and delta sensors
 side by side; the dashboard, not the integration, draws the conclusion.
+
+**Raw notices** – a Markdown card over a raw-data sensor's `notices` attribute:
+
+```yaml
+type: markdown
+title: Latest Swedish competitions
+content: >
+  {% for n in state_attr('sensor.raw_data_sweden_competitions_30_d', 'notices') or [] %}
+  - **{{ n.publication_date }}** [{{ n.title }}]({{ n.ted_url }}) — {{ n.buyer }}
+    {% if n.estimated_value_eur %}· EUR {{ '%.1f' | format(n.estimated_value_eur / 1e6) }}m{% endif %}
+  {% endfor %}
+```
 
 ## Development
 

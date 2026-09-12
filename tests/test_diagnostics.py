@@ -49,6 +49,7 @@ async def test_diagnostics_shape(
     assert config["peer_countries"] == ["DK", "FI", "IS", "NO", "SE"]
     assert config["selected_country"] == "ES"
     assert config["pinned_categories"] == ["land_systems", "logistics_support"]
+    assert config["raw_countries"] == ["SE"]
     assert config["own_organisation"] == {
         "identifiers": ["2021005182"],
         "country": "SE",

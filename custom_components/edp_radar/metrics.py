@@ -20,6 +20,8 @@ from .const import (
     GROWTH_MIN_VALUE_EUR,
     MATCH_DEFENCE_BUYER,
     RANKING_LIMIT,
+    RAW_BUYERS_LIMIT,
+    RAW_LIST_LIMIT,
     RECENT_ITEMS_LIMIT,
     RelevanceMode,
 )
@@ -88,6 +90,7 @@ class MetricsConfig:
     peer_organisation_identifiers: frozenset[str] = frozenset()
     selected_country: str | None = None
     pinned_categories: tuple[str, ...] = ()
+    raw_countries: tuple[str, ...] = ()
     watchlist: WatchlistConfig = field(default_factory=WatchlistConfig)
 
 
@@ -389,6 +392,42 @@ class CategoryMetrics:
 
 
 @dataclass(frozen=True)
+class RawList:
+    """One kind of notice for the raw-data device: window count + latest N."""
+
+    count_30d: int
+    latest: tuple[ProcurementNotice, ...]
+
+
+@dataclass(frozen=True)
+class BuyerCount:
+    name: str | None
+    identifiers: tuple[str, ...]
+    notices: int
+
+
+@dataclass(frozen=True)
+class CountryRawMetrics:
+    """What TED published for one buyer country, without aggregation."""
+
+    country: str
+    notices_7d: int
+    latest: tuple[ProcurementNotice, ...]
+    competitions: RawList
+    results: RawList
+    changes: RawList
+    planning: RawList
+    direct_awards: RawList
+    modifications: RawList
+    stored_versions: int
+    stored_notices: int
+    by_stage: Mapping[str, int]
+    by_month: Mapping[str, int]
+    by_category: Mapping[str, int]
+    top_buyers: tuple[BuyerCount, ...]
+
+
+@dataclass(frozen=True)
 class DataQualityMetrics:
     stored_versions: int
     stored_notices: int
@@ -419,6 +458,7 @@ class RadarSnapshot:
     peers: PeerMetrics | None
     suppliers: SupplierMetrics
     categories: Mapping[str, CategoryMetrics]
+    raw: Mapping[str, CountryRawMetrics]
     quality: DataQualityMetrics
     bootstrap_complete: bool
 
@@ -1014,6 +1054,99 @@ def category_metrics(
     )
 
 
+# --------------------------------------------------------------------------- raw
+
+
+def _newest_first(notices: Iterable[ProcurementNotice]) -> list[ProcurementNotice]:
+    return sorted(
+        notices,
+        key=lambda n: (n.publication_date, n.notice_version, n.notice_id),
+        reverse=True,
+    )
+
+
+def _raw_list(notices: Sequence[ProcurementNotice], window: Window) -> RawList:
+    ordered = _newest_first(notices)
+    return RawList(
+        sum(1 for n in ordered if window.contains(n.publication_date)),
+        tuple(ordered[:RAW_LIST_LIMIT]),
+    )
+
+
+def _buyer_counts(notices: Iterable[ProcurementNotice]) -> tuple[BuyerCount, ...]:
+    groups: dict[str, tuple[str | None, tuple[str, ...], int]] = {}
+    for notice in notices:
+        buyer = notice.buyer
+        key = (
+            buyer.identifiers[0]
+            if buyer.identifiers
+            else normalize_name(buyer.name or "")
+        )
+        if not key:
+            continue
+        name, identifiers, count = groups.get(key, (buyer.name, buyer.identifiers, 0))
+        groups[key] = (name or buyer.name, identifiers or buyer.identifiers, count + 1)
+    ordered = sorted(groups.values(), key=lambda g: (-g[2], g[0] or ""))
+    return tuple(BuyerCount(n, i, c) for n, i, c in ordered[:RAW_BUYERS_LIMIT])
+
+
+def country_raw_metrics(
+    country: str,
+    notices: Iterable[ProcurementNotice],
+    fx: FxRateTable,
+    today: date,
+    mode: RelevanceMode,
+    taxonomy: Taxonomy,
+) -> CountryRawMetrics:
+    """Everything stored for one buyer country in the configured universe.
+
+    Central purchasing notices are kept (the raw view hides nothing); the
+    attribute converter flags them.
+    """
+    versions = [
+        n
+        for n in notices
+        if n.buyer.country == country and taxonomy.is_relevant(n.match_reasons, mode)
+    ]
+    index = ProcedureIndex.build(versions)
+    latest = index.notices
+    originals = [n for n in latest if not n.is_change]
+    month = current_window(today, 30)
+
+    def stage(kind: NoticeStage) -> RawList:
+        return _raw_list([n for n in originals if n.stage is kind], month)
+
+    return CountryRawMetrics(
+        country=country,
+        notices_7d=sum(
+            1 for n in versions if current_window(today, 7).contains(n.publication_date)
+        ),
+        latest=tuple(_newest_first(versions)[:RAW_LIST_LIMIT]),
+        competitions=stage(NoticeStage.COMPETITION),
+        results=stage(NoticeStage.RESULT),
+        changes=_raw_list(index.changes, month),
+        planning=stage(NoticeStage.PLANNING),
+        direct_awards=stage(NoticeStage.DIRECT_AWARD),
+        modifications=stage(NoticeStage.MODIFICATION),
+        stored_versions=len(versions),
+        stored_notices=len(latest),
+        by_stage=dict(sorted(Counter(n.stage.value for n in latest).items())),
+        by_month=dict(
+            sorted(
+                Counter(n.publication_date.strftime("%Y-%m") for n in latest).items()
+            )
+        ),
+        by_category=dict(
+            sorted(
+                Counter(
+                    c for n in latest for c in (n.categories or ("unclassified",))
+                ).items()
+            )
+        ),
+        top_buyers=_buyer_counts(latest),
+    )
+
+
 # --------------------------------------------------------------------------- quality
 
 
@@ -1130,6 +1263,12 @@ def compute_snapshot(
             )
             for category_id in config.pinned_categories
         },
+        raw={
+            country: country_raw_metrics(
+                country, all_notices, fx, today, config.relevance_mode, taxonomy
+            )
+            for country in config.raw_countries
+        },
         quality=data_quality(
             all_notices, relevant, excluded, parse_errors, fx, index_all
         ),
@@ -1184,6 +1323,82 @@ def notice_event_attributes(
         "match_reasons": sorted(notice.match_reasons),
         "source_url": notice.source_url,
     }
+
+
+def notice_raw_attributes(notice: ProcurementNotice, fx: FxRateTable) -> dict[str, Any]:
+    """Every stored fact about one notice version, for the raw-data device."""
+    attrs = notice_event_attributes(notice, fx)
+    stats = notice.tender_statistics
+    framework = notice.framework_value
+    change = notice.change
+    attrs.update(
+        {
+            "notice_type": notice.notice_type,
+            "notice_subtype": notice.notice_subtype,
+            "buyer_identifiers": list(notice.buyer.identifiers),
+            "buyer_count": notice.buyer.count,
+            "buyer_legal_type": notice.buyer.legal_type,
+            "procedure_type": notice.procedure_type,
+            "contract_nature": list(notice.contract_nature),
+            "legal_basis": list(notice.legal_basis),
+            "cpv_codes": list(notice.cpv_codes),
+            "is_framework": notice.is_framework,
+            "framework_value": _float(framework.amount) if framework else None,
+            "framework_currency": framework.currency if framework else None,
+            "winners": [
+                {
+                    "name": w.name,
+                    "identifier": w.identifier,
+                    "country": w.country,
+                    "size": w.size,
+                }
+                for w in notice.winners
+            ],
+            "tenders": list(stats.tender_counts) if stats else [],
+            "selection_statuses": list(stats.selection_statuses) if stats else [],
+            "decision_dates": (
+                [d.isoformat() for d in stats.decision_dates] if stats else []
+            ),
+            "change_reason": change.reason_code if change else None,
+            "changed_notice_id": change.changed_notice_id if change else None,
+            "central_purchasing": is_central_purchasing_only(notice),
+            "ted_url": attrs.pop("source_url"),
+        }
+    )
+    return attrs
+
+
+LIST_ATTRIBUTE_KEYS = (
+    "publication_number",
+    "publication_date",
+    "stage",
+    "is_change",
+    "title",
+    "buyer",
+    "estimated_value",
+    "estimated_currency",
+    "estimated_value_eur",
+    "result_value",
+    "result_currency",
+    "result_value_eur",
+    "is_framework",
+    "categories",
+    "tenders",
+    "ted_url",
+)
+
+
+def notice_list_attributes(
+    notice: ProcurementNotice, fx: FxRateTable
+) -> dict[str, Any]:
+    """Compact facts for entity attribute lists (recorder caps attributes at 16 kB)."""
+    raw = notice_raw_attributes(notice, fx)
+    compact = {key: raw[key] for key in LIST_ATTRIBUTE_KEYS}
+    compact["buyer_identifier"] = (
+        notice.buyer.identifiers[0] if notice.buyer.identifiers else None
+    )
+    compact["winners"] = [w.name for w in notice.winners]
+    return compact
 
 
 def watchlist_matches(

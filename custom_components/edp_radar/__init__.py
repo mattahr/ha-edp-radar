@@ -4,16 +4,27 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import ConfigType
 
 from .api import TedApiClient
 from .config import RadarConfig
+from .const import DOMAIN
 from .coordinator import EdpRadarConfigEntry, EdpRadarCoordinator
 from .fx import EcbFxClient
+from .services import async_setup_services
 from .storage import RadarStore
 from .taxonomy import Taxonomy
 
 PLATFORMS = [Platform.SENSOR, Platform.EVENT]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register actions; everything else lives in the config entry."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) -> bool:

@@ -25,6 +25,7 @@ from custom_components.edp_radar.const import (
     CONF_OWN_ORGANISATION,
     CONF_PEER_PRESET,
     CONF_PINNED_CATEGORIES,
+    CONF_RAW_COUNTRIES,
     CONF_SELECTED_COUNTRY,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
@@ -44,6 +45,7 @@ FULL_OPTIONS = {
     CONF_PEER_PRESET: "nordic",
     CONF_SELECTED_COUNTRY: "ES",
     CONF_PINNED_CATEGORIES: ["land_systems", "logistics_support"],
+    CONF_RAW_COUNTRIES: ["SE"],
 }
 
 DISABLED_BY_DEFAULT = (
@@ -372,3 +374,77 @@ async def test_scheduled_refresh_updates_sensors(
 
     assert get_state(hass, "market_new_competitions_30d").state == "6"
     assert get_state(hass, "external_new_competitions_7d").state == "6"
+
+
+async def test_raw_data_device_for_a_country(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    entry = MockConfigEntry(
+        domain=DOMAIN, entry_id=ENTRY, unique_id=DOMAIN, data={}, options=FULL_OPTIONS
+    )
+    await setup_entry(hass, entry)
+
+    registry = dr.async_get(hass)
+    device = registry.async_get_device_by_identifier((DOMAIN, f"{ENTRY}_raw_SE"), ENTRY)
+    assert device is not None and device.name == "Raw Data: Sweden"
+
+    results = get_state(hass, "raw_SE_results_30d")
+    assert results.state == "1"
+    assert results.attributes["friendly_name"] == "Raw Data: Sweden Results 30 d"
+    (notice,) = results.attributes["notices"]
+    assert notice["publication_number"] == "626862-2026"
+    assert notice["publication_date"] == "2026-09-11"
+    assert notice["stage"] == "result"
+    assert notice["buyer"] == "Totalförsvarets Forskningsinstitut, Foi"
+    assert notice["buyer_identifier"] == "2021005182"
+    assert notice["estimated_value"] == 6000000.0
+    assert notice["estimated_currency"] == "SEK"
+    assert notice["estimated_value_eur"] is not None
+    assert notice["result_value"] is None
+    assert notice["ted_url"] == "https://ted.europa.eu/en/notice/-/detail/626862-2026"
+    assert set(notice) == {
+        "publication_number",
+        "publication_date",
+        "stage",
+        "is_change",
+        "title",
+        "buyer",
+        "buyer_identifier",
+        "estimated_value",
+        "estimated_currency",
+        "estimated_value_eur",
+        "result_value",
+        "result_currency",
+        "result_value_eur",
+        "is_framework",
+        "categories",
+        "winners",
+        "tenders",
+        "ted_url",
+    }
+
+    assert get_state(hass, "raw_SE_notices_7d").state == "1"
+    assert get_state(hass, "raw_SE_notices_7d").attributes["notices"] == [notice]
+    competitions = get_state(hass, "raw_SE_competitions_30d")
+    assert competitions.state == "0"
+    assert competitions.attributes["notices"] == []
+    for key in ("changes", "planning", "direct_awards", "modifications"):
+        assert get_state(hass, f"raw_SE_{key}_30d").state == "0"
+
+    stored = get_state(hass, "raw_SE_stored_notices")
+    assert stored.state == "1"
+    assert stored.attributes["stored_versions"] == 1
+    assert stored.attributes["by_stage"] == {"result": 1}
+    assert stored.attributes["by_month"] == {"2026-09": 1}
+    assert stored.attributes["by_category"] == {"unclassified": 1}
+    assert stored.attributes["top_buyers"] == [
+        {
+            "name": "Totalförsvarets Forskningsinstitut, Foi",
+            "identifiers": ["2021005182"],
+            "notices": 1,
+        }
+    ]
+    assert entity_id(hass, "raw_FI_stored_notices") is None

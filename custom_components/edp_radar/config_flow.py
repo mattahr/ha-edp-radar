@@ -53,6 +53,7 @@ from .const import (
     CONF_PEER_COUNTRIES,
     CONF_PEER_PRESET,
     CONF_PINNED_CATEGORIES,
+    CONF_RAW_COUNTRIES,
     CONF_RELEVANCE_MODE,
     CONF_SELECTED_COUNTRY,
     CONF_WATCHLIST_COUNTRIES,
@@ -305,6 +306,12 @@ def categories_schema(taxonomy: Taxonomy) -> vol.Schema:
     )
 
 
+def raw_data_schema() -> vol.Schema:
+    return vol.Schema(
+        {vol.Optional(CONF_RAW_COUNTRIES, default=[]): _multi_countries()}
+    )
+
+
 def watchlist_schema() -> vol.Schema:
     return vol.Schema(
         {
@@ -468,11 +475,19 @@ class EdpRadarConfigFlow(OrganisationStepsMixin, ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         if user_input is not None:
             self._options.update(user_input)
-            return await self.async_step_watchlist()
+            return await self.async_step_raw_data()
         return self.async_show_form(
             step_id="categories",
             data_schema=categories_schema(await self._async_taxonomy()),
         )
+
+    async def async_step_raw_data(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._options.update(user_input)
+            return await self.async_step_watchlist()
+        return self.async_show_form(step_id="raw_data", data_schema=raw_data_schema())
 
     async def async_step_watchlist(
         self, user_input: dict[str, Any] | None = None
@@ -535,6 +550,7 @@ class EdpRadarOptionsFlow(OrganisationStepsMixin, OptionsFlow):
                 "organisation",
                 "peers",
                 "categories",
+                "raw_data",
                 "watchlist",
             ],
         )
@@ -621,6 +637,18 @@ class EdpRadarOptionsFlow(OrganisationStepsMixin, OptionsFlow):
             step_id="categories",
             data_schema=self.add_suggested_values_to_schema(
                 categories_schema(await self._async_taxonomy()), self.options
+            ),
+        )
+
+    async def async_step_raw_data(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._finish((CONF_RAW_COUNTRIES,), user_input)
+        return self.async_show_form(
+            step_id="raw_data",
+            data_schema=self.add_suggested_values_to_schema(
+                raw_data_schema(), self.options
             ),
         )
 

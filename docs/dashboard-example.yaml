@@ -102,6 +102,41 @@ views:
             secondary_info: attribute
             attribute: procedure_link_coverage_pct
 
+  # Raw data device (only when a raw-data country is configured).
+  - title: Sweden raw
+    path: sweden-raw
+    cards:
+      - type: entities
+        title: Sweden – counts
+        entities:
+          - sensor.raw_data_sweden_notices_7_d
+          - sensor.raw_data_sweden_competitions_30_d
+          - sensor.raw_data_sweden_results_30_d
+          - sensor.raw_data_sweden_changes_30_d
+          - sensor.raw_data_sweden_stored_notices
+      - type: markdown
+        title: Latest Swedish competitions
+        content: >
+          {% for n in state_attr('sensor.raw_data_sweden_competitions_30_d', 'notices') or [] %}
+          - **{{ n.publication_date }}** [{{ n.title }}]({{ n.ted_url }}) — {{ n.buyer }}
+            {% if n.estimated_value_eur %}· EUR {{ '%.1f' | format(n.estimated_value_eur / 1e6) }}m{% endif %}
+          {% endfor %}
+      - type: markdown
+        title: Latest Swedish results
+        content: >
+          {% for n in state_attr('sensor.raw_data_sweden_results_30_d', 'notices') or [] %}
+          - **{{ n.publication_date }}** [{{ n.title }}]({{ n.ted_url }}) — {{ n.buyer }}
+            {% if n.winners %}→ {{ n.winners | join(', ') }}{% endif %}
+            {% if n.result_value_eur %}· EUR {{ '%.1f' | format(n.result_value_eur / 1e6) }}m{% endif %}
+            {% if n.tenders %}· {{ n.tenders | join('/') }} tenders{% endif %}
+          {% endfor %}
+      - type: markdown
+        title: Buyers with most stored notices
+        content: >
+          {% for b in state_attr('sensor.raw_data_sweden_stored_notices', 'top_buyers') or [] %}
+          - {{ b.name }} ({{ b.identifiers | join(', ') }}): {{ b.notices }}
+          {% endfor %}
+
   # 26.5 / 26.6 Public footprint and peer comparison (only when configured).
   - title: Organisation
     path: organisation

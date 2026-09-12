@@ -836,3 +836,180 @@ def test_watchlist_matching() -> None:
     assert watchlist_matches(comp, bigger, FX) is False
     awarded = WatchlistConfig(min_award_value_eur=Decimal("1"))
     assert watchlist_matches(comp, awarded, FX) is False
+
+
+# --------------------------------------------------------------------------- raw
+
+import json  # noqa: E402
+from typing import Any  # noqa: E402
+
+from custom_components.edp_radar.const import RAW_LIST_LIMIT  # noqa: E402
+from custom_components.edp_radar.metrics import (  # noqa: E402
+    BuyerCount,
+    country_raw_metrics,
+    notice_list_attributes,
+    notice_raw_attributes,
+)
+from custom_components.edp_radar.normalizer import normalize_many  # noqa: E402
+
+
+def test_notice_raw_attributes_are_plain_facts() -> None:
+    res = result(
+        "r",
+        "p",
+        TODAY,
+        value=Money(Decimal("2000"), "SEK"),
+        tenders=(3, 1),
+        winners=(Winner("Saab", "556036-0793", "SE", "large"),),
+        decision_dates=(days_ago(TODAY, 5),),
+        source_url="https://ted.europa.eu/en/notice/-/detail/r-1",
+    )
+    attrs = notice_raw_attributes(res, FX)
+    assert attrs["publication_number"] == "r-1"
+    assert attrs["notice_id"] == "r" and attrs["notice_version"] == 1
+    assert attrs["stage"] == "result" and attrs["notice_type"] == "cn-standard"
+    assert attrs["publication_date"] == TODAY.isoformat()
+    assert attrs["buyer"] == "FMV"
+    assert attrs["buyer_identifiers"] == ["202100-0340"]
+    assert attrs["buyer_country"] == "SE" and attrs["buyer_count"] == 1
+    assert attrs["procedure_id"] == "p" and attrs["procedure_type"] == "open"
+    assert attrs["cpv_codes"] == ["35400000"]
+    assert attrs["categories"] == ["land_systems"]
+    assert attrs["estimated_value"] is None
+    assert attrs["result_value"] == 2000.0
+    assert attrs["result_currency"] == "SEK"
+    assert attrs["result_value_eur"] == 200.0
+    assert attrs["is_framework"] is False and attrs["framework_value"] is None
+    assert attrs["winners"] == [
+        {"name": "Saab", "identifier": "556036-0793", "country": "SE", "size": "large"}
+    ]
+    assert attrs["tenders"] == [3, 1]
+    assert attrs["selection_statuses"] == ["selec-w", "selec-w"]
+    assert attrs["decision_dates"] == [days_ago(TODAY, 5).isoformat()]
+    assert attrs["is_change"] is False and attrs["change_reason"] is None
+    assert attrs["central_purchasing"] is False
+    assert attrs["match_reasons"] == ["defence_buyer"]
+    assert attrs["ted_url"] == "https://ted.europa.eu/en/notice/-/detail/r-1"
+
+    changed = change_of(res, published=TODAY, notice_id="r2", reason="cor-buy")
+    attrs = notice_raw_attributes(changed, FX)
+    assert attrs["is_change"] is True
+    assert attrs["change_reason"] == "cor-buy"
+    assert attrs["changed_notice_id"] == "r"
+
+
+def test_country_raw_metrics_lists_latest_per_stage(taxonomy: Taxonomy) -> None:
+    se_new = competition("c1", "p1", days_ago(TODAY, 1))
+    se_old = competition("c2", "p2", days_ago(TODAY, 40))
+    se_change = change_of(se_new, published=TODAY, notice_id="c1-chg")
+    se_result = result("r1", "p2", days_ago(TODAY, 3), tenders=(2,))
+    se_planning = make_notice(
+        notice_id="pl", stage=NoticeStage.PLANNING, publication_date=days_ago(TODAY, 5)
+    )
+    se_cpb = make_notice(
+        notice_id="cpb",
+        buyer=buyer("Kammarkollegiet", "SE", "202100-0829", count=300),
+        publication_date=days_ago(TODAY, 2),
+    )
+    de = competition("de", "p-de", days_ago(TODAY, 1), buyer=buyer("BAAINBw", "DE"))
+    foi = competition(
+        "foi", "p-foi", days_ago(TODAY, 10), buyer=buyer("FOI", "SE", "2021005182")
+    )
+    notices = [se_new, se_old, se_change, se_result, se_planning, se_cpb, de, foi]
+
+    raw = country_raw_metrics("SE", notices, FX, TODAY, RelevanceMode.STRICT, taxonomy)
+    assert raw.country == "SE"
+    assert raw.stored_versions == 7 and raw.stored_notices == 7
+    # newest first, all stages and changes included
+    assert [n.notice_id for n in raw.latest] == [
+        "c1-chg",
+        "c1",
+        "cpb",
+        "r1",
+        "pl",
+        "foi",
+        "c2",
+    ]
+    assert raw.notices_7d == 5
+    assert raw.competitions.count_30d == 3  # c1, cpb, foi
+    assert [n.notice_id for n in raw.competitions.latest] == ["c1", "cpb", "foi", "c2"]
+    assert raw.results.count_30d == 1
+    assert [n.notice_id for n in raw.results.latest] == ["r1"]
+    assert raw.changes.count_30d == 1
+    assert [n.notice_id for n in raw.changes.latest] == ["c1-chg"]
+    assert raw.planning.count_30d == 1
+    assert raw.direct_awards.count_30d == 0 and raw.direct_awards.latest == ()
+    assert raw.modifications.count_30d == 0
+    assert raw.by_stage == {"competition": 5, "planning": 1, "result": 1}
+    assert raw.by_month == {"2026-08": 1, "2026-09": 6}
+    assert raw.by_category == {"land_systems": 7}
+    assert raw.top_buyers == (
+        BuyerCount("FMV", ("202100-0340",), 5),
+        BuyerCount("FOI", ("2021005182",), 1),
+        BuyerCount("Kammarkollegiet", ("202100-0829",), 1),
+    )
+
+
+def test_country_raw_metrics_caps_lists(taxonomy: Taxonomy) -> None:
+    notices = [
+        competition(f"c{i}", f"p{i}", days_ago(TODAY, i))
+        for i in range(RAW_LIST_LIMIT + 5)
+    ]
+    raw = country_raw_metrics("SE", notices, FX, TODAY, RelevanceMode.STRICT, taxonomy)
+    assert len(raw.latest) == RAW_LIST_LIMIT
+    assert len(raw.competitions.latest) == RAW_LIST_LIMIT
+    assert raw.competitions.count_30d == RAW_LIST_LIMIT + 5
+    assert raw.stored_notices == RAW_LIST_LIMIT + 5
+
+
+def test_snapshot_computes_raw_countries(taxonomy: Taxonomy) -> None:
+    notices = [competition("c", "p", days_ago(TODAY, 1))]
+    config = MetricsConfig(market_countries=frozenset({"DE"}), raw_countries=("SE",))
+    snapshot = compute_snapshot(notices, FX, config, TODAY, taxonomy=taxonomy)
+    assert list(snapshot.raw) == ["SE"]
+    assert snapshot.raw["SE"].competitions.count_30d == 1
+    assert snapshot.market.new_competitions_30d.value == 0
+
+
+def test_notice_list_attributes_are_compact() -> None:
+    res = result(
+        "r",
+        "p",
+        TODAY,
+        value=Money(Decimal("2000"), "SEK"),
+        tenders=(3,),
+        winners=(Winner("Saab", "556036-0793", "SE", "large"),),
+    )
+    attrs = notice_list_attributes(res, FX)
+    assert attrs == {
+        "publication_number": "r-1",
+        "publication_date": TODAY.isoformat(),
+        "stage": "result",
+        "is_change": False,
+        "title": "Title",
+        "buyer": "FMV",
+        "buyer_identifier": "202100-0340",
+        "estimated_value": None,
+        "estimated_currency": None,
+        "estimated_value_eur": None,
+        "result_value": 2000.0,
+        "result_currency": "SEK",
+        "result_value_eur": 200.0,
+        "is_framework": False,
+        "categories": ["land_systems"],
+        "winners": ["Saab"],
+        "tenders": [3],
+        "ted_url": None,
+    }
+
+
+def test_list_attributes_fit_the_recorder_limit(
+    real_notices: list[dict[str, Any]], taxonomy: Taxonomy
+) -> None:
+    """RAW_LIST_LIMIT compact entries must stay well under HA's 16 kB cap."""
+    notices, _ = normalize_many(real_notices, taxonomy)
+    largest = max(
+        len(json.dumps(notice_list_attributes(n, FX), ensure_ascii=False).encode())
+        for n in notices
+    )
+    assert largest * RAW_LIST_LIMIT < 14_000

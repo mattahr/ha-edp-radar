@@ -15,6 +15,7 @@ from custom_components.edp_radar.const import (
     CONF_PEER_COUNTRIES,
     CONF_PEER_PRESET,
     CONF_PINNED_CATEGORIES,
+    CONF_RAW_COUNTRIES,
     CONF_RELEVANCE_MODE,
     CONF_SELECTED_COUNTRY,
     CONF_WATCHLIST_COUNTRIES,
@@ -53,6 +54,7 @@ def test_full_options() -> None:
             CONF_PEER_PRESET: "nordic",
             CONF_SELECTED_COUNTRY: "SE",
             CONF_PINNED_CATEGORIES: ["land_systems"],
+            CONF_RAW_COUNTRIES: ["se", "FI"],
             CONF_WATCHLIST_COUNTRIES: ["PL"],
             CONF_WATCHLIST_MIN_ESTIMATED_EUR: 500000000,
         }
@@ -65,6 +67,7 @@ def test_full_options() -> None:
     assert config.metrics.peer_countries == NORDIC_COUNTRIES
     assert config.metrics.selected_country == "SE"
     assert config.metrics.pinned_categories == ("land_systems",)
+    assert config.metrics.raw_countries == ("SE", "FI")
     assert config.metrics.watchlist.countries == frozenset({"PL"})
     assert config.metrics.watchlist.min_estimated_value_eur == Decimal("500000000")
     assert config.metrics.watchlist.min_award_value_eur is None
@@ -91,15 +94,16 @@ def test_custom_peers_and_query() -> None:
     assert query.endswith("AND (buyer-country IN (DNK FIN ISL NOR POL SWE))")
 
 
-def test_query_countries_include_own_organisation_and_watchlist() -> None:
+def test_query_countries_include_own_organisation_watchlist_and_raw() -> None:
     config = RadarConfig.from_options(
         {
             CONF_MARKET_PRESET: "nordic",
             CONF_OWN_ORGANISATION: {CONF_OWN_COUNTRY: "DE", CONF_OWN_NAME: "BAAINBw"},
             CONF_WATCHLIST_COUNTRIES: ["FR"],
+            CONF_RAW_COUNTRIES: ["PL"],
         }
     )
-    assert config.query_countries == NORDIC_COUNTRIES | {"DE", "FR"}
+    assert config.query_countries == NORDIC_COUNTRIES | {"DE", "FR", "PL"}
 
 
 def test_ted_preset_has_no_country_filter() -> None:
