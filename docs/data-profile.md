@@ -1,6 +1,6 @@
 # TED data profile — strict mode, last 90 days
 
-Generated 2026-09-12T17:25:18+00:00 by `scripts/data_profile.py` (taxonomy 2026.09.1/2026.09.1). Countries: all.
+Generated 2026-09-12T17:32:39+00:00 by `scripts/data_profile.py` (taxonomy 2026.09.1/2026.09.1). Countries: all.
 
 ## Volume
 
@@ -90,8 +90,8 @@ Generated 2026-09-12T17:25:18+00:00 by `scripts/data_profile.py` (taxonomy 2026.
 | --- | --- |
 | procedure-id coverage (latest versions) | 98.3% |
 | buyer-identifier coverage | 98.3% |
-| competitions with estimated value | 1033/2193 (47.1%) |
-| … convertible to EUR | 1031/2193 (47.0%) |
+| competitions with estimated value | 1094/2324 (47.1%) |
+| … convertible to EUR | 1092/2324 (47.0%) |
 | results with result value | 1511/2819 (53.6%) |
 | … convertible to EUR | 1449/2819 (51.4%) |
 | results with winners | 2540/2819 |
@@ -212,17 +212,17 @@ Generated 2026-09-12T17:25:18+00:00 by `scripts/data_profile.py` (taxonomy 2026.
 
 | metric | value |
 | --- | --- |
-| new competitions 30d / previous | 628 / 717 |
-| estimated value 30d | EUR 3.8bn (coverage 43.5%) |
+| new competitions 30d / previous | 629 / 724 |
+| estimated value 30d | EUR 3.8bn (coverage 43.6%) |
 | award value 30d | EUR 1.7bn (coverage 57.7%) |
 | top country 90d | PL |
 | top category 90d | Cyber & IT |
 | median tenders 365d | 2.0 (n=5719) |
 | single-bid share 365d | 31.3% |
-| median public time to result 365d | 55.5 days (n=112) |
+| median public time to result 365d | 55.0 days (n=114) |
 | non-award share 365d | 14.4% |
-| snapshot text | 2163 competitions / 90d · EUR 23.3bn |
-| country ranking text | PL EUR 14.7bn · NO EUR 2.1bn · CZ EUR 1.5bn · ES EUR 1.2bn · SE EUR 774m |
+| snapshot text | 2191 competitions / 90d · EUR 26.1bn |
+| country ranking text | PL EUR 14.7bn · FR EUR 3.4bn · NO EUR 2.1bn · CZ EUR 1.5bn · ES EUR 1.2bn |
 | external latest text | ES · Air systems · EUR 11m · published 2026-09-11 |
 | top supplier 365d | WB Electronics S.A. |
 | supplier top-5 share | 56.5% |

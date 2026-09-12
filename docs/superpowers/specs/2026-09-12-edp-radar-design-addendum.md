@@ -104,6 +104,10 @@ Numbered so the implementation plan and code comments can reference them (`D1`, 
 
 **D24 — Lots without tenders carry no submission statistics.** Non-awarded lots (`clos-nw` with `no-rece`) have no `received-submissions` entries, so the single-bid and median-tender denominators contain awarded lots only, while the non-award share uses `winner-selection-status` per lot (`clos-nw` / (`clos-nw` + `selec-w`); `open-nw` lots are undecided and excluded).
 
+**D25 — Stale data beats unavailable.** When an incremental refresh fails (TED 429/5xx/timeout) and the store already holds notices, the coordinator logs the error, records it as `last_ted_error` (diagnostics and the freshness sensor expose it) and returns the snapshot computed from stored data, so entities stay available. `UpdateFailed` is raised only when nothing is stored yet. This is the reading of plan §43 that keeps "existing entity state available".
+
+**D26 — TED serves only the latest notice version.** In the 400-day sample 721 of 748 notices with `notice-version > 1` have no earlier version in the results: an amended notice replaces its predecessor in the search index. A stored version above 1 therefore implies a real original that is no longer retrievable. `ProcedureIndex` treats such notice ids as originals (the change published as a *new* notice always has version 1 and stays a change) and uses the lowest stored version's publication date as the first-publication approximation. Without this rule ~7 % of competitions (those amended before bootstrap) would never be counted. Republished notices can also reuse the same version number with a later date; the store keeps the last one seen per `(notice_id, version)`.
+
 ---
 
 ## 3. Layering (unchanged from the plan, made explicit)
@@ -134,7 +138,9 @@ Measured on 6 138 strict-mode notices from the last 90 days (`docs/data-profile.
 
 - **56 % of relevant notices get no strategic category** with CPV-only rules. The unclassified mass is construction (CPV 45, 44, 71), furniture (39), medical (33), cleaning/environment (90), agriculture (03) and business services (79) bought by defence buyers. Options: leave unclassified (current; the share is reported), add an "Infrastructure & facilities" category (45/44/71/90), or add keyword rules later. No change is made without a decision.
 - **Estimated-value coverage is 47 %** for competitions and **award-value coverage 54 %** for results (after excluding frameworks). Every value sensor exposes its coverage, as the plan requires.
-- **Only 5 % of results link to a competition inside a 90-day window**; the 400-day profile (`docs/data-profile-400d.md`) is the one that matters for the public time-to-result metric.
+- **Public time to result** is measurable: in the 400-day profile (`docs/data-profile-400d.md`, 25 750 notices) 41 % of results link to a competition, giving a median of 102 days on n = 3 714 (only 5 % / 55 days in the 90-day window). Bid-count coverage is 82–88 %, selection statuses 99.9 %: the competition metrics ship enabled (D18 confirmed).
+- **Supplier landscape is dominated by fuel**: the top supplier over 365 days is ORLEN S.A. and the top-5 share is 88 %, because fuel frameworks/awards by defence buyers are huge. A per-category supplier view is a candidate follow-up; for now the sensor states the fact and its coverage.
+- **Broad mode adds only ~7 %** of notices (441 CPV-only hits in 90 days), mostly land systems, ammunition and defence R&D.
 - **Poland dominates estimated value** (EUR 14.7 bn of EUR 23.3 bn in 90 days). This is what TED reports; the ranking attributes show it explicitly.
 
 ## 5. Deferred (explicitly out of the first release)

@@ -55,6 +55,19 @@ def test_change_published_as_new_id_never_starts_a_competition() -> None:
     assert index.competitions() == []
 
 
+def test_amended_version_without_stored_original_still_counts() -> None:
+    """TED serves only the latest version; a v2 change implies a real v1 (D26)."""
+    comp = competition("c1", "p1", date(2026, 3, 1))
+    v2_only = change_of(comp, published=date(2026, 3, 20))  # version 2, v1 not stored
+    index = ProcedureIndex.build([v2_only])
+    proc = index.procedures["p1"]
+    assert index.originals == (v2_only,)
+    assert index.competitions() == [v2_only]
+    assert proc.first_competition == date(2026, 3, 20)  # best available approximation
+    assert proc.latest_competition is v2_only
+    assert proc.changes == (v2_only,)
+
+
 def test_planning_competition_result_modification() -> None:
     plan = make_notice(
         notice_id="pl",

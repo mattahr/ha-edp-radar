@@ -107,12 +107,15 @@ class ProcedureIndex:
 
         latest: dict[str, ProcurementNotice] = {}
         original_ids: set[str] = set()
+        origin_versions: dict[str, ProcurementNotice] = {}
         all_changes: list[ProcurementNotice] = []
         for notice_id, versions in versions_by_id.items():
             versions.sort(key=lambda n: n.notice_version)
             latest[notice_id] = versions[-1]
-            if any(not v.is_change for v in versions):
+            origin = _origin_version(versions)
+            if origin is not None:
                 original_ids.add(notice_id)
+                origin_versions[notice_id] = origin
             all_changes.extend(v for v in versions if v.is_change)
 
         groups: dict[str, list[ProcurementNotice]] = defaultdict(list)
@@ -128,7 +131,9 @@ class ProcedureIndex:
                 key=_sort_key,
             )
             originals = [
-                v for v in versions if v.notice_id in original_ids and not v.is_change
+                origin_versions[nid]
+                for nid in {v.notice_id for v in versions}
+                if nid in origin_versions
             ]
             competitions = [
                 n
@@ -179,6 +184,22 @@ class ProcedureIndex:
             originals_sorted,
             tuple(sorted(all_changes, key=_sort_key)),
         )
+
+
+def _origin_version(versions: list[ProcurementNotice]) -> ProcurementNotice | None:
+    """The version that establishes a notice as an original publication.
+
+    A change published as a *new* notice always starts at version 1 with change
+    info, so it never counts. A stored version above 1 implies an earlier real
+    version that TED no longer serves (D26); the lowest stored version is then
+    the best available approximation of the original publication.
+    """
+    for version in versions:
+        if not version.is_change:
+            return version
+    if versions[0].notice_version > 1:
+        return versions[0]
+    return None
 
 
 def _first_date(originals: list[ProcurementNotice], stage: NoticeStage) -> date | None:
