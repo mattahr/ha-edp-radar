@@ -150,3 +150,62 @@ Measured on 6 138 strict-mode notices from the last 90 days (`docs/data-profile.
 - HHI concentration metric.
 - `public_footprint_largest_change` (robust z-score).
 - Organisation peers beyond selection by identifier (fuzzy matching stays out).
+
+---
+
+## 6. Phase 2 — country purchasing decisions (2026-09-12)
+
+Implemented per `docs/ha-edp-radar_PHASE2_COUNTRY_PURCHASING.md`; the data
+behind each decision is in `docs/country-purchasing-data-profile.md`
+(47 934 notices, 760 days). Code comments reference these as `P1` …
+
+**P1 — Notice Value only.** The awarded value of a result notice is BT-161
+(`result-value-notice`), once. `result-value-lot` never occurs positive on
+non-framework results and tender values over-count, so there is no fallback;
+the normalizer no longer sums result lot values.
+
+**P2 — Framework results carry no award value** (extends D21): the Notice
+Value of a framework result is the framework's estimate/ceiling or a repeated
+call-off total. They count as awarded results without a usable value and are
+reported per country as `framework_results`.
+
+**P3 — Buyer-country attribution.** `Buyer.countries` keeps every distinct
+buyer country; one country attributes the whole value, several attribute it
+once to `MULTI`, none to `??`. European total = attributable + MULTI + unknown.
+
+**P4 — Award date.** `ProcurementNotice.award_date` is the earliest winner
+decision date when 0–365 days before publication, else the publication date;
+`award_date_basis` records which. Used for periods and for FX.
+
+**P5 — Absolute cap.** Awards above EUR 10bn are quarantined.
+
+**P6 — Internal contradictions.** An award more than 100× a real estimate of
+its procedure (same currency) is quarantined; so is one more than 100× the
+notice's own winning tender values (`tender_value_total`, stored by the
+normalizer when every tender value is positive, the currency is unambiguous
+and no awarded lot lacks a value) unless a real estimate corroborates the
+Notice Value.
+
+**P7 — Duplicates.** The same Notice Value in several original result notices
+of one procedure counts once (earliest award date); later ones are quarantined.
+
+**P8 — Placeholders.** Estimates and tender totals below 10 000 in their
+currency (1, 98, 100 …) are never used as references.
+
+**P9 — Unverified large.** Awards of EUR 250m or more with no comparable
+estimate stay counted but carry `unverified_large`; per-country count and sum
+are exposed.
+
+**P10 — Zero versus unknown.** No awarded results in a period → EUR 0; awarded
+results without any usable value → unknown (`None`), unranked and listed.
+
+**P11 — Category split.** One category per award from the main procedure CPV
+(`cpv_codes[0]`, verified equal to `main-classification-proc` on every result);
+no match → `unclassified`, always exposed.
+
+**P12 — Presentation.** Devices *My Country: <name>* (one identifier, renamed
+with the country), *European Purchasing* and *Country Ranking*; the selected
+country is always ingested; `edp_radar.get_country_purchasing` exposes the
+full country/category matrix. Retention and bootstrap grow to 760 days and a
+store bootstrapped over fewer days re-bootstraps without discarding notices.
+Config entry version 2 derives My country from the Home Assistant country.

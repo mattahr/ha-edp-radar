@@ -1,8 +1,90 @@
 # Country purchasing data profile — strict mode, last 760 days
 
-Generated 2026-09-12T20:51:02+00:00 by `scripts/country_purchasing_profile.py` (taxonomy 2026.09.1/2026.09.1). Countries: all. Reference date 2026-09-12.
+Generated 2026-09-12T21:10:22+00:00 by `scripts/country_purchasing_profile.py` (taxonomy 2026.09.1/2026.09.1). Countries: all. Reference date 2026-09-12.
 
 **Definition of a purchase (plan §4):** the Notice Value (BT-161) of an awarded, non-framework result notice, counted once per notice and converted to EUR at the award date. Framework ceilings, estimates, non-awarded procedures and quarantined implausible values are not purchases.
+
+## Findings and decisions (reviewed 2026-09-12)
+
+The tables below are regenerated from the cache; this section is the human
+reading of them (Phase 2 plan §12, §31, §35 step 1) and the decisions it led
+to. Decision numbers (P1 …) are referenced from code comments and the README.
+
+**What the data can answer.** 47 934 notices over 760 days contain 21 289
+result notices, 19 239 of them awarded. 5 924 awarded results (31 %) are
+framework agreements; of the remaining 13 315, 12 167 (91 %) carry a positive
+Notice Value and 99.2 % of those convert to EUR. Buyer country is present on
+every result. So "which country reported the highest awarded value" can be
+answered — for the reported part of the market, which differs a lot by country.
+
+**Coverage is the headline caveat.** Poland, Estonia, Spain and Czechia report
+a value on ~99 % of non-framework awards. Germany reports one on 34 % and buys
+mostly through frameworks (1 074 of 2 519 awarded results), so only 19 % of
+its awards carry a usable value; France (30 %) and Romania (22 %) are
+framework-heavy too. Germany's rank therefore understates it materially, and
+the ranking must always be read with the coverage column, which every sensor
+carries (P10 semantics: awards without a usable value are *unknown*, never 0).
+
+**Framework Notice Values are not awards (P2).** Where both exist, the Notice
+Value of a framework result is below the framework maximum in 82 % of cases
+and equal to it in 12 %; the largest ones are the framework's estimate
+(FR PL6T trucks EUR 2.4bn), a ceiling with tiny tender values (HR electricity
+EUR 1.5bn) or the same framework re-reported in every call-off notice (RO
+transport platforms, four notices of RON 2.3–3.4bn). No consistent "actually
+awarded" amount exists at notice level, so framework results count as awarded
+results without a usable value, and the `framework_results` count is exposed
+per country.
+
+**Lots and tenders (P1).** `result-value-lot` is positive on six non-framework
+results in two years, so there is nothing to fall back on. The sum of winning
+tender values equals the Notice Value within 1 % on 84 % of valued results,
+but exceeds it on 7.6 % (tender × lot repetition) — not a safe fallback, only
+a plausibility reference (P6).
+
+**Joint procurement is rare (P3).** Seven results in two years list buyers
+from several countries (Nordic joint buys of ammunition, tools, wagons), EUR
+9.7m of attributable value; they are kept once under `MULTI` and the European
+total is attributable + `MULTI` (+ unknown-country), an identity the model
+tests.
+
+**Award dates (P4).** 47 % of awarded results carry a winner decision date;
+74 % of those lie 0–60 days before publication, 4.7 % more than a year before
+(framework call-offs quoting the original decision). The award date is the
+decision date when it lies 0–365 days before publication, else the
+publication date; the basis is stored per award and the mix differs by
+country (Spain 97 % decision dates, Sweden 86 %, Germany 6 %).
+
+**Duplicates (P7).** 92 procedures repeat one Notice Value in several original
+result notices (EUR 386m beyond the first notice): DNS call-offs quoting the
+system total, republished notices, identical lots. Only the earliest notice
+counts; the rest are quarantined and listed.
+
+**Unit errors are the dominant data-quality problem (P5, P6, P8, P9).** The
+largest "award" in the sample is a diesel supply of PLN 1 086 150 000 000
+(EUR 258bn); Portuguese leasing and trainer-aircraft awards are exactly 1 000×
+their estimates; Polish cleaning, uniform and diagnostics awards are 1 000×
+their own tender values. Deterministic rules quarantine a value that
+contradicts its own procedure — above EUR 10bn (P5); more than 100× a real
+estimate of the same procedure, or more than 100× the notice's own tender
+values unless a real estimate corroborates it (P6); placeholders such as 1,
+98 or 100 are never compared (P8). Rules cannot catch everything: the 2024
+Polish food supply notices (EUR 2.9bn of sauces and tea, EUR 1.6bn of meat,
+EUR 1.1bn of potatoes) have no estimate and equally inflated tender values, so
+they stay counted — inside the *previous* 12 months — and every award of
+EUR 250m or more that no real estimate corroborates is marked
+`unverified_large` and summed per country (P9) so that a total can be read
+together with how much of it rests on unverified records.
+
+**Categories (P11).** One category per award from the main procedure CPV keeps
+the split summing to 100 %; the unclassified share is exposed and dominates
+most countries with the current CPV-only taxonomy (owner decision pending on
+an "Infrastructure & facilities" category).
+
+**Open for the owner.** (a) A documented domain cap for consumables (food,
+cleaning, waste) would remove the remaining Polish 2024 unit errors but is a
+judgement rule, not an internal contradiction — not implemented. (b) German
+coverage cannot be improved from TED alone. (c) The taxonomy's unclassified
+share.
 
 ## Volume
 

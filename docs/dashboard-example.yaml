@@ -7,6 +7,92 @@
 
 title: Defence procurement
 views:
+  # Phase 2: the country-first view. Entity ids assume My country = Sweden;
+  # replace "sweden" with your country's name.
+  - title: Countries
+    path: countries
+    cards:
+      # §19 My country in a few seconds.
+      - type: grid
+        title: My country — Sweden
+        columns: 2
+        cards:
+          - type: tile
+            entity: sensor.my_country_sweden_awarded_value_12_m
+            name: Awarded value 12 m
+          - type: tile
+            entity: sensor.my_country_sweden_country_rank_12_m
+            name: Rank
+          - type: tile
+            entity: sensor.my_country_sweden_share_of_european_total_12_m
+            name: Share
+          - type: tile
+            entity: sensor.my_country_sweden_awarded_value_previous_12_m
+            name: Previous 12 m
+          - type: tile
+            entity: sensor.my_country_sweden_awarded_value_change
+            name: Change
+          - type: tile
+            entity: sensor.my_country_sweden_value_coverage_12_m
+            name: Value coverage
+      - type: entities
+        title: Europe — 12 months
+        entities:
+          - entity: sensor.european_purchasing_total_awarded_value_12_m
+            name: Awarded value
+          - entity: sensor.european_purchasing_largest_buyer_country_12_m
+            name: Largest buyer
+          - entity: sensor.european_purchasing_largest_buyer_value_12_m
+            name: Largest buyer value
+          - entity: sensor.european_purchasing_joint_multinational_value_12_m
+            name: Joint / multinational
+          - entity: sensor.european_purchasing_countries_with_attributable_value_12_m
+            name: Countries with value
+      # §26 Who buys the most: bars from the ranking attribute, My country marked.
+      - type: markdown
+        title: Awarded defence contract value — 12 months
+        content: >
+          {% set s = states.sensor.country_ranking_country_ranking_12_m %}
+          {% set top = s.attributes.ranking[0].value_eur or 1 %}
+          {% for r in s.attributes.ranking %}
+          {% set bar = ((r.value_eur or 0) / top * 20) | round(0, 'ceil') | int %}
+          {{ '**' if r.is_my_country }}{{ r.rank }}. {{ r.country }}{{ '**' if r.is_my_country }}
+          `{{ '█' * bar }}{{ '░' * (20 - bar) }}` EUR {{ '%.1f' | format((r.value_eur or 0) / 1e9) }} bn
+          · {{ r.share_pct }} % · coverage {{ r.value_coverage_pct }} %
+          {% endfor %}
+          {% if s.attributes.unranked %}
+
+          *Awards without a usable value:* {{ s.attributes.unranked | map(attribute='country') | join(', ') }}
+          {% endif %}
+      # §20 What does my country buy?
+      - type: markdown
+        title: My country — awarded value by category, 12 months
+        content: >
+          {% set s = states.sensor.my_country_sweden_top_category_12_m %}
+          | Category | EUR | Share | Awards |
+          |---|---|---|---|
+          {% for c in s.attributes.categories %}
+          | {{ c.label }} | {{ '%.0f' | format((c.value_eur or 0) / 1e6) }} m | {{ c.share_pct }} % | {{ c.awards }} |
+          {% endfor %}
+      # §22 Largest awards behind the total, each linked to TED.
+      - type: markdown
+        title: My country — largest awards, 12 months
+        content: >
+          {% for a in state_attr('sensor.my_country_sweden_largest_award_12_m', 'largest_awards') or [] %}
+          - **EUR {{ '%.0f' | format((a.value_eur or 0) / 1e6) }} m** · {{ a.category }} · [{{ a.title }}]({{ a.ted_url }}) — {{ a.buyer }}, {{ a.award_date }}
+          {% endfor %}
+      # §27 Trend: the rolling 12-month line, straight from the recorder.
+      - type: history-graph
+        title: Rolling 12-month awarded value
+        hours_to_show: 2160
+        entities:
+          - entity: sensor.my_country_sweden_awarded_value_12_m
+      - type: entities
+        title: Text summaries
+        entities:
+          - sensor.my_country_sweden_summary
+          - sensor.european_purchasing_top_buyers
+          - sensor.my_country_sweden_categories
   - title: Radar
     path: radar
     cards:
