@@ -142,7 +142,44 @@ def fetch_eurostat(cache: Path) -> None:
     write(FIXTURES / "eurostat" / "gov_ev-defence.json", payload)
 
 
-FETCHERS = {"statskontoret": fetch_statskontoret, "eurostat": fetch_eurostat}
+# -------------------------------------------------------------------------- NATO
+
+NATO_TOPIC = "https://www.nato.int/en/what-we-do/introduction-to-nato/defence-expenditures-and-natos-5-commitment"
+NATO_XLSX = "https://www.nato.int/content/dam/nato/webready/documents/finance/def-exp-{year}-en.xlsx"
+_NATO_ARCHIVE = re.compile(
+    r'<a href=\\?"[^"]*def-exp-\d{4}-en\.(?:pdf|PDF)\\?"[^>]*>\d{4}</a>'
+)
+
+
+def trim_nato_topic(html: str) -> str:
+    """Keep only the archive anchors (``def-exp-YYYY-en.pdf``) the discovery needs."""
+    anchors = _NATO_ARCHIVE.findall(html)
+    body = "\n".join(a.replace('\\"', '"') for a in anchors)
+    return (
+        f'<!DOCTYPE html>\n<html lang="en"><body><p>Archive of tables</p>\n'
+        f"{body}\n</body></html>\n"
+    )
+
+
+def fetch_nato(cache: Path) -> None:
+    folder = FIXTURES / "nato"
+    topic = download(NATO_TOPIC, cache, "nato-topic.html")
+    write(
+        folder / "topic-page.html",
+        trim_nato_topic(topic.decode("utf-8", "replace")).encode("utf-8"),
+    )
+    for year in (2026, 2025):
+        write(
+            folder / f"def-exp-{year}-en.xlsx",
+            download(NATO_XLSX.format(year=year), cache, f"def-exp-{year}-en.xlsx"),
+        )
+
+
+FETCHERS = {
+    "statskontoret": fetch_statskontoret,
+    "eurostat": fetch_eurostat,
+    "nato": fetch_nato,
+}
 
 
 def main(argv: list[str]) -> int:
