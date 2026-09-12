@@ -12,3 +12,4 @@ dev/config/*
 
 # data-profile cache
 .cache/
+.superpowers/
