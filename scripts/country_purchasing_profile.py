@@ -63,7 +63,7 @@ to. Decision numbers (P1 …) are referenced from code comments and the README.
 **What the data can answer.** 47 934 notices over 760 days contain 21 289
 result notices, 19 239 of them awarded. 5 924 awarded results (31 %) are
 framework agreements; of the remaining 13 315, 12 167 (91 %) carry a positive
-Notice Value and 99.2 % of those convert to EUR. Buyer country is present on
+Notice Value and all of those convert to EUR. Buyer country is present on
 every result. So "which country reported the highest awarded value" can be
 answered — for the reported part of the market, which differs a lot by country.
 

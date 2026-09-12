@@ -1,6 +1,6 @@
 # Country purchasing data profile — strict mode, last 760 days
 
-Generated 2026-09-12T21:10:22+00:00 by `scripts/country_purchasing_profile.py` (taxonomy 2026.09.1/2026.09.1). Countries: all. Reference date 2026-09-12.
+Generated 2026-09-12T21:20:30+00:00 by `scripts/country_purchasing_profile.py` (taxonomy 2026.09.1/2026.09.1). Countries: all. Reference date 2026-09-12.
 
 **Definition of a purchase (plan §4):** the Notice Value (BT-161) of an awarded, non-framework result notice, counted once per notice and converted to EUR at the award date. Framework ceilings, estimates, non-awarded procedures and quarantined implausible values are not purchases.
 
@@ -13,7 +13,7 @@ to. Decision numbers (P1 …) are referenced from code comments and the README.
 **What the data can answer.** 47 934 notices over 760 days contain 21 289
 result notices, 19 239 of them awarded. 5 924 awarded results (31 %) are
 framework agreements; of the remaining 13 315, 12 167 (91 %) carry a positive
-Notice Value and 99.2 % of those convert to EUR. Buyer country is present on
+Notice Value and all of those convert to EUR. Buyer country is present on
 every result. So "which country reported the highest awarded value" can be
 answered — for the reported part of the market, which differs a lot by country.
 
@@ -109,9 +109,9 @@ share.
 
 | country | results | non-awarded | framework | non-FW awarded | valued (coverage) | coverage incl. FW | EUR |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| PL | 4112 | 567 | 71 | 3474 | 3435 (98.9%) | 96.9% | 97.5% |
+| PL | 4112 | 567 | 71 | 3474 | 3435 (98.9%) | 96.9% | 98.9% |
 | DE | 2850 | 331 | 1074 | 1445 | 489 (33.8%) | 19.4% | 33.8% |
-| CZ | 1976 | 227 | 800 | 949 | 948 (99.9%) | 54.2% | 97.2% |
+| CZ | 1976 | 227 | 800 | 949 | 948 (99.9%) | 54.2% | 99.9% |
 | ES | 1733 | 95 | 480 | 1158 | 1151 (99.4%) | 70.3% | 99.4% |
 | RO | 1391 | 70 | 1029 | 292 | 292 (100.0%) | 22.1% | 100.0% |
 | FR | 1266 | 53 | 839 | 374 | 362 (96.8%) | 29.8% | 96.8% |
@@ -119,17 +119,17 @@ share.
 | FI | 1007 | 65 | 51 | 891 | 890 (99.9%) | 94.5% | 99.9% |
 | SK | 581 | 34 | 263 | 284 | 242 (85.2%) | 44.2% | 85.2% |
 | PT | 499 | 26 | 4 | 469 | 465 (99.1%) | 98.3% | 99.1% |
-| NL | 495 | 57 | 212 | 226 | 184 (81.4%) | 42.0% | 80.5% |
+| NL | 495 | 57 | 212 | 226 | 184 (81.4%) | 42.0% | 81.4% |
 | BG | 468 | 60 | 181 | 227 | 227 (100.0%) | 55.6% | 100.0% |
 | LV | 441 | 52 | 138 | 251 | 251 (100.0%) | 64.5% | 100.0% |
 | LT | 424 | 77 | 1 | 346 | 345 (99.7%) | 99.4% | 99.7% |
 | SI | 363 | 32 | 45 | 286 | 285 (99.7%) | 86.1% | 99.7% |
-| DK | 329 | 56 | 132 | 141 | 137 (97.2%) | 50.2% | 93.6% |
-| SE | 291 | 36 | 148 | 107 | 105 (98.1%) | 41.2% | 91.6% |
+| DK | 329 | 56 | 132 | 141 | 137 (97.2%) | 50.2% | 97.2% |
+| SE | 291 | 36 | 148 | 107 | 105 (98.1%) | 41.2% | 98.1% |
 | BE | 273 | 14 | 32 | 227 | 202 (89.0%) | 78.0% | 89.0% |
 | CH | 266 | 16 | 0 | 250 | 242 (96.8%) | 96.8% | 96.8% |
-| NO | 256 | 41 | 120 | 95 | 94 (98.9%) | 43.7% | 97.9% |
-| HU | 193 | 29 | 10 | 154 | 154 (100.0%) | 93.9% | 97.4% |
+| NO | 256 | 41 | 120 | 95 | 94 (98.9%) | 43.7% | 98.9% |
+| HU | 193 | 29 | 10 | 154 | 154 (100.0%) | 93.9% | 100.0% |
 | IT | 188 | 14 | 48 | 126 | 126 (100.0%) | 72.4% | 100.0% |
 | HR | 143 | 12 | 63 | 68 | 68 (100.0%) | 51.9% | 100.0% |
 | IE | 134 | 13 | 17 | 104 | 103 (99.0%) | 85.1% | 99.0% |
@@ -147,23 +147,23 @@ share.
 | currency | results | convertible to EUR | sum (original) |
 | --- | --- | --- | --- |
 | EUR | 6613 | 6613 (100.0%) | 58,385,531,553 |
-| PLN | 3430 | 3381 (98.6%) | 1,228,392,118,197 |
-| CZK | 934 | 908 (97.2%) | 43,935,418,624 |
+| PLN | 3430 | 3430 (100.0%) | 1,228,392,118,197 |
+| CZK | 934 | 934 (100.0%) | 43,935,418,624 |
 | RON | 281 | 281 (100.0%) | 8,480,415,831 |
 | CHF | 243 | 243 (100.0%) | 1,595,824,620 |
 | BGN | 158 | 158 (100.0%) | 685,459,137 |
-| HUF | 153 | 149 (97.4%) | 180,407,350,237 |
-| SEK | 106 | 99 (93.4%) | 11,171,247,818 |
-| DKK | 93 | 89 (95.7%) | 32,422,909,596 |
-| NOK | 92 | 91 (98.9%) | 9,492,371,651 |
-| USD | 34 | 31 (91.2%) | 709,068,976 |
+| HUF | 153 | 153 (100.0%) | 180,407,350,237 |
+| SEK | 106 | 106 (100.0%) | 11,171,247,818 |
+| DKK | 93 | 93 (100.0%) | 32,422,909,596 |
+| NOK | 92 | 92 (100.0%) | 9,492,371,651 |
+| USD | 34 | 34 (100.0%) | 709,068,976 |
 | GBP | 21 | 21 (100.0%) | 136,830,565 |
 | CAD | 4 | 4 (100.0%) | 100,080,123 |
 | MDL | 3 | 0 (0.0%) | 9,338,150 |
 | USN | 1 | 0 (0.0%) | 689,645 |
 | AUD | 1 | 1 (100.0%) | 1,003,110 |
 
-- EUR-convertible share of valued results: 99.2%; converted total EUR 360.8bn before the plausibility quarantine.
+- EUR-convertible share of valued results: 100.0%; converted total EUR 362.6bn before the plausibility quarantine.
 
 ## Buyer-country coverage and joint procurement
 
@@ -354,41 +354,41 @@ Quarantine flags (`above_absolute_cap`, `exceeds_estimate`, `exceeds_tender_valu
 | 13 | [269132-2026](https://ted.europa.eu/en/notice/-/detail/269132-2026) | DK | EUR 1.5bn | 1,468,348,800 EUR | 1,468,348,800 EUR | 1,468,348,800 |  | Procurement of Surface Based Air and Missile Defence capability |
 | 14 | [340509-2026](https://ted.europa.eu/en/notice/-/detail/340509-2026) | IT | EUR 1.4bn | 1,393,362,000 EUR | 1,408,174,965 EUR | 1,393,362,000 |  | GARA EUROPEA A PROCEDURA RISTRETTA PER IL RINNOVAMENTO, POTENZIAMENTO  |
 | 15 | [282948-2025](https://ted.europa.eu/en/notice/-/detail/282948-2025) | BE | EUR 1.3bn | 1,338,125,174 EUR | — | 1,338,125,174 | unverified_large | nvt |
-| 16 | [822641-2025](https://ted.europa.eu/en/notice/-/detail/822641-2025) | DK | EUR 1.2bn | 1,224,895,396 EUR | — | 1,224,895,396 | unverified_large | Procurement of Surface Based Air and Missile Defence capability |
-| 17 | [499753-2026](https://ted.europa.eu/en/notice/-/detail/499753-2026) | PT | EUR 1.2bn | 1,159,000,000 EUR | 1,450,000,000 EUR | 1,450,000,000 |  | 4025033649/DA/A0395/2025-Modernização de Viaturas Táticas Land Cruiser |
-| 18 | [385159-2026](https://ted.europa.eu/en/notice/-/detail/385159-2026) | LT | EUR 1.1bn | 1,092,005,666 EUR | — | 1,092,005,666 | unverified_large | Įvairios paskirties karinių sunkvežimių ir visureigių pirkimas |
-| 19 | [774863-2024](https://ted.europa.eu/en/notice/-/detail/774863-2024) | PL | EUR 1.1bn | 4,620,720,000 PLN | — | 4,620,720,000 | unverified_large | Dostawa ziemniaków, warzyw, owoców gr. I i II dla 25. WOG w Białymstok |
-| 20 | [436728-2026](https://ted.europa.eu/en/notice/-/detail/436728-2026) | PL | EUR 1.0bn | 4,498,707,782 PLN | 2,728,944,886 PLN | 4,498,707,782 |  | Dostawa elementów składowych na potrzeby kompanijnych modułów ogniowyc |
-| 21 | [822608-2025](https://ted.europa.eu/en/notice/-/detail/822608-2025) | BE | EUR 1.0bn | 1,009,799,572 EUR | — | 830,076,546 | unverified_large | Marché public N°21AP004 relatif à la réalisation d’un contrat de servi |
-| 22 | [491853-2024](https://ted.europa.eu/en/notice/-/detail/491853-2024) | RO | EUR 925m | 4,602,657,510 RON | — | 4,602,657,510 | unverified_large | Sistem obuzier cal. 155 mm de nivel Batalion, Lovitură 155 mm cu proie |
-| 23 | [651754-2025](https://ted.europa.eu/en/notice/-/detail/651754-2025) | PL | EUR 910m | 3,862,200,002 PLN | — | 38,469,000 | exceeds_tender_values | Wykonanie dokumentacji projektowej i wykonanie robót budowlanych w ram |
-| 24 | [163-2025](https://ted.europa.eu/en/notice/-/detail/163-2025) | PL | EUR 759m | 3,236,069,080 PLN | — | 3,236,069,080 | unverified_large | Dostawa drobiu i wędlin drobiowych dla 25. WOG w Białymstoku |
-| 25 | [241852-2026](https://ted.europa.eu/en/notice/-/detail/241852-2026) | PL | EUR 749m | 3,188,718,051 PLN | — | 3,188,718,051 | unverified_large | Modernizacja techniczna Prywatnej Chmury Obliczeniowej „PChO” wraz z z |
-| 26 | [107790-2025](https://ted.europa.eu/en/notice/-/detail/107790-2025) | PT | EUR 690m | 690,000,000 EUR | 690,000 EUR | 690,000 | exceeds_estimate, exceeds_tender_values | Fornecimento de Impulsor de Proa - NRP Sagres |
-| 27 | [202260-2026](https://ted.europa.eu/en/notice/-/detail/202260-2026) | PL | EUR 673m | 2,837,540,220 PLN | 2,837,540 PLN | 181,155,760 | exceeds_estimate | „Dostawa – sukcesywny zakup i dostawa części zamiennych, ogumienia, ak |
-| 28 | [210859-2025](https://ted.europa.eu/en/notice/-/detail/210859-2025) | PT | EUR 642m | 641,598,000 EUR | — | 641,598 | exceeds_tender_values | Aquisição de serviços de vigilância eletrónica, para execução de decis |
-| 29 | [745959-2024](https://ted.europa.eu/en/notice/-/detail/745959-2024) | PL | EUR 610m | 2,650,656,960 PLN | — | 2,650,656,960 | unverified_large | Zabezpieczenie w przenośne urządzenia sanitarne dostosowane do potrzeb |
-| 30 | [801004-2024](https://ted.europa.eu/en/notice/-/detail/801004-2024) | PL | EUR 606m | 2,585,769,641 PLN | — | 2,585,769,641 | unverified_large | ”Outsourcing w zakresie SUFO w podziale na 4 zadania”. |
-| 31 | [340004-2025](https://ted.europa.eu/en/notice/-/detail/340004-2025) | FR | EUR 601m | 601,062,000 EUR | — | 601,062,000 | unverified_large | Acquisition et soutien d’aéronefs, moyens, travaux d’infrastructures e |
-| 32 | [153677-2026](https://ted.europa.eu/en/notice/-/detail/153677-2026) | PL | EUR 584m | 2,461,622,400 PLN | — | 2,461,622,400 | unverified_large | Usługa odbioru i zagospodarowania zmieszanych odpadów komunalnych, odp |
-| 33 | [452407-2026](https://ted.europa.eu/en/notice/-/detail/452407-2026) | PL | EUR 573m | 2,426,880,000 PLN | 1,973,073 PLN | 2,426,880 | exceeds_estimate, exceeds_tender_values | Badania diagnostyczne i konsultacje specjalistyczne dla potrzeb orzeka |
-| 34 | [429414-2025](https://ted.europa.eu/en/notice/-/detail/429414-2025) | PL | EUR 571m | 2,426,880,000 PLN | 1,973,073 PLN | 2,426,880 | exceeds_estimate, exceeds_tender_values | Badania diagnostyczne i konsultacje specjalistyczne dla potrzeb orzeka |
-| 35 | [824674-2025](https://ted.europa.eu/en/notice/-/detail/824674-2025) | DK | EUR 540m | 539,981,084 EUR | — | 539,981,084 | unverified_large | Procurement of Surface Based Air and Missile Defence capability |
-| 36 | [42128-2026](https://ted.europa.eu/en/notice/-/detail/42128-2026) | DK | EUR 521m | 3,892,780,485 DKK | — | 3,892,780,485 | unverified_large | The acquisition of Fixed Air Defence Radars (FADR), including support  |
-| 37 | [193451-2025](https://ted.europa.eu/en/notice/-/detail/193451-2025) | NL | EUR 516m | 529,000,000 USD | 529,000,000 USD | 1,058,000,000 |  | PATRIOT Backfill Major end itmes DCS |
-| 38 | [680073-2024](https://ted.europa.eu/en/notice/-/detail/680073-2024) | PL | EUR 495m | 2,126,256,995 PLN | — | 2,151,725,988 | unverified_large | Usług kompleksowego utrzymania czystości pomieszczeń w budynkach, utrz |
-| 39 | [558890-2026](https://ted.europa.eu/en/notice/-/detail/558890-2026) | FR | EUR 458m | 458,017,000 EUR | — | 458,017,000 | unverified_large | Fourniture de cibles "EMATT AAT" destinées à l'entraînement élémentair |
-| 40 | [52272-2026](https://ted.europa.eu/en/notice/-/detail/52272-2026) | DK | EUR 453m | 3,386,645,501 DKK | — | 3,386,645,501 | unverified_large | Indgåelse af OPP-kontrakt vedrørende Danske kaserner som Offentligt Pr |
-| 41 | [220215-2025](https://ted.europa.eu/en/notice/-/detail/220215-2025) | PT | EUR 430m | 429,986,410 EUR | — | 429,986,410 | unverified_large | Fornecimento de eletricidade para as instalações da Direção-Geral de R |
-| 42 | [781006-2025](https://ted.europa.eu/en/notice/-/detail/781006-2025) | DK | EUR 429m | 3,200,000,000 DKK | — | 3,200,000,000 | unverified_large | Anskaffelse af 44 CV9035 MkIIIC |
-| 43 | [482388-2025](https://ted.europa.eu/en/notice/-/detail/482388-2025) | DK | EUR 391m | 390,762,500 EUR | — | 390,762,500 | unverified_large | Procurement of a Surface Based Air and Missile Defence (land) capabili |
-| 44 | [70569-2025](https://ted.europa.eu/en/notice/-/detail/70569-2025) | FR | EUR 369m | 369,482,534 EUR | 369,482,534 EUR | 369,482,534 |  | Fourniture de coups complets PROJ 120 ECL F2 et PROJ 120 PRY IR F3 |
-| 45 | [131085-2026](https://ted.europa.eu/en/notice/-/detail/131085-2026) | BE | EUR 358m | 358,217,852 EUR | — | 2,200,043,495 | unverified_large | Marché mixte pluriannuel pour le soutien du matériel CaMo, y compris u |
-| 46 | [161437-2026](https://ted.europa.eu/en/notice/-/detail/161437-2026) | PT | EUR 353m | 352,648,330 EUR | 352,648 EUR | 352,648,330 | exceeds_estimate | DAT 5025011672 - CONCURSO PÚBLICO PLURIANUAL 2026-2027 PARA A REPARAÇÃ |
-| 47 | [634673-2025](https://ted.europa.eu/en/notice/-/detail/634673-2025) | CH | EUR 347m | 324,300,000 CHF | — | 324,300,000 | unverified_large | Mini Unmanned Aerial Systems (MUAS), MUAS-Einzelteile/Baugruppen, ergä |
-| 48 | [431025-2026](https://ted.europa.eu/en/notice/-/detail/431025-2026) | PL | EUR 319m | 1,367,352,302 PLN | — | 1,367,352,302 | unverified_large | Dostawa kaset minowych ISM z minami narzutowymi MN-123 |
-| 49 | [519721-2025](https://ted.europa.eu/en/notice/-/detail/519721-2025) | PL | EUR 304m | 1,292,568,500 PLN | — | 1,292,568 | exceeds_tender_values | DOSTAWA MATERIAŁÓW EKSPLOATACYJNYCH DO DRUKAREK I URZĄDZEŃ WIELOFUNKCY |
-| 50 | [809906-2025](https://ted.europa.eu/en/notice/-/detail/809906-2025) | DK | EUR 268m | 2,000,000,000 DKK | — | 2,000,000,000 | unverified_large | Anskaffelse af miltære lastbiler |
+| 16 | [83506-2025](https://ted.europa.eu/en/notice/-/detail/83506-2025) | DK | EUR 1.3bn | 9,952,000,000 DKK | — | 9,952,000,000 | unverified_large | Anskaffelse af CV9035 MKIIIC |
+| 17 | [822641-2025](https://ted.europa.eu/en/notice/-/detail/822641-2025) | DK | EUR 1.2bn | 1,224,895,396 EUR | — | 1,224,895,396 | unverified_large | Procurement of Surface Based Air and Missile Defence capability |
+| 18 | [499753-2026](https://ted.europa.eu/en/notice/-/detail/499753-2026) | PT | EUR 1.2bn | 1,159,000,000 EUR | 1,450,000,000 EUR | 1,450,000,000 |  | 4025033649/DA/A0395/2025-Modernização de Viaturas Táticas Land Cruiser |
+| 19 | [385159-2026](https://ted.europa.eu/en/notice/-/detail/385159-2026) | LT | EUR 1.1bn | 1,092,005,666 EUR | — | 1,092,005,666 | unverified_large | Įvairios paskirties karinių sunkvežimių ir visureigių pirkimas |
+| 20 | [774863-2024](https://ted.europa.eu/en/notice/-/detail/774863-2024) | PL | EUR 1.1bn | 4,620,720,000 PLN | — | 4,620,720,000 | unverified_large | Dostawa ziemniaków, warzyw, owoców gr. I i II dla 25. WOG w Białymstok |
+| 21 | [436728-2026](https://ted.europa.eu/en/notice/-/detail/436728-2026) | PL | EUR 1.0bn | 4,498,707,782 PLN | 2,728,944,886 PLN | 4,498,707,782 |  | Dostawa elementów składowych na potrzeby kompanijnych modułów ogniowyc |
+| 22 | [822608-2025](https://ted.europa.eu/en/notice/-/detail/822608-2025) | BE | EUR 1.0bn | 1,009,799,572 EUR | — | 830,076,546 | unverified_large | Marché public N°21AP004 relatif à la réalisation d’un contrat de servi |
+| 23 | [491853-2024](https://ted.europa.eu/en/notice/-/detail/491853-2024) | RO | EUR 925m | 4,602,657,510 RON | — | 4,602,657,510 | unverified_large | Sistem obuzier cal. 155 mm de nivel Batalion, Lovitură 155 mm cu proie |
+| 24 | [651754-2025](https://ted.europa.eu/en/notice/-/detail/651754-2025) | PL | EUR 910m | 3,862,200,002 PLN | — | 38,469,000 | exceeds_tender_values | Wykonanie dokumentacji projektowej i wykonanie robót budowlanych w ram |
+| 25 | [163-2025](https://ted.europa.eu/en/notice/-/detail/163-2025) | PL | EUR 759m | 3,236,069,080 PLN | — | 3,236,069,080 | unverified_large | Dostawa drobiu i wędlin drobiowych dla 25. WOG w Białymstoku |
+| 26 | [241852-2026](https://ted.europa.eu/en/notice/-/detail/241852-2026) | PL | EUR 749m | 3,188,718,051 PLN | — | 3,188,718,051 | unverified_large | Modernizacja techniczna Prywatnej Chmury Obliczeniowej „PChO” wraz z z |
+| 27 | [107790-2025](https://ted.europa.eu/en/notice/-/detail/107790-2025) | PT | EUR 690m | 690,000,000 EUR | 690,000 EUR | 690,000 | exceeds_estimate, exceeds_tender_values | Fornecimento de Impulsor de Proa - NRP Sagres |
+| 28 | [202260-2026](https://ted.europa.eu/en/notice/-/detail/202260-2026) | PL | EUR 673m | 2,837,540,220 PLN | 2,837,540 PLN | 181,155,760 | exceeds_estimate | „Dostawa – sukcesywny zakup i dostawa części zamiennych, ogumienia, ak |
+| 29 | [210859-2025](https://ted.europa.eu/en/notice/-/detail/210859-2025) | PT | EUR 642m | 641,598,000 EUR | — | 641,598 | exceeds_tender_values | Aquisição de serviços de vigilância eletrónica, para execução de decis |
+| 30 | [745959-2024](https://ted.europa.eu/en/notice/-/detail/745959-2024) | PL | EUR 610m | 2,650,656,960 PLN | — | 2,650,656,960 | unverified_large | Zabezpieczenie w przenośne urządzenia sanitarne dostosowane do potrzeb |
+| 31 | [801004-2024](https://ted.europa.eu/en/notice/-/detail/801004-2024) | PL | EUR 606m | 2,585,769,641 PLN | — | 2,585,769,641 | unverified_large | ”Outsourcing w zakresie SUFO w podziale na 4 zadania”. |
+| 32 | [340004-2025](https://ted.europa.eu/en/notice/-/detail/340004-2025) | FR | EUR 601m | 601,062,000 EUR | — | 601,062,000 | unverified_large | Acquisition et soutien d’aéronefs, moyens, travaux d’infrastructures e |
+| 33 | [153677-2026](https://ted.europa.eu/en/notice/-/detail/153677-2026) | PL | EUR 584m | 2,461,622,400 PLN | — | 2,461,622,400 | unverified_large | Usługa odbioru i zagospodarowania zmieszanych odpadów komunalnych, odp |
+| 34 | [452407-2026](https://ted.europa.eu/en/notice/-/detail/452407-2026) | PL | EUR 573m | 2,426,880,000 PLN | 1,973,073 PLN | 2,426,880 | exceeds_estimate, exceeds_tender_values | Badania diagnostyczne i konsultacje specjalistyczne dla potrzeb orzeka |
+| 35 | [429414-2025](https://ted.europa.eu/en/notice/-/detail/429414-2025) | PL | EUR 571m | 2,426,880,000 PLN | 1,973,073 PLN | 2,426,880 | exceeds_estimate, exceeds_tender_values | Badania diagnostyczne i konsultacje specjalistyczne dla potrzeb orzeka |
+| 36 | [824674-2025](https://ted.europa.eu/en/notice/-/detail/824674-2025) | DK | EUR 540m | 539,981,084 EUR | — | 539,981,084 | unverified_large | Procurement of Surface Based Air and Missile Defence capability |
+| 37 | [42128-2026](https://ted.europa.eu/en/notice/-/detail/42128-2026) | DK | EUR 521m | 3,892,780,485 DKK | — | 3,892,780,485 | unverified_large | The acquisition of Fixed Air Defence Radars (FADR), including support  |
+| 38 | [193451-2025](https://ted.europa.eu/en/notice/-/detail/193451-2025) | NL | EUR 516m | 529,000,000 USD | 529,000,000 USD | 1,058,000,000 |  | PATRIOT Backfill Major end itmes DCS |
+| 39 | [680073-2024](https://ted.europa.eu/en/notice/-/detail/680073-2024) | PL | EUR 495m | 2,126,256,995 PLN | — | 2,151,725,988 | unverified_large | Usług kompleksowego utrzymania czystości pomieszczeń w budynkach, utrz |
+| 40 | [558890-2026](https://ted.europa.eu/en/notice/-/detail/558890-2026) | FR | EUR 458m | 458,017,000 EUR | — | 458,017,000 | unverified_large | Fourniture de cibles "EMATT AAT" destinées à l'entraînement élémentair |
+| 41 | [52272-2026](https://ted.europa.eu/en/notice/-/detail/52272-2026) | DK | EUR 453m | 3,386,645,501 DKK | — | 3,386,645,501 | unverified_large | Indgåelse af OPP-kontrakt vedrørende Danske kaserner som Offentligt Pr |
+| 42 | [220215-2025](https://ted.europa.eu/en/notice/-/detail/220215-2025) | PT | EUR 430m | 429,986,410 EUR | — | 429,986,410 | unverified_large | Fornecimento de eletricidade para as instalações da Direção-Geral de R |
+| 43 | [781006-2025](https://ted.europa.eu/en/notice/-/detail/781006-2025) | DK | EUR 429m | 3,200,000,000 DKK | — | 3,200,000,000 | unverified_large | Anskaffelse af 44 CV9035 MkIIIC |
+| 44 | [482388-2025](https://ted.europa.eu/en/notice/-/detail/482388-2025) | DK | EUR 391m | 390,762,500 EUR | — | 390,762,500 | unverified_large | Procurement of a Surface Based Air and Missile Defence (land) capabili |
+| 45 | [70569-2025](https://ted.europa.eu/en/notice/-/detail/70569-2025) | FR | EUR 369m | 369,482,534 EUR | 369,482,534 EUR | 369,482,534 |  | Fourniture de coups complets PROJ 120 ECL F2 et PROJ 120 PRY IR F3 |
+| 46 | [131085-2026](https://ted.europa.eu/en/notice/-/detail/131085-2026) | BE | EUR 358m | 358,217,852 EUR | — | 2,200,043,495 | unverified_large | Marché mixte pluriannuel pour le soutien du matériel CaMo, y compris u |
+| 47 | [161437-2026](https://ted.europa.eu/en/notice/-/detail/161437-2026) | PT | EUR 353m | 352,648,330 EUR | 352,648 EUR | 352,648,330 | exceeds_estimate | DAT 5025011672 - CONCURSO PÚBLICO PLURIANUAL 2026-2027 PARA A REPARAÇÃ |
+| 48 | [634673-2025](https://ted.europa.eu/en/notice/-/detail/634673-2025) | CH | EUR 347m | 324,300,000 CHF | — | 324,300,000 | unverified_large | Mini Unmanned Aerial Systems (MUAS), MUAS-Einzelteile/Baugruppen, ergä |
+| 49 | [431025-2026](https://ted.europa.eu/en/notice/-/detail/431025-2026) | PL | EUR 319m | 1,367,352,302 PLN | — | 1,367,352,302 | unverified_large | Dostawa kaset minowych ISM z minami narzutowymi MN-123 |
+| 50 | [519721-2025](https://ted.europa.eu/en/notice/-/detail/519721-2025) | PL | EUR 304m | 1,292,568,500 PLN | — | 1,292,568 | exceeds_tender_values | DOSTAWA MATERIAŁÓW EKSPLOATACYJNYCH DO DRUKAREK I URZĄDZEŃ WIELOFUNKCY |
 
 Flags over all valued non-framework awards (duplicates are detected in the model, see below):
 
@@ -397,7 +397,7 @@ Flags over all valued non-framework awards (duplicates are detected in the model
 | above_absolute_cap | 2 |
 | exceeds_estimate | 17 |
 | exceeds_tender_values | 21 |
-| unverified_large | 30 |
+| unverified_large | 31 |
 | total valued results | 12167 |
 
 ## Model preview: rolling 12 months (purchasing model, strict universe)

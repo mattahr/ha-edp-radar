@@ -22,6 +22,7 @@ from .const import (
     DEFAULT_RETENTION_DAYS,
     DOMAIN,
     EMITTED_EVENT_KEYS_LIMIT,
+    MAX_DECISION_LAG_DAYS,
 )
 from .fx_rates import FxRateTable
 from .models import ProcurementNotice
@@ -31,7 +32,9 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_VERSION = 1
 SCHEMA_VERSION = 1
 SAVE_DELAY_SECONDS = 30
-FX_RETENTION_MARGIN = timedelta(days=30)
+# Awards are converted at their decision date, which may lie up to a year
+# before the (retained) publication date, plus the weekend/holiday look-back.
+FX_RETENTION_MARGIN = timedelta(days=MAX_DECISION_LAG_DAYS + 30)
 
 
 @dataclass

@@ -98,7 +98,8 @@ async def fetch(
         else:
             rates = await ecb.async_fetch_recent()
     table = FxRateTable()
-    table.update({d: r for d, r in rates.items() if d >= start - timedelta(days=30)})
+    # Award dates may precede publication by up to a year (decision dates).
+    table.update({d: r for d, r in rates.items() if d >= start - timedelta(days=395)})
     return raw, table
 
 

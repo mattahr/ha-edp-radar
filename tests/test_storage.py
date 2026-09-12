@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -195,3 +195,12 @@ async def test_remove_deletes_all_keys(
 
 def test_partition_key() -> None:
     assert RadarStore.partition_key(date(2026, 9, 1)) == "2026-09"
+
+
+def test_fx_retention_covers_decision_date_lag() -> None:
+    """A result published at the retention cutoff may have been decided a year
+    earlier; its award-date rate must survive pruning (Phase 2 P4)."""
+    from custom_components.edp_radar.const import MAX_DECISION_LAG_DAYS
+    from custom_components.edp_radar.storage import FX_RETENTION_MARGIN
+
+    assert timedelta(days=MAX_DECISION_LAG_DAYS) <= FX_RETENTION_MARGIN
