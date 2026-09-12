@@ -209,3 +209,165 @@ country is always ingested; `edp_radar.get_country_purchasing` exposes the
 full country/category matrix. Retention and bootstrap grow to 760 days and a
 store bootstrapped over fewer days re-bootstraps without discarding notices.
 Config entry version 2 derives My country from the Home Assistant country.
+
+---
+
+## 7. Phase 3 — Sweden defence spending data layer (2026-09-12)
+
+Designed per `docs/ha-edp-radar_PHASE3_SWEDEN_DEFENCE_SPENDING.md` (the plan;
+section numbers below refer to it). This section covers the **data layer
+only** (plan steps 1–7): providers, storage, coordinator, diagnostics and the
+source profile. Devices and sensors (plan §72–79) are a separate spec round
+once `docs/phase3-source-profile.md` exists. Code comments reference these
+decisions as `S1` …
+
+### 7.1 Verified source facts (2026-09-12)
+
+| Source | Verified |
+| --- | --- |
+| Statskontoret | `…/oppna-data/manadsutfall/?year=2026` lists, per month, `GetFile?documentType=Utgift&fileType=Zip&…&Year=2026&month=7&status=Definitiv` (and `fileType=Excel`). Latest: **July 2026, definitiv**. The Zip holds one CSV covering **January 2006 → latest month** (10.5 MB, 2 MB zipped): `;`-delimited, `utf-8-sig`, decimal comma, 31 columns — `Utgiftsområde`, `Anslag` (`0601003` = UO6 1:3), `Anslagspost`, `Anslagsdelpost`, `Myndighet`, `Organisationsnummer`, `År`, `Utfall januari` … `Utfall december` (MSEK), plus the same identifiers "utfallsår". Every `Senast uppdaterad` label is on the page. **No budget column.** |
+| Eurostat `gov_ev` | `…/statistics/1.0/data/gov_ev?geo=SE&lang=en` returns JSON-stat 2.0 with `updated: 2026-04-27T23:00:00+0200`; dimensions `freq=A`, `expend=DEF|NAT_COFIN_EU`, `na_item=TE|P51G`, `unit=MIO_EUR|MIO_NAC|PC_GDP`, `time=2021…2025`. No `status` object in the SE response. |
+| NATO | The 2026 Defence Investment Update article links `/content/dam/nato/webready/documents/finance/def-exp-2026-en.xlsx`. The article URL is year-specific; a stable index page is to be identified in profiling. |
+| EDA | The portal links `thematic-policy-reports/eda-defence-data-2025-2026` and historical Excel collections (`eda-collective-and-national-defence-data-2005-2014-(excel).xlsx` etc., single-quoted `href`). The 2025 country-level workbook is to be located in profiling. |
+| SIPRI | The landing page links `//www.sipri.org/sites/default/files/SIPRI-Milex-data-1949-2025_v1.2.xlsx` and states "revised on 27 April 2026 at 19:00 CET … replaces all previous versions". |
+
+All five hosts answered plain HTTPS GETs from the development machine.
+
+### 7.2 Decisions
+
+**S1 — Separate subsystem.** Package `custom_components/edp_radar/spending/`
+with its own `SpendingCoordinator`, `SpendingStore` and models. The TED
+coordinator, its bootstrap gate and `RadarStore` are untouched; `metrics.py`
+and `sensor.py` do not grow. `entry.runtime_data` becomes
+`RuntimeData(radar, spending)`; the four readers (`diagnostics`, `event`,
+`services`, `sensor`) use `.radar`.
+
+**S2 — Sweden is hard-coded** (`"SE"`) as the focus country of the spending
+layer, per plan §2. The Phase 2 "My country" setting is not consulted.
+
+**S3 — openpyxl.** XLSX workbooks (NATO, EDA, SIPRI) are read with `openpyxl`
+in read-only mode; pinned in `manifest.json` `requirements` and in the `dev`
+dependency group. It is the integration's first third-party requirement.
+
+**S4 — Data model** (`spending/models.py`, frozen dataclasses, no Home
+Assistant imports): `DatapointStatus` (`actual | preliminary | provisional |
+estimate | projection | budget`), `ReferencePeriod(start, end, label)`,
+`SourceRelease(source_id, release_id, published_at, download_url,
+canonical_url, format, etag, last_modified, checksum, retrieved_at)`,
+`SpendingDataPoint(source_id, metric_id, country, reference, value: Decimal,
+unit, status, published_at, retrieved_at, source_url, release_id, flags)`,
+`MetricSpec(metric_id, source_id, display_name, definition, unit,
+comparison_group)`, `SourceSpec(source_id, display_name, publisher, official,
+canonical_url, cadence, expected_lag_days, formats)` and
+`Revision(key, previous_value, previous_release_id, detected_at)`.
+
+**S5 — Identity and revisions.** The logical key of a datapoint is
+`(source_id, metric_id, country, reference.start, reference.end, unit)`. A
+changed value on an existing key updates the value and records one `Revision`
+per key and release, keeping the previous value.
+
+**S6 — Units and currencies.** Values are stored as `Decimal` in the source's
+unit (Statskontoret `SEK_MILLION`, Eurostat `EUR_MILLION` / `PCT_GDP` /
+`NAC_MILLION`, NATO and SIPRI as the workbook states, e.g.
+`USD_MILLION_CONSTANT_<year>`). No FX conversion and no rounding in the data
+layer; rankings never cross sources (plan §48), so none is needed.
+
+**S7 — Countries.** Alpha-2 (D2). Each provider maps its own labels
+("Sweden", "Türkiye", "United States") through an explicit table; an unknown
+label is a parse warning and the row is skipped — never guessed.
+
+**S8 — Comparison groups.** `MetricSpec.comparison_group == source_id`. A
+ranking or median accepts datapoints only when `source_id`, `metric_id`,
+reference period and unit are identical and Sweden is present; this
+implements plan §47–48 without separate allow/deny lists.
+
+**S9 — Statskontoret metrics.** `uo6_total_outturn` (all UO6 appropriations),
+`uo6_defence_outturn` (appropriations `0601xxx`, i.e. 1:1–1:14) and
+`materiel_outturn` (`0601003`), identified by the `Anslag` column, summed over
+`Anslagspost`/`Anslagsdelpost`/`Myndighet`. One datapoint per (metric, year,
+month) for every year in the file; YTD, same-period-previous-year and
+year-on-year are computed from monthly datapoints, never stored as separate
+datapoints. Status from the link's `status=` (`Definitiv → actual`,
+`Preliminär → preliminary`); `published_at` from `Senast uppdaterad`.
+Discovery: `?year=<current year>`, falling back to the previous year when the
+current year lists no month; the highest `month=` for `documentType=Utgift`
+wins; Zip → CSV is the runtime format, Excel is not used.
+
+**S10 — Eurostat.** No discovery step: one fixed Statistics API request
+filtering `expend=DEF`, `na_item=TE,P51G`, `unit=MIO_EUR,PC_GDP,MIO_NAC`, all
+`geo`. JSON-stat is decoded through `id`/`size`/`dimension` (never array
+positions). `updated` is both `release_id` and `published_at`. Metrics
+`defence_expenditure` (TE) and `defence_investment` (P51G) per unit. Eurostat
+observation flags in the `status` object map `p → provisional`,
+`e → estimate`, `f → projection`, otherwise `actual`.
+
+**S11 — NATO, EDA, SIPRI parsing.** Tables are located by sheet name and
+header text, years by header cells, countries through S7 tables; fixed cell
+coordinates are not used. Source markers (NATO `e`, SIPRI bracket/italic
+conventions, EDA footnotes) are kept in `flags` and mapped to `status` only
+where the workbook defines the marker. EDA metrics are enabled one at a time
+after `docs/providers/eda.md` exists (plan §36, §39). SIPRI re-imports the
+whole supported series when the release identifier changes (plan §43).
+
+**S12 — Provider contract.** `discover_latest(session) → SourceRelease`,
+`fetch_release(session, release) → bytes` (sends `If-None-Match` /
+`If-Modified-Since` when the previous release carried them) and
+`parse_release(payload, release) → ParseResult(datapoints, warnings,
+layout_fingerprint)`. Parsing is pure and synchronous (runs in the executor);
+discovery and fetch take the Home Assistant aiohttp session. A missing
+expected column, sheet, table title or dimension code raises
+`SchemaChangedError` — never empty or zero values (plan §65).
+
+**S13 — Storage.** One `Store` per source, key
+`edp_radar.<entry_id>.spending.<source_id>`, holding `schema_version`,
+`release`, `health`, `datapoints` and `revisions`. Full series are kept (the
+datasets are small). `async_delay_save` as in D12; `async_remove_entry`
+removes these stores too.
+
+**S14 — Coordinator.** `update_interval` 6 h. Each refresh runs only the
+providers whose `health.next_check_at` has passed: Statskontoret and Eurostat
+daily, NATO, EDA and SIPRI weekly. Unchanged `release_id` + `etag`/`checksum`
+→ `skipped_unchanged` without download. A provider failure is logged, stored
+in its `health` (`available | stale_but_cached | temporarily_unavailable |
+parser_error | schema_changed`, `last_error`) and does not affect the other
+providers; `UpdateFailed` is raised only when no source has data. There is no
+background bootstrap: the first refresh fetches everything (≈10 MB in total).
+`SpendingSnapshot = {source_id: SourceSeries(datapoints, release, health)}`
+plus `retrieved_at` is what entities will read.
+
+**S15 — Freshness.** Pure functions `publication_age`, `reference_age`,
+`retrieval_age` and `freshness_state(spec, latest_reference_end,
+published_at, today) → current | expected | late | unknown` derived from the
+source cadence and `expected_lag_days` (Statskontoret: last business day of
+the month after the reference month, plan §14). Absolute ages are always
+available alongside the state.
+
+**S16 — Calculations.** `spending/calculations.py`: `ytd`,
+`same_period_previous_year`, `nominal_change_pct`, `rank` (S8 rules, Sweden
+always included), `nordic_subset` (SE, FI, DK, NO; IS only where present) and
+`population_median`. Budget utilisation (plan §53) is added only if profiling
+finds an official budget source; it is never derived from YTD data.
+
+**S17 — Diagnostics.** New `spending` section: per source `health`,
+`release`, `datapoints_count`, `countries`, `metrics`, `latest_reference`,
+`parse_warnings`, `revision_count`, `schema_version`. No raw payloads.
+
+**S18 — Scripts and documents** (pattern D14, `PYTHONPATH=. uv run python
+scripts/…`): `scripts/spending_profile.py [--no-fetch]` caches every source
+under `.cache/spending/<source>/<release_id>.*`, runs the providers and writes
+`docs/phase3-source-profile.md` containing both the plan §70 profile and the
+§71 factual validation report; `scripts/fetch_spending_fixtures.py` trims
+cached files into `tests/fixtures/spending/<source>/`. Each provider gets
+`docs/providers/<source>.md` (plan §68), EDA's before its parser.
+
+**S19 — Tests.** Unit tests without the HA harness for models, every
+provider's discovery and parse (real trimmed fixtures, schema-change failure,
+status and country mapping, Eurostat dimension-order independence,
+Statskontoret preliminary → definitive replacement, revision diff), freshness
+and calculations; HA tests for the store round-trip, the coordinator with mock
+providers (isolated failure, unchanged release skipped, cadence gating) and
+diagnostics. Quality gate unchanged.
+
+**S20 — Out of scope for this plan.** Entities, devices, translations and the
+version bump (0.3.0 with the sensors); `gov_10a_exp` (plan §25); budget
+utilisation without a source; any EDA metric not verified in profiling.
