@@ -94,6 +94,16 @@ Numbered so the implementation plan and code comments can reference them (`D1`, 
 
 **D19 — Live Home Assistant dev container.** Same pattern as `../ha-battaxi`: `docker-compose.yml` runs `ghcr.io/home-assistant/home-assistant:stable` (container `ha-edp-radar`) with `./custom_components` mounted at `/config/custom_components` and `./dev/config` at `/config`; `dev/config/configuration.yaml` enables `default_config`, `debugpy` and debug logging for `custom_components.edp_radar`; `dev/ha.sh up|down|restart|logs|status` manages the container and refuses to start on occupied ports; `.vscode/launch.json` attaches debugpy (pre-launch task `ha: up`) and `.vscode/tasks.json` exposes the `ha:` tasks and `uv run pytest`. Default ports are `HA_PORT=8125` and `DEBUGPY_PORT=5679` (8123/5678 are taken by other dev containers on this machine); `.env` overrides. `dev/config/` is git-ignored except `configuration.yaml`. The README documents the F5 flow.
 
+**D20 — Non-positive amounts are unknown.** TED writes ``-1`` (and sometimes ``0``) for undisclosed lot values, so `Money.parse` returns `None` for any amount `<= 0`.
+
+**D21 — Framework ceilings never count as awards.** Result notices with `framework-agreement-lot` set (`fa-mix`, `fa-w-rc`, `fa-wo-rc`) report the framework ceiling — occasionally multiplied by the number of winners (EUR 316.8 m × 55 winners = EUR 17.4 bn in a Spanish works framework) — in `result-value-notice`, while every `tender-value` is `0`. The normalizer therefore requests `framework-agreement-lot`, `result-framework-maximum-value-notice` and its currency, sets `is_framework`, stores the declared ceiling (else the reported value) as `framework_value`, and leaves `result_value = None` for framework results. Award metrics thus exclude frameworks (34 % of results in the 90-day sample) and the coverage ratio says so; a dedicated framework-ceiling metric can be built later from the stored `framework_value`.
+
+**D22 — Winner arrays have different cardinalities.** `winner-name` is repeated once per winning tender (lot × winner), whereas `winner-identifier`, `winner-country` and `winner-size` are listed once per organisation record. Winners are therefore the unique names in order of first appearance; identifiers are attached only when their count equals the number of unique names; country and size may additionally be collapsed when every entry is identical. Roughly 10 % of results with winners end up without identifiers and fall back to `country:normalized name` identity keys.
+
+**D23 — Buyer-name search syntax.** A quoted phrase combined with a wildcard never matches in TED expert search; `buyer-name ~ (försvarets* materiel*)` (one unquoted wildcard token per word, non-word characters dropped) does. The config flow uses this form.
+
+**D24 — Lots without tenders carry no submission statistics.** Non-awarded lots (`clos-nw` with `no-rece`) have no `received-submissions` entries, so the single-bid and median-tender denominators contain awarded lots only, while the non-award share uses `winner-selection-status` per lot (`clos-nw` / (`clos-nw` + `selec-w`); `open-nw` lots are undecided and excluded).
+
 ---
 
 ## 3. Layering (unchanged from the plan, made explicit)
@@ -118,10 +128,19 @@ coordinator.py ──► sensor.py / event.py / diagnostics.py  (entity.py base)
 
 ---
 
-## 4. Deferred (explicitly out of the first release)
+## 4. Phase 0 findings that need an owner decision
+
+Measured on 6 138 strict-mode notices from the last 90 days (`docs/data-profile.md`):
+
+- **56 % of relevant notices get no strategic category** with CPV-only rules. The unclassified mass is construction (CPV 45, 44, 71), furniture (39), medical (33), cleaning/environment (90), agriculture (03) and business services (79) bought by defence buyers. Options: leave unclassified (current; the share is reported), add an "Infrastructure & facilities" category (45/44/71/90), or add keyword rules later. No change is made without a decision.
+- **Estimated-value coverage is 47 %** for competitions and **award-value coverage 54 %** for results (after excluding frameworks). Every value sensor exposes its coverage, as the plan requires.
+- **Only 5 % of results link to a competition inside a 90-day window**; the 400-day profile (`docs/data-profile-400d.md`) is the one that matters for the public time-to-result metric.
+- **Poland dominates estimated value** (EUR 14.7 bn of EUR 23.3 bn in 90 days). This is what TED reports; the ranking attributes show it explicitly.
+
+## 5. Deferred (explicitly out of the first release)
 
 - Keyword-based category classification (needs descriptions, see D10).
-- Framework-agreement value metrics.
+- Framework-agreement ceiling metrics (the data is stored as `framework_value`, D21).
 - HHI concentration metric.
 - `public_footprint_largest_change` (robust z-score).
 - Organisation peers beyond selection by identifier (fuzzy matching stays out).
