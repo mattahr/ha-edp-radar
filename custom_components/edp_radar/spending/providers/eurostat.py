@@ -28,7 +28,6 @@ from .base import (
     Payload,
     SchemaChangedError,
     async_fetch_bytes,
-    sha256_hex,
     with_fetch_metadata,
 )
 
@@ -193,11 +192,13 @@ class EurostatProvider:
     ) -> tuple[SourceRelease, Payload]:
         if self._cached is not None and self._cached[0] == release.release_id:
             fetched = self._cached[1]
-        else:
-            fetched = await async_fetch_bytes(session, API_URL)
-        if fetched.checksum != sha256_hex(fetched.payload):
-            raise SchemaChangedError("Eurostat payload checksum mismatch")
-        return with_fetch_metadata(release, fetched), fetched.payload
+            return with_fetch_metadata(release, fetched), fetched.payload
+        # Cache miss (e.g. after a restart): the requested release is stale by
+        # definition, so the release returned must describe *this* payload, not
+        # whatever was asked for.
+        fetched = await async_fetch_bytes(session, API_URL)
+        fresh_release = release_from_payload(fetched.payload)
+        return with_fetch_metadata(fresh_release, fetched), fetched.payload
 
     def parse_release(self, payload: Payload, release: SourceRelease) -> ParseResult:
         if not isinstance(payload, bytes):

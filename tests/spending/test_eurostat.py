@@ -14,7 +14,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.edp_radar.spending.models import DatapointStatus
+from custom_components.edp_radar.spending.models import DatapointStatus, SourceRelease
 from custom_components.edp_radar.spending.providers.base import SchemaChangedError
 from custom_components.edp_radar.spending.providers.eurostat import (
     API_URL,
@@ -22,6 +22,7 @@ from custom_components.edp_radar.spending.providers.eurostat import (
     parse_jsonstat,
     release_from_payload,
 )
+from custom_components.edp_radar.spending.registry import EUROSTAT
 
 FIXTURE = (
     Path(__file__).parent.parent
@@ -133,6 +134,59 @@ def test_missing_codes_fail() -> None:
         release_from_payload(b'{"class": "dataset"}')
 
 
+def test_status_list_form_sets_estimate_flag() -> None:
+    data = json.loads(_payload())
+    ids = data["id"]
+    sizes = data["size"]
+    index = {k: data["dimension"][k]["category"]["index"] for k in ids}
+    strides: dict[str, int] = {}
+    step = 1
+    for k, size in zip(reversed(ids), reversed(sizes), strict=True):
+        strides[k] = step
+        step *= size
+    total = step
+    se_2025 = sum(
+        index[k][code] * strides[k]
+        for k, code in (
+            ("freq", "A"),
+            ("expend", "DEF"),
+            ("na_item", "TE"),
+            ("unit", "MIO_EUR"),
+            ("geo", "SE"),
+            ("time", "2025"),
+        )
+    )
+    status = [""] * total
+    status[se_2025] = "e"
+    data["status"] = status
+    payload = json.dumps(data).encode()
+    result = parse_jsonstat(payload, release_from_payload(payload))
+    point = next(
+        p
+        for p in result.datapoints
+        if p.metric_id == "defence_expenditure"
+        and p.country == "SE"
+        and p.reference.start.year == 2025
+    )
+    assert point.status is DatapointStatus.ESTIMATE
+    assert point.flags == ("e",)
+
+
+def test_time_code_that_is_not_a_year_emits_warning() -> None:
+    baseline = parse_jsonstat(_payload(), release_from_payload(_payload()))
+    year_2025_count = sum(
+        1 for p in baseline.datapoints if p.reference.start.year == 2025
+    )
+
+    data = json.loads(_payload())
+    time_index = data["dimension"]["time"]["category"]["index"]
+    time_index["2025Q4"] = time_index.pop("2025")
+    payload = json.dumps(data).encode()
+    result = parse_jsonstat(payload, release_from_payload(payload))
+    assert len(result.datapoints) == 771 - year_2025_count
+    assert any("2025Q4" in warning for warning in result.warnings)
+
+
 async def test_provider_round_trip(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
@@ -144,3 +198,23 @@ async def test_provider_round_trip(
     assert len(aioclient_mock.mock_calls) == 1  # discovery payload is reused
     assert fetched.checksum
     assert len(provider.parse_release(payload, fetched).datapoints) == 771
+
+
+async def test_fetch_release_on_cache_miss_derives_release_from_fresh_payload(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """A provider with no cached discovery must not stamp a stale release."""
+    aioclient_mock.get(API_URL, content=_payload())
+    provider = EurostatProvider()
+    session = async_get_clientsession(hass)
+    stale = SourceRelease(
+        source_id=EUROSTAT,
+        release_id="stale",
+        published_at=date(2020, 1, 1),
+        download_url=API_URL,
+        canonical_url=API_URL,
+        format="json-stat",
+    )
+    fetched, _payload_bytes = await provider.async_fetch_release(session, stale)
+    assert fetched.release_id == "2026-04-27T23:00:00+0200"
+    assert fetched.published_at == date(2026, 4, 27)
