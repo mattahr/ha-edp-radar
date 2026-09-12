@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+
+# Home Assistant dev config: keep only configuration.yaml
+dev/config/*
+!dev/config/configuration.yaml
+
+# data-profile cache
+.cache/
