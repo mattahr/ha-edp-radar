@@ -1,0 +1,148 @@
+# Example Lovelace view for the European Defence Procurement Radar.
+#
+# Paste into a dashboard in YAML mode (Settings → Dashboards → ⋮ → Raw
+# configuration editor) or copy individual cards. Entity ids follow the
+# pattern <device>_<entity name>; adjust them if your Home Assistant language
+# is not English or if you renamed entities.
+
+title: Defence procurement
+views:
+  - title: Radar
+    path: radar
+    cards:
+      # 26.1 Snapshot: plain tiles, no thresholds or colours.
+      - type: grid
+        title: European defence market
+        columns: 2
+        cards:
+          - type: tile
+            entity: sensor.european_defence_market_new_competitions_30_d
+            name: New competitions 30 d
+          - type: tile
+            entity: sensor.european_defence_market_new_competitions_90_d
+            name: New competitions 90 d
+          - type: tile
+            entity: sensor.european_defence_market_estimated_value_30_d
+            name: Estimated value 30 d
+          - type: tile
+            entity: sensor.european_defence_market_award_value_30_d
+            name: Award value 30 d
+          - type: tile
+            entity: sensor.european_defence_market_top_country_by_value_90_d
+            name: Top country 90 d
+          - type: tile
+            entity: sensor.european_defence_market_top_category_by_value_90_d
+            name: Top category 90 d
+
+      - type: markdown
+        content: >
+          {{ states('sensor.european_defence_market_snapshot') }}
+
+          {{ states('sensor.european_defence_market_country_ranking') }}
+
+      # 26.2 Trend: the rolling 30-day windows over time.
+      - type: history-graph
+        title: 30-day rolling windows
+        hours_to_show: 2160
+        entities:
+          - entity: sensor.european_defence_market_new_competitions_30_d
+          - entity: sensor.european_defence_market_estimated_value_30_d
+          - entity: sensor.european_defence_market_award_value_30_d
+
+      # 26.3 Country comparison from the ranking attribute.
+      - type: markdown
+        title: Countries by estimated value, last 90 days
+        content: >
+          {% set s = states.sensor.european_defence_market_top_country_by_value_90_d %}
+          {% if s is not none and s.attributes.ranking is defined %}
+          | # | Country | EUR | Procedures | vs prev. 90 d |
+          |---|---|---|---|---|
+          {% for r in s.attributes.ranking %}
+          | {{ r.rank }} | {{ r.key }} | {{ '%.2f' | format((r.value_eur or 0) / 1e9) }} bn | {{ r.procedures }} | {{ (r.change_pct ~ ' %') if r.change_pct is not none else '–' }} |
+          {% endfor %}
+
+          *{{ s.attributes.population_size }} countries: {{ s.attributes.population }}.*
+          {% else %}
+          Waiting for the first TED bootstrap…
+          {% endif %}
+
+      # 26.4 Capability comparison.
+      - type: markdown
+        title: Strategic categories, last 90 days
+        content: >
+          {% set s = states.sensor.european_defence_market_top_category_by_value_90_d %}
+          {% if s is not none and s.attributes.ranking is defined %}
+          | # | Category | EUR | Procedures | vs prev. 90 d |
+          |---|---|---|---|---|
+          {% for r in s.attributes.ranking %}
+          | {{ r.rank }} | {{ r.label }} | {{ '%.2f' | format((r.value_eur or 0) / 1e9) }} bn | {{ r.procedures }} | {{ (r.change_pct ~ ' %') if r.change_pct is not none else '–' }} |
+          {% endfor %}
+          {% endif %}
+
+      # External radar: the largest things published in the last week.
+      - type: entities
+        title: External radar, last 7 days
+        entities:
+          - entity: sensor.external_radar_new_competitions_7_d
+          - entity: sensor.external_radar_largest_competition_7_d
+          - entity: sensor.external_radar_largest_award_7_d
+          - entity: sensor.external_radar_latest_competition
+
+      # Competition metrics with their coverage in the secondary text.
+      - type: entities
+        title: Competition, last 365 days
+        entities:
+          - entity: sensor.european_defence_market_median_tenders_per_lot_365_d
+            secondary_info: attribute
+            attribute: coverage_pct
+          - entity: sensor.european_defence_market_single_bid_share_365_d
+            secondary_info: attribute
+            attribute: coverage_pct
+          - entity: sensor.european_defence_market_median_public_time_to_result_365_d
+            secondary_info: attribute
+            attribute: procedure_link_coverage_pct
+
+  # 26.5 / 26.6 Public footprint and peer comparison (only when configured).
+  - title: Organisation
+    path: organisation
+    cards:
+      - type: entities
+        title: Selected organisation – public TED footprint
+        entities:
+          - sensor.selected_organisation_public_competitions_30_d
+          - sensor.selected_organisation_estimated_value_30_d
+          - sensor.selected_organisation_public_awards_30_d
+          - sensor.selected_organisation_award_value_30_d
+          - sensor.selected_organisation_public_changes_30_d
+          - sensor.selected_organisation_contract_modifications_365_d
+          - type: divider
+          - sensor.selected_organisation_median_tenders_per_lot_365_d
+          - sensor.selected_organisation_single_bid_share_365_d
+          - sensor.selected_organisation_median_public_time_to_result_365_d
+
+      # OWN · PEER · DIFFERENCE, one row per comparable metric.
+      - type: entities
+        title: Own vs peer group
+        entities:
+          - type: section
+            label: Median tenders per lot, 365 d
+          - sensor.selected_organisation_median_tenders_per_lot_365_d
+          - sensor.peer_comparison_peer_median_tenders_per_lot_365_d
+          - sensor.peer_comparison_own_vs_peer_median_tenders_delta
+          - type: section
+            label: Single-bid share, 365 d
+          - sensor.selected_organisation_single_bid_share_365_d
+          - sensor.peer_comparison_peer_single_bid_share_365_d
+          - sensor.peer_comparison_own_vs_peer_single_bid_delta
+          - type: section
+            label: Public time to result, 365 d
+          - sensor.selected_organisation_median_public_time_to_result_365_d
+          - sensor.peer_comparison_peer_median_public_time_to_result_365_d
+          - sensor.peer_comparison_own_vs_peer_time_to_result_delta
+
+      - type: entities
+        title: Selected country in the market, last 90 days
+        entities:
+          - sensor.peer_comparison_selected_country_value_rank_90_d
+          - sensor.peer_comparison_selected_country_activity_rank_90_d
+          - sensor.peer_comparison_selected_country_value_percentile_90_d
