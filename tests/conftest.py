@@ -9,6 +9,8 @@ from typing import Any
 
 import pytest
 
+from custom_components.edp_radar.const import TED_API_BASE_URL
+
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -29,3 +31,11 @@ def real_notice(
         return json.loads(json.dumps(by_number[publication_number]))
 
     return _get
+
+
+TED_SEARCH_URL = f"{TED_API_BASE_URL}/notices/search"
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
+    """Enable loading of custom_components in every test."""

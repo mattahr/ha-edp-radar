@@ -49,9 +49,6 @@
   },
   "notice-version": 1,
   "form-type": "planning",
-  "description-proc": {
-   "deu": "Die Liegenschaft des Bundespräsidialamtes, mit dem 1786 errichteten Schloss Bellevue, dem 1998 errichteten Verwaltungsgebäude mit Hauptwache und den 2001 restaurierten denkmalgeschützten Parkanlagen, …"
-  },
   "buyer-identifier": [
    "Leitweg-ID: 991-00606-79"
   ]
@@ -95,9 +92,6 @@
    "ESP"
   ],
   "procedure-type": "open",
-  "deadline-receipt-tender-time-lot": [
-   "09:00:00+02:00"
-  ],
   "classification-cpv": [
    "31000000",
    "31000000"
@@ -114,9 +108,6 @@
   "notice-version": 1,
   "form-type": "competition",
   "internal-identifier-proc": "2026/AR43U/00002303E",
-  "description-proc": {
-   "spa": "Suministro de dos grupos electrógenos para el patrullero Tagomago"
-  },
   "buyer-identifier": [
    "10000140000584",
    "S1115005I"
@@ -171,11 +162,6 @@
    "FRA"
   ],
   "procedure-type": "open",
-  "deadline-receipt-tender-time-lot": [
-   "15:00:00+02:00",
-   "15:00:00+02:00",
-   "15:00:00+02:00"
-  ],
   "classification-cpv": [
    "15811000",
    "15811000",
@@ -196,9 +182,6 @@
   "notice-version": 1,
   "form-type": "competition",
   "internal-identifier-proc": "DAF_2025_001758",
-  "description-proc": {
-   "fra": "Approvisionnement en pains et viennoiseries à l’état frais au profit des restaurants du cercle du groupement de soutien commissariat (GSC) de Strasbourg"
-  },
   "buyer-identifier": [
    "13001535700010"
   ]
@@ -251,10 +234,6 @@
    "ESP"
   ],
   "procedure-type": "open",
-  "deadline-receipt-tender-time-lot": [
-   "23:59:00+02:00",
-   "23:59:00+02:00"
-  ],
   "classification-cpv": [
    "44810000",
    "44810000",
@@ -273,9 +252,6 @@
   "notice-version": 1,
   "form-type": "competition",
   "internal-identifier-proc": "2026/EA12/00001472E",
-  "description-proc": {
-   "spa": "Adquisición de pinturas aeronáuticas y no aeronáuticas necesarias para el departamento de aeronaves, motores y de accesorios de la Maestranza Aérea de Sevilla (MAESE)"
-  },
   "buyer-identifier": [
    "10000140000193",
    "S4130033F"
@@ -299,6 +275,7 @@
    "35815100"
   ],
   "procedure-identifier": "8d24a8e6-a8e2-46db-a869-d7ea4d132704",
+  "change-notice-version-identifier": "585045-2026",
   "buyer-country": [
    "POL"
   ],
@@ -326,18 +303,12 @@
   "notice-version": 1,
   "form-type": "competition",
   "internal-identifier-proc": "142/cut/24/EZ",
-  "description-proc": {
-   "pol": "1. Postępowanie prowadzone jest w trybie przetargu ograniczonego w dziedzinach obronności i bezpieczeństwa na podstawie art. 410 ust. 1 ustawy Pzp. Przetarg ograniczony, zgodnie z art. 140 Pzp, to try…"
-  },
   "buyer-identifier": [
    "012137497"
   ]
  },
  {
   "change-reason-code": "update-add",
-  "change-procurement-documents": [
-   true
-  ],
   "deadline-receipt-tender-date-lot": [
    "2026-09-28+02:00",
    "2026-09-28+02:00",
@@ -377,9 +348,6 @@
    }
   },
   "notice-identifier": "7f6229a5-b3f1-48e0-823d-20316f68bf8c",
-  "change-procurement-documents-date": [
-   "2026-09-10+02:00"
-  ],
   "title-proc": {
    "fra": "Nettoyage des locaux tertiaires, d'hébergement et d'hôtellerie au profit des unités ou formations bénéficiaires soutenues par le Groupement de Soutien du Commissariat (GSC) de MOURMELON"
   },
@@ -399,17 +367,11 @@
   "buyer-legal-type": [
    "cga"
   ],
+  "change-notice-version-identifier": "34df3207-fe17-4373-8949-dfd61012592e-01",
   "buyer-country": [
    "FRA"
   ],
   "procedure-type": "open",
-  "deadline-receipt-tender-time-lot": [
-   "15:00:00+02:00",
-   "15:00:00+02:00",
-   "15:00:00+02:00",
-   "15:00:00+02:00",
-   "15:00:00+02:00"
-  ],
   "classification-cpv": [
    "90911000",
    "90911000",
@@ -434,57 +396,45 @@
   "notice-version": 2,
   "form-type": "competition",
   "internal-identifier-proc": "DAF_2025_001721",
-  "description-proc": {
-   "fra": "Nettoyage des locaux tertiaires, d'hébergement et d'hôtellerie au profit des unités ou formations bénéficiaires soutenues par le Groupement de Soutien du Commissariat (GSC) de MOURMELON"
-  },
   "buyer-identifier": [
    "13001535700010"
   ]
  },
  {
+  "notice-identifier": "1a93673a-5572-4cf4-b34e-a89557da9b2b",
   "deadline-receipt-tender-date-lot": [
    "2026-10-14Z"
   ],
+  "title-proc": {
+   "fin": "Kylkiaukeavat 20'wide CSC meriliikenne katsastetut kontit"
+  },
   "notice-type": "cn-standard",
   "publication-number": "628113-2026",
   "main-classification-lot": [
    "44613300"
   ],
-  "main-classification-proc": [
-   "44613300"
-  ],
-  "procedure-identifier": "670391e1-21ec-4452-b1c4-3886f48ad3c2",
-  "authority-main-activity": [
-   "defence"
-  ],
-  "notice-subtype": "16",
-  "publication-date": "2026-09-11+02:00",
-  "links": {
-   "xml": {
-    "MUL": "https://ted.europa.eu/en/notice/628113-2026/xml"
-   }
-  },
-  "notice-identifier": "1a93673a-5572-4cf4-b34e-a89557da9b2b",
-  "title-proc": {
-   "fin": "Kylkiaukeavat 20'wide CSC meriliikenne katsastetut kontit"
-  },
   "legal-basis": [
    "32014L0024"
+  ],
+  "main-classification-proc": [
+   "44613300"
   ],
   "buyer-legal-type": [
    "cga"
   ],
+  "procedure-identifier": "670391e1-21ec-4452-b1c4-3886f48ad3c2",
   "buyer-country": [
    "FIN"
   ],
   "procedure-type": "open",
-  "deadline-receipt-tender-time-lot": [
-   "11:00:00Z"
+  "authority-main-activity": [
+   "defence"
   ],
   "classification-cpv": [
    "44613300",
    "44613300"
   ],
+  "notice-subtype": "16",
   "contract-nature": [
    "supplies",
    "supplies"
@@ -494,12 +444,15 @@
     "Puolustusvoimien logistiikkalaitos"
    ]
   },
+  "publication-date": "2026-09-11+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/628113-2026/xml"
+   }
+  },
   "notice-version": 2,
   "form-type": "competition",
   "internal-identifier-proc": "32444/2026",
-  "description-proc": {
-   "fin": "Puolustusvoimat (jäljempänä hankintayksikkö) pyytää tarjousta 40:stä kylkiaukeavasta 20'wide CSC meriliikenne katsastetusta kontista. Hankinta sisältää option vuosille 2026-2028 100:sta kylkiaukeavast…"
-  },
   "buyer-identifier": [
    "0952029-9"
   ]
@@ -599,9 +552,6 @@
   "result-value-cur-notice": "DKK",
   "form-type": "result",
   "internal-identifier-proc": "4022529",
-  "description-proc": {
-   "dan": "Forsvarsministeriets Materiel- og Indkøbsstyrelse (FMI) har udbudt en kontrakt vedrørende anskaffelse og etablering af kasselagersystem (kasselager og operativsystem), anskaffelse af relevante kasser …"
-  },
   "buyer-identifier": [
    "16287180"
   ]
@@ -829,29 +779,7 @@
    "496789.62",
    "402210"
   ],
-  "tender-value-highest": [
-   "26265",
-   "1089915.88",
-   "235.42",
-   "154244.46",
-   "2013172.98",
-   "417289.8",
-   "5706422.64",
-   "496789.62",
-   "402210"
-  ],
   "procedure-type": "restricted",
-  "tender-value-lowest": [
-   "26265",
-   "1089915.88",
-   "235.42",
-   "154244.46",
-   "2013172.98",
-   "417289.8",
-   "5706422.64",
-   "496789.62",
-   "402210"
-  ],
   "classification-cpv": [
    "35340000",
    "35322200",
@@ -917,9 +845,6 @@
   "result-value-cur-notice": "PLN",
   "form-type": "result",
   "internal-identifier-proc": "W/64/2026",
-  "description-proc": {
-   "pol": "1. Przedmiotem zamówienia jest dostawa technicznych środków materiałowych do sprzętu wojskowego, z podziałem na 14 części (zadań). zadanie nr 1 - 9 mm pistolet maszynowy PM-84P, PM-98; zadanie nr 2 - …"
-  },
   "buyer-identifier": [
    "952-209-95-97"
   ]
@@ -1009,9 +934,6 @@
   "notice-version": 1,
   "form-type": "result",
   "internal-identifier-proc": "2026/1246",
-  "description-proc": {
-   "eng": "The contract mainly comprises snow clearing, gritting, responsibility for snow ploughing, sweeping and costing. Further details on the assignment are in the tender documentation part III. The contract…"
-  },
   "buyer-identifier": [
    "975950662"
   ]
@@ -1148,9 +1070,6 @@
   },
   "form-type": "result",
   "internal-identifier-proc": "BG_1619_EU/25_II",
-  "description-proc": {
-   "deu": "Der Auftrag umfasst die Werksinstandsetzung von diversen Baugruppen des Systems BeobAufklAusstattung BAA Fennek. Die Bieter müssen im Rahmen der Angebotsabgabe berücksichtigen, dass die Angaben zu den…"
-  },
   "buyer-identifier": [
    "992-80013-14"
   ]
@@ -1263,9 +1182,6 @@
   "result-value-cur-notice": "EUR",
   "form-type": "result",
   "internal-identifier-proc": "SEVO-211/2025",
-  "description-proc": {
-   "slk": "Predmetom čiastkových zákaziek bude kúpa a dodanie drobného domáceho vybavenia a potrieb pre kuchynské zariadenia, ktoré sú bežne dostupné na trhu a ktoré sú zaradené podľa spoločného slovníka obstará…"
-  },
   "buyer-identifier": [
    "30845572",
    "2020947698"
@@ -1341,9 +1257,6 @@
   "notice-version": 1,
   "form-type": "dir-awa-pre",
   "internal-identifier-proc": "4044026",
-  "description-proc": {
-   "dan": "FMI har efter modtagelse og ibrugtagning af ni (9) FRB-både (Fast Rescue Boats) af typen Marathon fra VIKING Life-Saving Equipment A/S, CVR-nr. 15 01 62 13 (herefter \"Leverandøren\"), konstateret, at s…"
-  },
   "buyer-identifier": [
    "16287180"
   ]
@@ -1433,9 +1346,6 @@
   "notice-version": 1,
   "form-type": "cont-modif",
   "internal-identifier-proc": "28/25",
-  "description-proc": {
-   "pol": "1. Przedmiotem zamówienia w prowadzonym postępowaniu o udzielenie zamówienia publicznego jest zakup i dostawa produktów spożywczych niezwierzęcych (kod CPV: 15811000-6, 158120003, 15800000-6, 15300000…"
-  },
   "buyer-identifier": [
    "5211207048"
   ]
@@ -1529,9 +1439,6 @@
   "notice-version": 1,
   "form-type": "result",
   "internal-identifier-proc": "FOI-2026-645",
-  "description-proc": {
-   "swe": "Upphandlingen omfattar leverans av ett (1) komplett LC-HRMS System. Systemet ska vara en analytisk plattform för forskning och metodutveckling och kunna hantera ett brett spektrum av biologiska, kemis…"
-  },
   "buyer-identifier": [
    "2021005182"
   ]
@@ -1663,7 +1570,13 @@
     "HRVATSKI SABOR",
     "VLADA REPUBLIKE HRVATSKE",
     "REPUBLIKA HRVATSKA MINISTARSTVO VANJSKIH I EUROPSKIH POSLOVA",
-    "… 27 more"
+    "MINISTARSTVO UNUTARNJIH POSLOVA",
+    "REPUBLIKA HRVATSKA MINISTARSTVO OBRANE",
+    "Ministarstvo financija",
+    "MINISTARSTVO GOSPODARSTVA",
+    "MINISTARSTVO PRAVOSUĐA, UPRAVE I DIGITALNE TRANSFORMACIJE",
+    "MINISTARSTVO ZNANOSTI, OBRAZOVANJA I MLADIH",
+    "MINISTARSTVO KULTURE I MEDIJA"
    ]
   },
   "notice-version": 1,
@@ -1675,9 +1588,6 @@
   "result-value-cur-notice": "EUR",
   "form-type": "result",
   "internal-identifier-proc": "1/2024",
-  "description-proc": {
-   "hrv": "Predmet nabave je nabava i isporuka tonera i tinti za ispisne uređaje te ostalog potrošnog materijala. Svi ponuđeni proizvodi moraju udovoljavati zakonskim i podzakonskim propisima vezanim za proizvod…"
-  },
   "buyer-identifier": [
    "17683204722",
    "10162055275",
@@ -1792,13 +1702,7 @@
   "tender-value": [
    "70772.50"
   ],
-  "tender-value-highest": [
-   "71012.50"
-  ],
   "procedure-type": "restricted",
-  "tender-value-lowest": [
-   "70772.50"
-  ],
   "classification-cpv": [
    "43800000",
    "42630000",
@@ -1833,9 +1737,6 @@
   "result-value-cur-notice": "EUR",
   "form-type": "result",
   "internal-identifier-proc": "SEVO-111/2025-1",
-  "description-proc": {
-   "slk": "Kúpa a dodanie na trhu bežne dostupného vybavenia pre dielne určené predovšetkým na údržbu a opravy automobilovej techniky a inej techniky a zariadení verejného obstarávateľa, pričom plnenia na základ…"
-  },
   "buyer-identifier": [
    "30845572",
    "2020947698"
@@ -1944,15 +1845,7 @@
    "406400.0000",
    "124915.0000"
   ],
-  "tender-value-highest": [
-   "406400.0000",
-   "124915.0000"
-  ],
   "procedure-type": "neg-wo-call",
-  "tender-value-lowest": [
-   "406400.0000",
-   "124915.0000"
-  ],
   "classification-cpv": [
    "30233141",
    "30233141",
@@ -1980,9 +1873,6 @@
   "result-value-cur-notice": "EUR",
   "form-type": "result",
   "internal-identifier-proc": "MORS 222/2026-KONKPSP, 430-280/2026",
-  "description-proc": {
-   "slv": "Skladno z zahtevami iz razpisne dokumentacije."
-  },
   "buyer-identifier": [
    "5268923000"
   ]
