@@ -9,7 +9,7 @@
           "market_preset": "Marknadsländer"
         },
         "data_description": {
-          "market_preset": "Köparländerna som utgör marknaden. Jämförelseländer, egen organisation och bevakade länder hämtas alltid också."
+          "market_preset": "Köparländerna som utgör marknaden. Mitt land, jämförelseländer, egen organisation, rådata- och bevakade länder hämtas alltid också."
         }
       },
       "countries": {
@@ -17,6 +17,16 @@
         "description": "Välj vilka köparländer som ska ingå i marknaden.",
         "data": {
           "market_countries": "Länder"
+        }
+      },
+      "my_country": {
+        "title": "Mitt land",
+        "description": "Landet som radarn utgår från: dess tilldelade kontraktsvärde, rankning, andel och trend jämförs med alla andra länder i datat. Vilket TED-land som helst kan väljas; valet begränsar inte vad som hämtas.",
+        "data": {
+          "selected_country": "Mitt land"
+        },
+        "data_description": {
+          "selected_country": "Lagras som ISO-landskod. Ditt Home Assistant-land är förvalt när TED publicerar för det."
         }
       },
       "organisation": {
@@ -43,10 +53,9 @@
       },
       "peers": {
         "title": "Jämförelsegrupp",
-        "description": "Jämför konkurrensmått mot en grupp länder och rangordna ett valt land i marknaden.",
+        "description": "Jämför konkurrensmått mot en grupp länder. Mitt land rangordnas även här inom marknaden.",
         "data": {
-          "peer_preset": "Jämförelseländer",
-          "selected_country": "Valt land"
+          "peer_preset": "Jämförelseländer"
         }
       },
       "peer_countries": {
@@ -101,7 +110,7 @@
           "market_preset": "Marknadsländer"
         },
         "data_description": {
-          "market_preset": "Köparländerna som utgör marknaden. Jämförelseländer, egen organisation och bevakade länder hämtas alltid också."
+          "market_preset": "Köparländerna som utgör marknaden. Mitt land, jämförelseländer, egen organisation, rådata- och bevakade länder hämtas alltid också."
         }
       },
       "countries": {
@@ -109,6 +118,16 @@
         "description": "Välj vilka köparländer som ska ingå i marknaden.",
         "data": {
           "market_countries": "Länder"
+        }
+      },
+      "my_country": {
+        "title": "Mitt land",
+        "description": "Landet som radarn utgår från: dess tilldelade kontraktsvärde, rankning, andel och trend jämförs med alla andra länder i datat. Vilket TED-land som helst kan väljas; valet begränsar inte vad som hämtas.",
+        "data": {
+          "selected_country": "Mitt land"
+        },
+        "data_description": {
+          "selected_country": "Lagras som ISO-landskod. Ditt Home Assistant-land är förvalt när TED publicerar för det."
         }
       },
       "organisation": {
@@ -135,10 +154,9 @@
       },
       "peers": {
         "title": "Jämförelsegrupp",
-        "description": "Jämför konkurrensmått mot en grupp länder och rangordna ett valt land i marknaden.",
+        "description": "Jämför konkurrensmått mot en grupp länder. Mitt land rangordnas även här inom marknaden.",
         "data": {
-          "peer_preset": "Jämförelseländer",
-          "selected_country": "Valt land"
+          "peer_preset": "Jämförelseländer"
         }
       },
       "peer_countries": {
@@ -168,6 +186,7 @@
         "title": "Alternativ för European Defence Procurement Radar",
         "menu_options": {
           "universe": "Upphandlingsuniversum och marknad",
+          "my_country": "Mitt land",
           "organisation": "Vald organisation",
           "peers": "Jämförelsegrupp",
           "categories": "Fästa kategorier",

@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -98,12 +99,28 @@ def ted(
     return aioclient_mock
 
 
+def schema_keys(result: dict) -> set[str]:
+    return {str(key) for key in result["data_schema"].schema}
+
+
+def suggested_country(result: dict) -> str | None:
+    """The pre-selected My country, from the schema default or suggested value."""
+    for key in result["data_schema"].schema:
+        if str(key) == CONF_SELECTED_COUNTRY:
+            suggested = key.description and key.description.get("suggested_value")
+            if suggested:
+                return str(suggested)
+            default = key.default
+            return None if default is vol.UNDEFINED else str(default())
+    raise AssertionError("no My country field")
+
+
 def option_values(result: dict, field: str) -> list[str]:
     schema = result["data_schema"].schema
     selector = next(value for key, value in schema.items() if key == field)
+    options = selector.config.get("options") or selector.config["countries"]
     return [
-        option["value"] if isinstance(option, dict) else option
-        for option in selector.config["options"]
+        option["value"] if isinstance(option, dict) else option for option in options
     ]
 
 
@@ -172,9 +189,13 @@ async def test_full_flow_with_defaults(
     result = await configure(
         hass, result, {CONF_RELEVANCE_MODE: "strict", CONF_MARKET_PRESET: "eu"}
     )
+    assert result["step_id"] == "my_country"
+    assert suggested_country(result) is None  # the test instance has no country
+    result = await configure(hass, result, {CONF_SELECTED_COUNTRY: "SE"})
     assert result["step_id"] == "organisation"
     result = await configure(hass, result, {CONF_TRACK_ORGANISATION: False})
     assert result["step_id"] == "peers"
+    assert CONF_SELECTED_COUNTRY not in schema_keys(result)
     result = await configure(hass, result, {CONF_PEER_PRESET: "none"})
     assert result["step_id"] == "categories"
     assert "land_systems" in option_values(result, CONF_PINNED_CATEGORIES)
@@ -191,10 +212,12 @@ async def test_full_flow_with_defaults(
     assert result["options"] == {
         CONF_RELEVANCE_MODE: "strict",
         CONF_MARKET_PRESET: "eu",
+        CONF_SELECTED_COUNTRY: "SE",
         CONF_PEER_PRESET: "none",
         CONF_PINNED_CATEGORIES: [],
         CONF_RAW_COUNTRIES: [],
     }
+    assert result["result"].version == 2
     assert result["result"].unique_id == DOMAIN
     assert mock_setup_entry.call_count == 1
     validations = [c for c in ted.mock_calls if c[2].get("checkQuerySyntax")]
@@ -212,6 +235,9 @@ async def test_full_flow_with_everything(
     assert result["step_id"] == "countries"
     assert "SE" in option_values(result, CONF_MARKET_COUNTRIES)
     result = await configure(hass, result, {CONF_MARKET_COUNTRIES: ["SE", "FI"]})
+    assert result["step_id"] == "my_country"
+    assert "NO" in option_values(result, CONF_SELECTED_COUNTRY)
+    result = await configure(hass, result, {CONF_SELECTED_COUNTRY: "NO"})
     assert result["step_id"] == "organisation"
     result = await configure(hass, result, {CONF_TRACK_ORGANISATION: True})
     assert result["step_id"] == "organisation_search"
@@ -235,9 +261,7 @@ async def test_full_flow_with_everything(
 
     result = await configure(hass, result, {CONF_CANDIDATE: "0"})
     assert result["step_id"] == "peers"
-    result = await configure(
-        hass, result, {CONF_PEER_PRESET: "custom", CONF_SELECTED_COUNTRY: "SE"}
-    )
+    result = await configure(hass, result, {CONF_PEER_PRESET: "custom"})
     assert result["step_id"] == "peer_countries"
     result = await configure(hass, result, {CONF_PEER_COUNTRIES: ["PL", "DE"]})
     assert result["step_id"] == "categories"
@@ -268,11 +292,33 @@ async def test_full_flow_with_everything(
     }
     assert options[CONF_PEER_PRESET] == "custom"
     assert options[CONF_PEER_COUNTRIES] == ["PL", "DE"]
-    assert options[CONF_SELECTED_COUNTRY] == "SE"
+    assert options[CONF_SELECTED_COUNTRY] == "NO"
     assert options[CONF_PINNED_CATEGORIES] == ["land_systems", "cyber_it"]
     assert options[CONF_RAW_COUNTRIES] == ["SE"]
     assert options[CONF_WATCHLIST_COUNTRIES] == ["PL"]
     assert options[CONF_WATCHLIST_MIN_ESTIMATED_EUR] == 1e8
+
+
+async def test_my_country_is_preselected_from_home_assistant(
+    hass: HomeAssistant, ted: AiohttpClientMocker
+) -> None:
+    hass.config.country = "FI"
+    result = await start_user_flow(hass)
+    result = await configure(
+        hass, result, {CONF_RELEVANCE_MODE: "strict", CONF_MARKET_PRESET: "eu"}
+    )
+    assert result["step_id"] == "my_country"
+    assert suggested_country(result) == "FI"
+    hass.config_entries.flow.async_abort(result["flow_id"])
+
+    # A Home Assistant country outside TED is no default at all.
+    hass.config.country = "US"
+    result = await start_user_flow(hass)
+    result = await configure(
+        hass, result, {CONF_RELEVANCE_MODE: "strict", CONF_MARKET_PRESET: "eu"}
+    )
+    assert suggested_country(result) is None
+    assert "US" not in option_values(result, CONF_SELECTED_COUNTRY)
 
 
 async def test_organisation_search_errors(
@@ -283,6 +329,7 @@ async def test_organisation_search_errors(
     result = await configure(
         hass, result, {CONF_RELEVANCE_MODE: "strict", CONF_MARKET_PRESET: "nordic"}
     )
+    result = await configure(hass, result, {CONF_SELECTED_COUNTRY: "SE"})
     result = await configure(hass, result, {CONF_TRACK_ORGANISATION: True})
     result = await configure(
         hass, result, {CONF_OWN_COUNTRY: "SE", CONF_SEARCH: "försvar"}
@@ -319,6 +366,7 @@ async def test_invalid_query_is_reported_on_the_last_step(
     result = await configure(
         hass, result, {CONF_RELEVANCE_MODE: "strict", CONF_MARKET_PRESET: "eu"}
     )
+    result = await configure(hass, result, {CONF_SELECTED_COUNTRY: "SE"})
     result = await configure(hass, result, {CONF_TRACK_ORGANISATION: False})
     result = await configure(hass, result, {CONF_PEER_PRESET: "none"})
     result = await configure(hass, result, {CONF_PINNED_CATEGORIES: []})
@@ -349,6 +397,7 @@ async def start_options(hass: HomeAssistant, entry: MockConfigEntry) -> dict:
     assert result["step_id"] == "init"
     assert list(result["menu_options"]) == [
         "universe",
+        "my_country",
         "organisation",
         "peers",
         "categories",
@@ -435,13 +484,25 @@ async def test_options_peers_categories_and_watchlist(
     assert await hass.config_entries.async_setup(entry.entry_id)
 
     result = await start_options(hass, entry)
+    result = await options_configure(hass, result, {"next_step_id": "my_country"})
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "my_country"
+    result = await options_configure(hass, result, {CONF_SELECTED_COUNTRY: "FI"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_SELECTED_COUNTRY] == "FI"
+
+    result = await start_options(hass, entry)
+    result = await options_configure(hass, result, {"next_step_id": "my_country"})
+    assert suggested_country(result) == "FI"
+    result = await options_configure(hass, result, {CONF_SELECTED_COUNTRY: "SE"})
+    assert entry.options[CONF_SELECTED_COUNTRY] == "SE"
+
+    result = await start_options(hass, entry)
     result = await options_configure(hass, result, {"next_step_id": "peers"})
-    result = await options_configure(
-        hass, result, {CONF_PEER_PRESET: "nordic", CONF_SELECTED_COUNTRY: "FI"}
-    )
+    result = await options_configure(hass, result, {CONF_PEER_PRESET: "nordic"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_PEER_PRESET] == "nordic"
-    assert entry.options[CONF_SELECTED_COUNTRY] == "FI"
+    assert entry.options[CONF_SELECTED_COUNTRY] == "SE"  # peers leave it alone
 
     result = await start_options(hass, entry)
     result = await options_configure(hass, result, {"next_step_id": "categories"})

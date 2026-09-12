@@ -9,7 +9,7 @@
           "market_preset": "Market countries"
         },
         "data_description": {
-          "market_preset": "The buyer countries that make up the market. Peers, your own organisation and watchlist countries are always fetched too."
+          "market_preset": "The buyer countries that make up the market. My country, peers, your own organisation, raw-data and watchlist countries are always fetched too."
         }
       },
       "countries": {
@@ -17,6 +17,16 @@
         "description": "Select the buyer countries to include in the market.",
         "data": {
           "market_countries": "Countries"
+        }
+      },
+      "my_country": {
+        "title": "My country",
+        "description": "The country the radar is centred on: its awarded contract value, rank, share and trend are compared with every other country in the data. Any TED country can be chosen; it does not limit what is fetched.",
+        "data": {
+          "selected_country": "My country"
+        },
+        "data_description": {
+          "selected_country": "Stored as an ISO country code. Your Home Assistant country is pre-selected when TED publishes for it."
         }
       },
       "organisation": {
@@ -43,10 +53,9 @@
       },
       "peers": {
         "title": "Peer comparison",
-        "description": "Compare competition metrics against a group of countries and rank one selected country in the market.",
+        "description": "Compare competition metrics against a group of countries. My country is ranked within the market here too.",
         "data": {
-          "peer_preset": "Peer countries",
-          "selected_country": "Selected country"
+          "peer_preset": "Peer countries"
         }
       },
       "peer_countries": {
@@ -101,7 +110,7 @@
           "market_preset": "Market countries"
         },
         "data_description": {
-          "market_preset": "The buyer countries that make up the market. Peers, your own organisation and watchlist countries are always fetched too."
+          "market_preset": "The buyer countries that make up the market. My country, peers, your own organisation, raw-data and watchlist countries are always fetched too."
         }
       },
       "countries": {
@@ -109,6 +118,16 @@
         "description": "Select the buyer countries to include in the market.",
         "data": {
           "market_countries": "Countries"
+        }
+      },
+      "my_country": {
+        "title": "My country",
+        "description": "The country the radar is centred on: its awarded contract value, rank, share and trend are compared with every other country in the data. Any TED country can be chosen; it does not limit what is fetched.",
+        "data": {
+          "selected_country": "My country"
+        },
+        "data_description": {
+          "selected_country": "Stored as an ISO country code. Your Home Assistant country is pre-selected when TED publishes for it."
         }
       },
       "organisation": {
@@ -135,10 +154,9 @@
       },
       "peers": {
         "title": "Peer comparison",
-        "description": "Compare competition metrics against a group of countries and rank one selected country in the market.",
+        "description": "Compare competition metrics against a group of countries. My country is ranked within the market here too.",
         "data": {
-          "peer_preset": "Peer countries",
-          "selected_country": "Selected country"
+          "peer_preset": "Peer countries"
         }
       },
       "peer_countries": {
@@ -168,6 +186,7 @@
         "title": "European Defence Procurement Radar options",
         "menu_options": {
           "universe": "Procurement universe and market",
+          "my_country": "My country",
           "organisation": "Selected organisation",
           "peers": "Peer comparison",
           "categories": "Pinned categories",

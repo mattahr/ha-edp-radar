@@ -1,8 +1,8 @@
 """UI configuration: a step-wise config flow and a menu-based options flow.
 
-Plan §27–28 and addendum D2, D17, D23. Every user-tunable value lives in
-``ConfigEntry.options``; the update listener in ``__init__`` reloads the entry
-when the options flow finishes.
+Plan §27–28, addendum D2, D17, D23 and Phase 2 §17 (My country). Every
+user-tunable value lives in ``ConfigEntry.options``; the update listener in
+``__init__`` reloads the entry when the options flow finishes.
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ BUYER_SEARCH_LIMIT = 500
 MAX_CANDIDATES = 25
 
 UNIVERSE_KEYS = (CONF_RELEVANCE_MODE, CONF_MARKET_PRESET, CONF_MARKET_COUNTRIES)
-PEER_KEYS = (CONF_PEER_PRESET, CONF_PEER_COUNTRIES, CONF_SELECTED_COUNTRY)
+PEER_KEYS = (CONF_PEER_PRESET, CONF_PEER_COUNTRIES)
 WATCHLIST_KEYS = (
     CONF_WATCHLIST_COUNTRIES,
     CONF_WATCHLIST_MIN_ESTIMATED_EUR,
@@ -276,13 +276,29 @@ def organisation_select_schema(candidates: list[BuyerCandidate]) -> vol.Schema:
     )
 
 
+def supported_country(code: str | None) -> str | None:
+    """The alpha-2 code when TED publishes for that country, else None."""
+    if code and code.upper() in ALPHA2_TO_ALPHA3:
+        return code.upper()
+    return None
+
+
+def my_country_schema(default: str | None) -> vol.Schema:
+    """My country (Phase 2 §17): required, stored as an ISO alpha-2 code."""
+    key = (
+        vol.Required(CONF_SELECTED_COUNTRY, default=default)
+        if default
+        else vol.Required(CONF_SELECTED_COUNTRY)
+    )
+    return vol.Schema({key: _country()})
+
+
 def peers_schema() -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_PEER_PRESET, default=PEER_PRESET_NONE): _select(
                 [str(p) for p in PEER_PRESETS], CONF_PEER_PRESET
             ),
-            vol.Optional(CONF_SELECTED_COUNTRY): _country(),
         }
     )
 
@@ -400,9 +416,10 @@ class OrganisationStepsMixin(ConfigEntryBaseFlow):
 
 
 class EdpRadarConfigFlow(OrganisationStepsMixin, ConfigFlow, domain=DOMAIN):
-    """Initial setup: universe → organisation → peers → categories → watchlist."""
+    """Initial setup: universe → my country → organisation → peers → categories
+    → raw data → watchlist."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         self._options: dict[str, Any] = {}
@@ -422,7 +439,7 @@ class EdpRadarConfigFlow(OrganisationStepsMixin, ConfigFlow, domain=DOMAIN):
             self._options.update(user_input)
             if user_input[CONF_MARKET_PRESET] == MarketPreset.CUSTOM:
                 return await self.async_step_countries()
-            return await self.async_step_organisation()
+            return await self.async_step_my_country()
         return self.async_show_form(step_id="user", data_schema=universe_schema())
 
     async def async_step_countries(
@@ -430,8 +447,21 @@ class EdpRadarConfigFlow(OrganisationStepsMixin, ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         if user_input is not None:
             self._options.update(user_input)
-            return await self.async_step_organisation()
+            return await self.async_step_my_country()
         return self.async_show_form(step_id="countries", data_schema=countries_schema())
+
+    async def async_step_my_country(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._options[CONF_SELECTED_COUNTRY] = user_input[
+                CONF_SELECTED_COUNTRY
+            ].upper()
+            return await self.async_step_organisation()
+        return self.async_show_form(
+            step_id="my_country",
+            data_schema=my_country_schema(supported_country(self.hass.config.country)),
+        )
 
     async def async_step_organisation(
         self, user_input: dict[str, Any] | None = None
@@ -547,12 +577,29 @@ class EdpRadarOptionsFlow(OrganisationStepsMixin, OptionsFlow):
             step_id="init",
             menu_options=[
                 "universe",
+                "my_country",
                 "organisation",
                 "peers",
                 "categories",
                 "raw_data",
                 "watchlist",
             ],
+        )
+
+    async def async_step_my_country(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._finish(
+                (CONF_SELECTED_COUNTRY,),
+                {CONF_SELECTED_COUNTRY: user_input[CONF_SELECTED_COUNTRY].upper()},
+            )
+        current = supported_country(self.options.get(CONF_SELECTED_COUNTRY))
+        return self.async_show_form(
+            step_id="my_country",
+            data_schema=my_country_schema(
+                current or supported_country(self.hass.config.country)
+            ),
         )
 
     async def async_step_universe(

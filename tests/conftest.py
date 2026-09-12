@@ -63,6 +63,7 @@ def config_entry() -> MockConfigEntry:
         entry_id="test-entry",
         title=NAME,
         unique_id=DOMAIN,
+        version=2,
         data={},
         options={},
     )
