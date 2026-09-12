@@ -305,6 +305,13 @@
         "change": "Ändring (rättelse, avbrytande)",
         "other": "Övrigt"
       }
+    },
+    "purchasing_period": {
+      "options": {
+        "12m": "12 månader",
+        "90d": "90 dagar",
+        "30d": "30 dagar"
+      }
     }
   },
   "entity": {
@@ -616,11 +623,31 @@
           "description": "Högsta antal notiser att returnera (1–500, standard 100)."
         }
       }
+    },
+    "get_country_purchasing": {
+      "name": "Hämta landets inköp",
+      "description": "Returnerar bilden av ett lands tilldelade kontraktsvärde för en period: värde, rankning, andel, förändring, täckning, kategorier, största tilldelningar och (för 12 månader) månadsserien. Använd land \"all\" för hela rankningen.",
+      "fields": {
+        "country": {
+          "name": "Land",
+          "description": "ISO alpha-2-kod, \"all\" för alla länder; standard är Mitt land."
+        },
+        "period": {
+          "name": "Period",
+          "description": "Rullande 12 månader (standard), 90 eller 30 dagar, efter tilldelningsdatum."
+        }
+      }
     }
   },
   "exceptions": {
     "not_loaded": {
       "message": "European Defence Procurement Radar är inte konfigurerad."
+    },
+    "not_bootstrapped": {
+      "message": "Radarn hämtar fortfarande sin historik; försök igen när bootstrappen är klar."
+    },
+    "no_country": {
+      "message": "Inget Mitt land är valt: ange ett land eller välj ett i integrationens alternativ."
     }
   }
 }

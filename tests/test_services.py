@@ -1,4 +1,4 @@
-"""Tests for the edp_radar.get_notices action."""
+"""Tests for the edp_radar.get_notices and get_country_purchasing actions."""
 
 from __future__ import annotations
 
@@ -15,8 +15,11 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.edp_radar.const import DOMAIN
-from custom_components.edp_radar.services import SERVICE_GET_NOTICES
+from custom_components.edp_radar.const import CONF_SELECTED_COUNTRY, DOMAIN
+from custom_components.edp_radar.services import (
+    SERVICE_GET_COUNTRY_PURCHASING,
+    SERVICE_GET_NOTICES,
+)
 
 from .test_coordinator import NOW
 
@@ -109,3 +112,87 @@ async def test_get_notices_rejects_bad_input_and_missing_entry(
         await get_notices(hass, stage="bogus")
     with pytest.raises(vol.Invalid):
         await get_notices(hass, limit=0)
+
+
+async def get_country_purchasing(hass: HomeAssistant, **data: Any) -> dict[str, Any]:
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_COUNTRY_PURCHASING,
+        data,
+        blocking=True,
+        return_response=True,
+    )
+    assert response is not None
+    return dict(response)
+
+
+async def test_get_country_purchasing_returns_the_country_category_matrix(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="test-entry",
+        unique_id=DOMAIN,
+        version=2,
+        data={},
+        options={CONF_SELECTED_COUNTRY: "SI"},
+    )
+    await setup_entry(hass, entry)
+
+    mine = await get_country_purchasing(hass)
+    assert mine["country"] == "SI"
+    assert mine["period_days"] == 365
+    assert mine["awarded_value_eur"] == 531315.0
+    assert mine["rank"] == 1 and mine["share_pct"] == 88.1
+    assert mine["categories"][0]["category"] == "cyber_it"
+    assert mine["largest_awards"][0]["publication_number"] == "627092-2026"
+    assert len(mine["monthly"]) == 24
+
+    slovakia = await get_country_purchasing(hass, country="sk", period="90d")
+    assert slovakia["country"] == "SK"
+    assert slovakia["period_days"] == 90
+    assert slovakia["awarded_value_eur"] == 71803.5
+    assert slovakia["awards"] == 2
+    assert slovakia["categories"] == [
+        {
+            "category": "unclassified",
+            "label": "Unclassified",
+            "value_eur": 71803.5,
+            "share_pct": 100.0,
+            "awards": 2,
+        }
+    ]
+    assert "monthly" not in slovakia  # the monthly series is 12m-only
+
+    unknown = await get_country_purchasing(hass, country="PL")
+    assert unknown["awarded_value_eur"] is None
+    assert unknown["rank"] is None
+    assert unknown["awards"] == 1
+
+    absent = await get_country_purchasing(hass, country="ES")
+    assert absent["awards"] == 0 and absent["awarded_value_eur"] is None
+    assert absent["categories"] == [] and absent["largest_awards"] == []
+
+    everyone = await get_country_purchasing(hass, country="all")
+    assert [row["country"] for row in everyone["ranking"]] == ["SI", "SK", "NO", "SE"]
+    assert everyone["europe"]["total_value_eur"] == 603118.5
+    assert everyone["unranked"] == ["DE", "DK", "PL"]
+
+    with pytest.raises(vol.Invalid):
+        await get_country_purchasing(hass, period="7d")
+
+
+async def test_get_country_purchasing_without_my_country_needs_a_country(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_entry(hass, config_entry)
+    with pytest.raises(ServiceValidationError):
+        await get_country_purchasing(hass)
+    assert (await get_country_purchasing(hass, country="SI"))["rank"] == 1
