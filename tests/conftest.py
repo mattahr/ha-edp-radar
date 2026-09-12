@@ -84,7 +84,12 @@ def fast_ted_client() -> Generator[None]:
         kwargs.setdefault("sleep", no_sleep)
         return TedApiClient(session, **kwargs)
 
-    with patch("custom_components.edp_radar.TedApiClient", side_effect=build):
+    with (
+        patch("custom_components.edp_radar.TedApiClient", side_effect=build),
+        patch(
+            "custom_components.edp_radar.config_flow.TedApiClient", side_effect=build
+        ),
+    ):
         yield
 
 

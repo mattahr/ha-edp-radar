@@ -1,0 +1,444 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Upphandlingsuniversum",
+        "description": "Välj vilka TED-notiser som definierar radarn. Strikt läge använder försvarsköpare och försvarsdirektivet; brett läge lägger även till försvars-CPV-koder.",
+        "data": {
+          "relevance_mode": "Relevansläge",
+          "market_preset": "Marknadsländer"
+        },
+        "data_description": {
+          "market_preset": "Köparländerna som utgör marknaden. Jämförelseländer, egen organisation och bevakade länder hämtas alltid också."
+        }
+      },
+      "countries": {
+        "title": "Egna marknadsländer",
+        "description": "Välj vilka köparländer som ska ingå i marknaden.",
+        "data": {
+          "market_countries": "Länder"
+        }
+      },
+      "organisation": {
+        "title": "Vald organisation",
+        "description": "Följ valfritt en offentlig köpare (till exempel din egen myndighet) som en egen enhet.",
+        "data": {
+          "track_organisation": "Följ en vald organisation"
+        }
+      },
+      "organisation_search": {
+        "title": "Hitta organisationen",
+        "description": "Sök köparen i TED på land och namn. Sökningen matchar början av varje ord.",
+        "data": {
+          "country": "Köparland",
+          "search": "Namnet innehåller"
+        }
+      },
+      "organisation_select": {
+        "title": "Välj organisation",
+        "description": "Kandidater hittade i TED de senaste 400 dagarna, mest aktiva först.",
+        "data": {
+          "candidate": "Organisation"
+        }
+      },
+      "peers": {
+        "title": "Jämförelsegrupp",
+        "description": "Jämför konkurrensmått mot en grupp länder och rangordna ett valt land i marknaden.",
+        "data": {
+          "peer_preset": "Jämförelseländer",
+          "selected_country": "Valt land"
+        }
+      },
+      "peer_countries": {
+        "title": "Egna jämförelseländer",
+        "description": "Välj de länder som utgör jämförelsegruppen.",
+        "data": {
+          "peer_countries": "Länder"
+        }
+      },
+      "categories": {
+        "title": "Fästa kategorier",
+        "description": "Varje fäst strategisk kategori får en egen enhet med antals- och värdesensorer.",
+        "data": {
+          "pinned_categories": "Kategorier"
+        }
+      },
+      "watchlist": {
+        "title": "Bevakning",
+        "description": "Skicka en separat händelse för nya notiser som matchar alla filter nedan. Lämna tomt för att stänga av.",
+        "data": {
+          "watchlist_countries": "Länder",
+          "watchlist_min_estimated_eur": "Lägsta uppskattade värde (EUR)",
+          "watchlist_min_award_eur": "Lägsta tilldelade värde (EUR)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunde inte nå TED Search API. Försök igen senare.",
+      "no_matches": "Ingen köpare matchade sökningen de senaste 400 dagarna.",
+      "invalid_selection": "Välj en av kandidaterna.",
+      "invalid_query": "TED avvisade den resulterande frågan. Kontrollera landvalet."
+    },
+    "abort": {
+      "single_instance_allowed": "Bara en radar kan konfigureras.",
+      "already_configured": "Radarn är redan konfigurerad."
+    }
+  },
+  "options": {
+    "step": {
+      "universe": {
+        "title": "Upphandlingsuniversum",
+        "description": "Välj vilka TED-notiser som definierar radarn. Strikt läge använder försvarsköpare och försvarsdirektivet; brett läge lägger även till försvars-CPV-koder.",
+        "data": {
+          "relevance_mode": "Relevansläge",
+          "market_preset": "Marknadsländer"
+        },
+        "data_description": {
+          "market_preset": "Köparländerna som utgör marknaden. Jämförelseländer, egen organisation och bevakade länder hämtas alltid också."
+        }
+      },
+      "countries": {
+        "title": "Egna marknadsländer",
+        "description": "Välj vilka köparländer som ska ingå i marknaden.",
+        "data": {
+          "market_countries": "Länder"
+        }
+      },
+      "organisation": {
+        "title": "Vald organisation",
+        "description": "Följ valfritt en offentlig köpare (till exempel din egen myndighet) som en egen enhet.",
+        "data": {
+          "track_organisation": "Följ en vald organisation (av tar bort den nuvarande)"
+        }
+      },
+      "organisation_search": {
+        "title": "Hitta organisationen",
+        "description": "Sök köparen i TED på land och namn. Sökningen matchar början av varje ord.",
+        "data": {
+          "country": "Köparland",
+          "search": "Namnet innehåller"
+        }
+      },
+      "organisation_select": {
+        "title": "Välj organisation",
+        "description": "Kandidater hittade i TED de senaste 400 dagarna, mest aktiva först.",
+        "data": {
+          "candidate": "Organisation"
+        }
+      },
+      "peers": {
+        "title": "Jämförelsegrupp",
+        "description": "Jämför konkurrensmått mot en grupp länder och rangordna ett valt land i marknaden.",
+        "data": {
+          "peer_preset": "Jämförelseländer",
+          "selected_country": "Valt land"
+        }
+      },
+      "peer_countries": {
+        "title": "Egna jämförelseländer",
+        "description": "Välj de länder som utgör jämförelsegruppen.",
+        "data": {
+          "peer_countries": "Länder"
+        }
+      },
+      "categories": {
+        "title": "Fästa kategorier",
+        "description": "Varje fäst strategisk kategori får en egen enhet med antals- och värdesensorer.",
+        "data": {
+          "pinned_categories": "Kategorier"
+        }
+      },
+      "watchlist": {
+        "title": "Bevakning",
+        "description": "Skicka en separat händelse för nya notiser som matchar alla filter nedan. Lämna tomt för att stänga av.",
+        "data": {
+          "watchlist_countries": "Länder",
+          "watchlist_min_estimated_eur": "Lägsta uppskattade värde (EUR)",
+          "watchlist_min_award_eur": "Lägsta tilldelade värde (EUR)"
+        }
+      },
+      "init": {
+        "title": "Alternativ för European Defence Procurement Radar",
+        "menu_options": {
+          "universe": "Upphandlingsuniversum och marknad",
+          "organisation": "Vald organisation",
+          "peers": "Jämförelsegrupp",
+          "categories": "Fästa kategorier",
+          "watchlist": "Bevakning"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunde inte nå TED Search API. Försök igen senare.",
+      "no_matches": "Ingen köpare matchade sökningen de senaste 400 dagarna.",
+      "invalid_selection": "Välj en av kandidaterna.",
+      "invalid_query": "TED avvisade den resulterande frågan. Kontrollera landvalet."
+    }
+  },
+  "selector": {
+    "relevance_mode": {
+      "options": {
+        "strict": "Strikt (försvarsköpare och försvarsdirektivet)",
+        "broad": "Brett (även försvars-CPV-koder)"
+      }
+    },
+    "market_preset": {
+      "options": {
+        "eu": "EU:s medlemsstater",
+        "nordic": "Norden",
+        "ted": "Alla TED-länder",
+        "custom": "Eget urval"
+      }
+    },
+    "peer_preset": {
+      "options": {
+        "none": "Ingen jämförelsegrupp",
+        "nordic": "Norden",
+        "eu": "EU:s medlemsstater",
+        "custom": "Eget urval"
+      }
+    },
+    "category": {
+      "options": {
+        "air_missile_defence": "Luft- och missilförsvar",
+        "ammunition_explosives": "Ammunition och sprängämnen",
+        "land_systems": "Marksystem",
+        "naval_maritime": "Marina system",
+        "air_systems": "Flygsystem",
+        "uas_cuas": "UAS / C-UAS",
+        "c4isr_communications": "C4ISR och kommunikation",
+        "sensors_radar_ew": "Sensorer, radar och telekrig",
+        "cyber_it": "Cyber och IT",
+        "space": "Rymd",
+        "logistics_support": "Logistik och stöd",
+        "defence_rd": "Försvars-FoU",
+        "other_defence": "Övrigt försvar"
+      }
+    },
+    "country": {
+      "options": {
+        "AT": "Österrike",
+        "BE": "Belgien",
+        "BG": "Bulgarien",
+        "HR": "Kroatien",
+        "CY": "Cypern",
+        "CZ": "Tjeckien",
+        "DK": "Danmark",
+        "EE": "Estland",
+        "FI": "Finland",
+        "FR": "Frankrike",
+        "DE": "Tyskland",
+        "GR": "Grekland",
+        "HU": "Ungern",
+        "IE": "Irland",
+        "IT": "Italien",
+        "LV": "Lettland",
+        "LT": "Litauen",
+        "LU": "Luxemburg",
+        "MT": "Malta",
+        "NL": "Nederländerna",
+        "PL": "Polen",
+        "PT": "Portugal",
+        "RO": "Rumänien",
+        "SK": "Slovakien",
+        "SI": "Slovenien",
+        "ES": "Spanien",
+        "SE": "Sverige",
+        "NO": "Norge",
+        "IS": "Island",
+        "LI": "Liechtenstein",
+        "CH": "Schweiz",
+        "GB": "Storbritannien",
+        "UA": "Ukraina",
+        "MD": "Moldavien",
+        "RS": "Serbien",
+        "ME": "Montenegro",
+        "MK": "Nordmakedonien",
+        "AL": "Albanien",
+        "BA": "Bosnien och Hercegovina",
+        "TR": "Turkiet",
+        "XK": "Kosovo",
+        "GE": "Georgien"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "market_new_competitions_30d": {
+        "name": "Nya upphandlingar 30 d"
+      },
+      "market_new_competitions_90d": {
+        "name": "Nya upphandlingar 90 d"
+      },
+      "market_estimated_value_30d": {
+        "name": "Uppskattat värde 30 d"
+      },
+      "market_estimated_value_90d": {
+        "name": "Uppskattat värde 90 d"
+      },
+      "market_award_value_30d": {
+        "name": "Tilldelat värde 30 d"
+      },
+      "market_award_value_90d": {
+        "name": "Tilldelat värde 90 d"
+      },
+      "top_country_by_value_90d": {
+        "name": "Största land efter värde 90 d"
+      },
+      "fastest_growing_country_90d": {
+        "name": "Snabbast växande land 90 d"
+      },
+      "top_category_by_value_90d": {
+        "name": "Största kategori efter värde 90 d"
+      },
+      "fastest_growing_category_90d": {
+        "name": "Snabbast växande kategori 90 d"
+      },
+      "largest_country_change_90d": {
+        "name": "Största landsförändring 90 d"
+      },
+      "largest_category_change_90d": {
+        "name": "Största kategoriförändring 90 d"
+      },
+      "market_snapshot_text": {
+        "name": "Marknadsöversikt"
+      },
+      "country_ranking_text": {
+        "name": "Landsrankning"
+      },
+      "market_median_tenders_365d": {
+        "name": "Median antal anbud per del 365 d"
+      },
+      "market_single_bid_share_365d": {
+        "name": "Andel med ett anbud 365 d"
+      },
+      "market_median_public_time_to_result_365d": {
+        "name": "Median offentlig tid till tilldelning 365 d"
+      },
+      "market_non_award_share_365d": {
+        "name": "Andel utan tilldelning 365 d"
+      },
+      "ted_data_last_updated": {
+        "name": "TED-data senast uppdaterad"
+      },
+      "external_new_competitions_7d": {
+        "name": "Nya upphandlingar 7 d"
+      },
+      "largest_external_competition_7d": {
+        "name": "Största upphandling 7 d"
+      },
+      "largest_external_award_7d": {
+        "name": "Största tilldelning 7 d"
+      },
+      "external_latest_text": {
+        "name": "Senaste upphandling"
+      },
+      "own_public_competitions_30d": {
+        "name": "Offentliga upphandlingar 30 d"
+      },
+      "own_public_awards_30d": {
+        "name": "Offentliga tilldelningar 30 d"
+      },
+      "own_public_changes_30d": {
+        "name": "Offentliga ändringar 30 d"
+      },
+      "own_public_modifications_365d": {
+        "name": "Kontraktsändringar 365 d"
+      },
+      "own_public_estimated_value_30d": {
+        "name": "Uppskattat värde 30 d"
+      },
+      "own_public_award_value_30d": {
+        "name": "Tilldelat värde 30 d"
+      },
+      "own_median_tenders_365d": {
+        "name": "Median antal anbud per del 365 d"
+      },
+      "own_single_bid_share_365d": {
+        "name": "Andel med ett anbud 365 d"
+      },
+      "own_median_public_time_to_result_365d": {
+        "name": "Median offentlig tid till tilldelning 365 d"
+      },
+      "own_non_award_share_365d": {
+        "name": "Andel utan tilldelning 365 d"
+      },
+      "peer_median_tenders_365d": {
+        "name": "Jämförelsegrupp median antal anbud per del 365 d"
+      },
+      "peer_single_bid_share_365d": {
+        "name": "Jämförelsegrupp andel med ett anbud 365 d"
+      },
+      "peer_median_public_time_to_result_365d": {
+        "name": "Jämförelsegrupp median tid till tilldelning 365 d"
+      },
+      "selected_country_value_rank_90d": {
+        "name": "Valt land värderank 90 d"
+      },
+      "selected_country_activity_rank_90d": {
+        "name": "Valt land aktivitetsrank 90 d"
+      },
+      "selected_country_value_percentile_90d": {
+        "name": "Valt land värdepercentil 90 d"
+      },
+      "own_vs_peer_single_bid_delta_pp": {
+        "name": "Egen mot jämförelsegrupp: andel ett anbud"
+      },
+      "own_vs_peer_median_tenders_delta": {
+        "name": "Egen mot jämförelsegrupp: median anbud"
+      },
+      "own_vs_peer_public_time_to_result_delta_days": {
+        "name": "Egen mot jämförelsegrupp: tid till tilldelning"
+      },
+      "top_supplier_by_award_value_365d": {
+        "name": "Största leverantör efter tilldelat värde 365 d"
+      },
+      "supplier_top5_share_365d": {
+        "name": "Topp 5-leverantörers andel 365 d"
+      },
+      "category_competitions_30d": {
+        "name": "Upphandlingar 30 d"
+      },
+      "category_competitions_change_pct": {
+        "name": "Förändring upphandlingar"
+      },
+      "category_estimated_value_90d": {
+        "name": "Uppskattat värde 90 d"
+      },
+      "category_estimated_value_change_pct": {
+        "name": "Förändring uppskattat värde"
+      },
+      "category_award_value_90d": {
+        "name": "Tilldelat värde 90 d"
+      }
+    },
+    "event": {
+      "procurement_activity": {
+        "name": "Upphandlingsaktivitet",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_competition": "Ny upphandling",
+              "change": "Ändring",
+              "result": "Tilldelning",
+              "contract_modification": "Kontraktsändring"
+            }
+          }
+        }
+      },
+      "watchlist_activity": {
+        "name": "Bevakningsaktivitet",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_competition": "Ny upphandling",
+              "change": "Ändring",
+              "result": "Tilldelning",
+              "contract_modification": "Kontraktsändring"
+            }
+          }
+        }
+      }
+    }
+  }
+}

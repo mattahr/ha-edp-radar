@@ -1,0 +1,444 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Procurement universe",
+        "description": "Choose which TED notices define the radar. Strict mode uses defence buyers and the defence directive; broad mode also adds defence CPV codes.",
+        "data": {
+          "relevance_mode": "Relevance mode",
+          "market_preset": "Market countries"
+        },
+        "data_description": {
+          "market_preset": "The buyer countries that make up the market. Peers, your own organisation and watchlist countries are always fetched too."
+        }
+      },
+      "countries": {
+        "title": "Custom market countries",
+        "description": "Select the buyer countries to include in the market.",
+        "data": {
+          "market_countries": "Countries"
+        }
+      },
+      "organisation": {
+        "title": "Selected organisation",
+        "description": "Optionally track one public buyer (for example your own agency) as a separate device.",
+        "data": {
+          "track_organisation": "Track a selected organisation"
+        }
+      },
+      "organisation_search": {
+        "title": "Find the organisation",
+        "description": "Search TED for the buyer by country and name. The search is a prefix match on each word.",
+        "data": {
+          "country": "Buyer country",
+          "search": "Name contains"
+        }
+      },
+      "organisation_select": {
+        "title": "Choose the organisation",
+        "description": "Candidates found in TED over the last 400 days, most active first.",
+        "data": {
+          "candidate": "Organisation"
+        }
+      },
+      "peers": {
+        "title": "Peer comparison",
+        "description": "Compare competition metrics against a group of countries and rank one selected country in the market.",
+        "data": {
+          "peer_preset": "Peer countries",
+          "selected_country": "Selected country"
+        }
+      },
+      "peer_countries": {
+        "title": "Custom peer countries",
+        "description": "Select the countries that form the peer group.",
+        "data": {
+          "peer_countries": "Countries"
+        }
+      },
+      "categories": {
+        "title": "Pinned categories",
+        "description": "Each pinned strategic category gets its own device with count and value sensors.",
+        "data": {
+          "pinned_categories": "Categories"
+        }
+      },
+      "watchlist": {
+        "title": "Watchlist",
+        "description": "Fire a separate event for new notices that match all of the filters below. Leave everything empty to disable.",
+        "data": {
+          "watchlist_countries": "Countries",
+          "watchlist_min_estimated_eur": "Minimum estimated value (EUR)",
+          "watchlist_min_award_eur": "Minimum award value (EUR)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the TED Search API. Try again later.",
+      "no_matches": "No buyer matched that search in the last 400 days.",
+      "invalid_selection": "Please pick one of the candidates.",
+      "invalid_query": "TED rejected the resulting query. Check the country selection."
+    },
+    "abort": {
+      "single_instance_allowed": "Only one radar can be configured.",
+      "already_configured": "The radar is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "universe": {
+        "title": "Procurement universe",
+        "description": "Choose which TED notices define the radar. Strict mode uses defence buyers and the defence directive; broad mode also adds defence CPV codes.",
+        "data": {
+          "relevance_mode": "Relevance mode",
+          "market_preset": "Market countries"
+        },
+        "data_description": {
+          "market_preset": "The buyer countries that make up the market. Peers, your own organisation and watchlist countries are always fetched too."
+        }
+      },
+      "countries": {
+        "title": "Custom market countries",
+        "description": "Select the buyer countries to include in the market.",
+        "data": {
+          "market_countries": "Countries"
+        }
+      },
+      "organisation": {
+        "title": "Selected organisation",
+        "description": "Optionally track one public buyer (for example your own agency) as a separate device.",
+        "data": {
+          "track_organisation": "Track a selected organisation (off clears the current one)"
+        }
+      },
+      "organisation_search": {
+        "title": "Find the organisation",
+        "description": "Search TED for the buyer by country and name. The search is a prefix match on each word.",
+        "data": {
+          "country": "Buyer country",
+          "search": "Name contains"
+        }
+      },
+      "organisation_select": {
+        "title": "Choose the organisation",
+        "description": "Candidates found in TED over the last 400 days, most active first.",
+        "data": {
+          "candidate": "Organisation"
+        }
+      },
+      "peers": {
+        "title": "Peer comparison",
+        "description": "Compare competition metrics against a group of countries and rank one selected country in the market.",
+        "data": {
+          "peer_preset": "Peer countries",
+          "selected_country": "Selected country"
+        }
+      },
+      "peer_countries": {
+        "title": "Custom peer countries",
+        "description": "Select the countries that form the peer group.",
+        "data": {
+          "peer_countries": "Countries"
+        }
+      },
+      "categories": {
+        "title": "Pinned categories",
+        "description": "Each pinned strategic category gets its own device with count and value sensors.",
+        "data": {
+          "pinned_categories": "Categories"
+        }
+      },
+      "watchlist": {
+        "title": "Watchlist",
+        "description": "Fire a separate event for new notices that match all of the filters below. Leave everything empty to disable.",
+        "data": {
+          "watchlist_countries": "Countries",
+          "watchlist_min_estimated_eur": "Minimum estimated value (EUR)",
+          "watchlist_min_award_eur": "Minimum award value (EUR)"
+        }
+      },
+      "init": {
+        "title": "European Defence Procurement Radar options",
+        "menu_options": {
+          "universe": "Procurement universe and market",
+          "organisation": "Selected organisation",
+          "peers": "Peer comparison",
+          "categories": "Pinned categories",
+          "watchlist": "Watchlist"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the TED Search API. Try again later.",
+      "no_matches": "No buyer matched that search in the last 400 days.",
+      "invalid_selection": "Please pick one of the candidates.",
+      "invalid_query": "TED rejected the resulting query. Check the country selection."
+    }
+  },
+  "selector": {
+    "relevance_mode": {
+      "options": {
+        "strict": "Strict (defence buyers and defence directive)",
+        "broad": "Broad (also defence CPV codes)"
+      }
+    },
+    "market_preset": {
+      "options": {
+        "eu": "EU member states",
+        "nordic": "Nordic countries",
+        "ted": "All TED countries",
+        "custom": "Custom selection"
+      }
+    },
+    "peer_preset": {
+      "options": {
+        "none": "No peer group",
+        "nordic": "Nordic countries",
+        "eu": "EU member states",
+        "custom": "Custom selection"
+      }
+    },
+    "category": {
+      "options": {
+        "air_missile_defence": "Air & missile defence",
+        "ammunition_explosives": "Ammunition & explosives",
+        "land_systems": "Land systems",
+        "naval_maritime": "Naval & maritime",
+        "air_systems": "Air systems",
+        "uas_cuas": "UAS / C-UAS",
+        "c4isr_communications": "C4ISR & communications",
+        "sensors_radar_ew": "Sensors, radar & electronic warfare",
+        "cyber_it": "Cyber & IT",
+        "space": "Space",
+        "logistics_support": "Logistics & support",
+        "defence_rd": "Defence R&D",
+        "other_defence": "Other defence"
+      }
+    },
+    "country": {
+      "options": {
+        "AT": "Austria",
+        "BE": "Belgium",
+        "BG": "Bulgaria",
+        "HR": "Croatia",
+        "CY": "Cyprus",
+        "CZ": "Czechia",
+        "DK": "Denmark",
+        "EE": "Estonia",
+        "FI": "Finland",
+        "FR": "France",
+        "DE": "Germany",
+        "GR": "Greece",
+        "HU": "Hungary",
+        "IE": "Ireland",
+        "IT": "Italy",
+        "LV": "Latvia",
+        "LT": "Lithuania",
+        "LU": "Luxembourg",
+        "MT": "Malta",
+        "NL": "Netherlands",
+        "PL": "Poland",
+        "PT": "Portugal",
+        "RO": "Romania",
+        "SK": "Slovakia",
+        "SI": "Slovenia",
+        "ES": "Spain",
+        "SE": "Sweden",
+        "NO": "Norway",
+        "IS": "Iceland",
+        "LI": "Liechtenstein",
+        "CH": "Switzerland",
+        "GB": "United Kingdom",
+        "UA": "Ukraine",
+        "MD": "Moldova",
+        "RS": "Serbia",
+        "ME": "Montenegro",
+        "MK": "North Macedonia",
+        "AL": "Albania",
+        "BA": "Bosnia and Herzegovina",
+        "TR": "Türkiye",
+        "XK": "Kosovo",
+        "GE": "Georgia"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "market_new_competitions_30d": {
+        "name": "New competitions 30 d"
+      },
+      "market_new_competitions_90d": {
+        "name": "New competitions 90 d"
+      },
+      "market_estimated_value_30d": {
+        "name": "Estimated value 30 d"
+      },
+      "market_estimated_value_90d": {
+        "name": "Estimated value 90 d"
+      },
+      "market_award_value_30d": {
+        "name": "Award value 30 d"
+      },
+      "market_award_value_90d": {
+        "name": "Award value 90 d"
+      },
+      "top_country_by_value_90d": {
+        "name": "Top country by value 90 d"
+      },
+      "fastest_growing_country_90d": {
+        "name": "Fastest growing country 90 d"
+      },
+      "top_category_by_value_90d": {
+        "name": "Top category by value 90 d"
+      },
+      "fastest_growing_category_90d": {
+        "name": "Fastest growing category 90 d"
+      },
+      "largest_country_change_90d": {
+        "name": "Largest country change 90 d"
+      },
+      "largest_category_change_90d": {
+        "name": "Largest category change 90 d"
+      },
+      "market_snapshot_text": {
+        "name": "Market snapshot"
+      },
+      "country_ranking_text": {
+        "name": "Country ranking"
+      },
+      "market_median_tenders_365d": {
+        "name": "Median tenders per lot 365 d"
+      },
+      "market_single_bid_share_365d": {
+        "name": "Single-bid share 365 d"
+      },
+      "market_median_public_time_to_result_365d": {
+        "name": "Median public time to result 365 d"
+      },
+      "market_non_award_share_365d": {
+        "name": "Non-award share 365 d"
+      },
+      "ted_data_last_updated": {
+        "name": "TED data last updated"
+      },
+      "external_new_competitions_7d": {
+        "name": "New competitions 7 d"
+      },
+      "largest_external_competition_7d": {
+        "name": "Largest competition 7 d"
+      },
+      "largest_external_award_7d": {
+        "name": "Largest award 7 d"
+      },
+      "external_latest_text": {
+        "name": "Latest competition"
+      },
+      "own_public_competitions_30d": {
+        "name": "Public competitions 30 d"
+      },
+      "own_public_awards_30d": {
+        "name": "Public awards 30 d"
+      },
+      "own_public_changes_30d": {
+        "name": "Public changes 30 d"
+      },
+      "own_public_modifications_365d": {
+        "name": "Contract modifications 365 d"
+      },
+      "own_public_estimated_value_30d": {
+        "name": "Estimated value 30 d"
+      },
+      "own_public_award_value_30d": {
+        "name": "Award value 30 d"
+      },
+      "own_median_tenders_365d": {
+        "name": "Median tenders per lot 365 d"
+      },
+      "own_single_bid_share_365d": {
+        "name": "Single-bid share 365 d"
+      },
+      "own_median_public_time_to_result_365d": {
+        "name": "Median public time to result 365 d"
+      },
+      "own_non_award_share_365d": {
+        "name": "Non-award share 365 d"
+      },
+      "peer_median_tenders_365d": {
+        "name": "Peer median tenders per lot 365 d"
+      },
+      "peer_single_bid_share_365d": {
+        "name": "Peer single-bid share 365 d"
+      },
+      "peer_median_public_time_to_result_365d": {
+        "name": "Peer median public time to result 365 d"
+      },
+      "selected_country_value_rank_90d": {
+        "name": "Selected country value rank 90 d"
+      },
+      "selected_country_activity_rank_90d": {
+        "name": "Selected country activity rank 90 d"
+      },
+      "selected_country_value_percentile_90d": {
+        "name": "Selected country value percentile 90 d"
+      },
+      "own_vs_peer_single_bid_delta_pp": {
+        "name": "Own vs peer single-bid delta"
+      },
+      "own_vs_peer_median_tenders_delta": {
+        "name": "Own vs peer median tenders delta"
+      },
+      "own_vs_peer_public_time_to_result_delta_days": {
+        "name": "Own vs peer time to result delta"
+      },
+      "top_supplier_by_award_value_365d": {
+        "name": "Top supplier by award value 365 d"
+      },
+      "supplier_top5_share_365d": {
+        "name": "Top 5 supplier share 365 d"
+      },
+      "category_competitions_30d": {
+        "name": "Competitions 30 d"
+      },
+      "category_competitions_change_pct": {
+        "name": "Competitions change"
+      },
+      "category_estimated_value_90d": {
+        "name": "Estimated value 90 d"
+      },
+      "category_estimated_value_change_pct": {
+        "name": "Estimated value change"
+      },
+      "category_award_value_90d": {
+        "name": "Award value 90 d"
+      }
+    },
+    "event": {
+      "procurement_activity": {
+        "name": "Procurement activity",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_competition": "New competition",
+              "change": "Change",
+              "result": "Result",
+              "contract_modification": "Contract modification"
+            }
+          }
+        }
+      },
+      "watchlist_activity": {
+        "name": "Watchlist activity",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "new_competition": "New competition",
+              "change": "Change",
+              "result": "Result",
+              "contract_modification": "Contract modification"
+            }
+          }
+        }
+      }
+    }
+  }
+}
