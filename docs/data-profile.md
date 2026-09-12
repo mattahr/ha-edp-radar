@@ -226,3 +226,34 @@ Generated 2026-09-12T17:32:39+00:00 by `scripts/data_profile.py` (taxonomy 2026.
 | external latest text | ES · Air systems · EUR 11m · published 2026-09-11 |
 | top supplier 365d | WB Electronics S.A. |
 | supplier top-5 share | 56.5% |
+
+## Live bootstrap (Home Assistant dev container, 2026-09-12)
+
+Measured with the integration running in the Docker dev container
+(`dev/ha.sh up`, HA `stable`), strict mode, EU market preset, own organisation
+FMV, Nordic peers, selected country SE, pinned categories land systems and
+logistics & support. The config flow, buyer search and bootstrap ran against
+the live TED and ECB services.
+
+| item | value |
+| --- | --- |
+| notices reported by TED (`totalNoticeCount`) | 25 402 |
+| notice versions stored | 25 393 (25 368 distinct notices, 15 068 procedures) |
+| bootstrap wall time | ≈ 150 s (≈ 148 search requests of 172 notices) |
+| TED 429/5xx responses absorbed by client backoff | 38 |
+| ECB history rows kept (retention + 30 d margin) | 302 dates, 30 currencies |
+| parse errors | 0 |
+| store on disk (`.storage/edp_radar.*`) | 64 MB: 14 monthly partitions of 2.2–6.1 MB, `fx` 227 KB, `events` 235 KB, `index` 1 KB |
+| restart with stored data | store load + first incremental refresh ≈ 2.2 s, no bootstrap |
+| forced incremental refresh (`homeassistant.update_entity`) | ≈ 1.7 s (`PD>=` last publication date − 2 d) |
+| event-loop warnings | none from the integration after moving taxonomy load and partition (de)serialisation to the executor; two ≈ 0.15–0.2 s "task took" warnings remain during entry setup while the 25 k stored notices are materialised |
+
+Sensor spot checks right after the bootstrap (all values are what TED reports):
+`market_new_competitions_30d` = 587, `market_new_competitions_90d` = 2025,
+`market_estimated_value_90d` = EUR 21.2 bn (coverage 47.8 %),
+`market_award_value_90d` = EUR 12.3 bn (coverage 56.9 %),
+`top_country_by_value_90d` = PL, `top_category_by_value_90d` = Cyber & IT,
+`market_median_public_time_to_result_365d` = 102 d,
+`market_single_bid_share_365d` = 31.9 % (coverage 80.9 %),
+`external_new_competitions_7d` = 174, `largest_external_competition_7d` = EUR 111 m (ES, mortar grenades),
+`own_public_competitions_30d` (FMV) = 8, `selected_country_value_rank_90d` (SE) = 4 of 27.

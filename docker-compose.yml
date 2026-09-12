@@ -1,0 +1,17 @@
+name: ha-edp-radar
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: ha-edp-radar
+    ports:
+      - "${HA_PORT:-8125}:8123"
+      - "${DEBUGPY_PORT:-5679}:5678"
+    volumes:
+      - ./dev/config:/config
+      - ./custom_components:/config/custom_components
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Europe/Stockholm
+      - PYTHONDONTWRITEBYTECODE=1
+    restart: unless-stopped
