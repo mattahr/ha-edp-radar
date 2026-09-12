@@ -7,17 +7,21 @@ given its inputs so the statistics can be unit-tested with hand-calculated data.
 from __future__ import annotations
 
 import statistics
-from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from .const import (
     CENTRAL_PURCHASING_BUYER_THRESHOLD,
+    GROWTH_MIN_PROCEDURES,
+    GROWTH_MIN_VALUE_EUR,
     MATCH_DEFENCE_BUYER,
+    RANKING_LIMIT,
     RelevanceMode,
 )
 from .fx_rates import FxRateTable
+from .lifecycle import ProcedureIndex, ProcedureSummary
 from .models import Money, NoticeStage, ProcurementNotice, normalize_name
 from .taxonomy import Taxonomy
 
@@ -413,3 +417,307 @@ class RadarSnapshot:
     categories: Mapping[str, CategoryMetrics]
     quality: DataQualityMetrics
     bootstrap_complete: bool
+
+
+# --------------------------------------------------------------------------- periods
+
+type KeyFn = Callable[[ProcedureSummary], Iterable[str]]
+type LabelFn = Callable[[str], str]
+
+
+def procedures_started_in(
+    index: ProcedureIndex, window: Window
+) -> list[ProcedureSummary]:
+    """Procedures whose first original competition was published in the window."""
+    return [
+        p
+        for p in index.procedures.values()
+        if p.first_competition is not None and window.contains(p.first_competition)
+    ]
+
+
+def results_in(index: ProcedureIndex, window: Window) -> list[ProcurementNotice]:
+    return [n for n in index.results() if window.contains(n.publication_date)]
+
+
+def new_competitions(index: ProcedureIndex, today: date, days: int) -> CountMetric:
+    return CountMetric(
+        len(procedures_started_in(index, current_window(today, days))),
+        len(procedures_started_in(index, previous_window(today, days))),
+        days,
+    )
+
+
+def awards_count(index: ProcedureIndex, today: date, days: int) -> CountMetric:
+    return CountMetric(
+        len(results_in(index, current_window(today, days))),
+        len(results_in(index, previous_window(today, days))),
+        days,
+    )
+
+
+def _sum_eur(
+    items: Iterable[tuple[Money | None, date]], fx: FxRateTable
+) -> tuple[Decimal | None, int, int]:
+    total = Decimal(0)
+    sample = covered = 0
+    for money, on in items:
+        sample += 1
+        eur = value_in_eur(money, on, fx)
+        if eur is not None:
+            covered += 1
+            total += eur
+    return (total if covered else None), sample, covered
+
+
+def _estimated_items(
+    procedures: Iterable[ProcedureSummary], today: date
+) -> list[tuple[Money | None, date]]:
+    return [(p.estimated_value, p.estimated_value_date or today) for p in procedures]
+
+
+def estimated_value(
+    index: ProcedureIndex, today: date, days: int, fx: FxRateTable
+) -> ValueMetric:
+    current = procedures_started_in(index, current_window(today, days))
+    previous = procedures_started_in(index, previous_window(today, days))
+    total, sample, covered = _sum_eur(_estimated_items(current, today), fx)
+    previous_total, _, _ = _sum_eur(_estimated_items(previous, today), fx)
+    return ValueMetric(total, previous_total, sample, covered, days)
+
+
+def award_value(
+    index: ProcedureIndex, today: date, days: int, fx: FxRateTable
+) -> ValueMetric:
+    current = results_in(index, current_window(today, days))
+    previous = results_in(index, previous_window(today, days))
+    total, sample, covered = _sum_eur(
+        ((r.result_value, r.award_date) for r in current), fx
+    )
+    previous_total, _, _ = _sum_eur(
+        ((r.result_value, r.award_date) for r in previous), fx
+    )
+    return ValueMetric(total, previous_total, sample, covered, days)
+
+
+# --------------------------------------------------------------------------- rankings
+
+
+def rank_by(
+    index: ProcedureIndex,
+    today: date,
+    fx: FxRateTable,
+    key_fn: KeyFn,
+    label_fn: LabelFn,
+    *,
+    days: int = 90,
+) -> list[RankingEntry]:
+    """Competition-rank keys by normalized estimated value of new competitions."""
+
+    def accumulate(window: Window) -> dict[str, tuple[Decimal, int, int]]:
+        acc: dict[str, tuple[Decimal, int, int]] = {}
+        for procedure in procedures_started_in(index, window):
+            eur = value_in_eur(
+                procedure.estimated_value, procedure.estimated_value_date or today, fx
+            )
+            for key in key_fn(procedure):
+                total, count, covered = acc.get(key, (Decimal(0), 0, 0))
+                if eur is not None:
+                    total += eur
+                    covered += 1
+                acc[key] = (total, count + 1, covered)
+        return acc
+
+    current = accumulate(current_window(today, days))
+    previous = accumulate(previous_window(today, days))
+    rows: list[tuple[str, Decimal | None, int, Decimal | None, int]] = []
+    for key in set(current) | set(previous):
+        total, count, covered = current.get(key, (Decimal(0), 0, 0))
+        prev_total, prev_count, prev_covered = previous.get(key, (Decimal(0), 0, 0))
+        rows.append(
+            (
+                key,
+                total if covered else None,
+                count,
+                prev_total if prev_covered else None,
+                prev_count,
+            )
+        )
+    rows.sort(key=lambda r: (r[1] is None, -(r[1] or Decimal(0)), -r[2], r[0]))
+    entries: list[RankingEntry] = []
+    rank = 0
+    last: tuple[Decimal | None, int] | None = None
+    for position, (key, value, count, prev_value, prev_count) in enumerate(rows, 1):
+        if (value, count) != last:
+            rank = position
+            last = (value, count)
+        entries.append(
+            RankingEntry(
+                key,
+                label_fn(key),
+                rank,
+                value,
+                count,
+                prev_value,
+                prev_count,
+                pct_change(value, prev_value),
+            )
+        )
+    return entries
+
+
+def top_ranking(
+    entries: Sequence[RankingEntry], population: str, limit: int = RANKING_LIMIT
+) -> Ranking:
+    return Ranking(tuple(entries[:limit]), population, len(entries))
+
+
+def is_growth_eligible(entry: RankingEntry) -> bool:
+    """Minimum activity in the current period (plan §16.3)."""
+    return entry.procedures >= GROWTH_MIN_PROCEDURES or (
+        entry.value_eur is not None and entry.value_eur >= GROWTH_MIN_VALUE_EUR
+    )
+
+
+def _was_active(entry: RankingEntry) -> bool:
+    return entry.previous_procedures >= GROWTH_MIN_PROCEDURES or (
+        entry.previous_value_eur is not None
+        and entry.previous_value_eur >= GROWTH_MIN_VALUE_EUR
+    )
+
+
+def growth_ranking(entries: Sequence[RankingEntry], population: str) -> Ranking:
+    eligible = [
+        e for e in entries if is_growth_eligible(e) and e.change_pct is not None
+    ]
+    eligible.sort(key=lambda e: (-(e.change_pct or 0), e.key))
+    ranked = tuple(replace(e, rank=i) for i, e in enumerate(eligible, 1))
+    return Ranking(ranked[:RANKING_LIMIT], population, len(eligible))
+
+
+def largest_change(entries: Sequence[RankingEntry]) -> RankingEntry | None:
+    """Largest absolute EUR change among keys active in either period."""
+    candidates = [
+        e
+        for e in entries
+        if (is_growth_eligible(e) or _was_active(e)) and e.change_eur is not None
+    ]
+    if not candidates:
+        return None
+    return min(candidates, key=lambda e: (-abs(e.change_eur or Decimal(0)), e.key))
+
+
+# --------------------------------------------------------------------------- process
+
+
+def process_metrics(index: ProcedureIndex, today: date) -> ProcessMetrics:
+    """Competition/process metrics over the last 365 days (plan §17, D7)."""
+    window = current_window(today, 365)
+    results = results_in(index, window)
+    observations = [
+        count
+        for r in results
+        if r.tender_statistics
+        for count in r.tender_statistics.tender_counts
+    ]
+    with_counts = sum(
+        1 for r in results if r.tender_statistics and r.tender_statistics.tender_counts
+    )
+    count_coverage = Coverage(with_counts, len(results))
+    single = sum(1 for count in observations if count == 1)
+
+    decided = [
+        p
+        for p in index.procedures.values()
+        if p.first_result is not None and window.contains(p.first_result)
+    ]
+    durations = [
+        p.time_to_result_days for p in decided if p.time_to_result_days is not None
+    ]
+
+    statuses = [
+        s
+        for r in results
+        if r.tender_statistics
+        for s in r.tender_statistics.selection_statuses
+    ]
+    with_status = sum(
+        1
+        for r in results
+        if r.tender_statistics and r.tender_statistics.selection_statuses
+    )
+    closed_no_winner = statuses.count("clos-nw")
+    decided_lots = closed_no_winner + statuses.count("selec-w")
+
+    return ProcessMetrics(
+        median_tenders_365d=MedianMetric(
+            median(observations), len(observations), count_coverage
+        ),
+        single_bid_share_365d=ShareMetric(
+            pct(single, len(observations)), single, len(observations), count_coverage
+        ),
+        median_time_to_result_365d=MedianMetric(
+            median(durations), len(durations), Coverage(len(durations), len(decided))
+        ),
+        non_award_share_365d=ShareMetric(
+            pct(closed_no_winner, decided_lots),
+            closed_no_winner,
+            decided_lots,
+            Coverage(with_status, len(results)),
+        ),
+    )
+
+
+# --------------------------------------------------------------------------- market
+
+
+def market_snapshot_text(competitions_90d: CountMetric, value_90d: ValueMetric) -> str:
+    text = f"{competitions_90d.value} competitions / 90d"
+    text += f" · {format_eur(value_90d.value_eur)}"
+    if value_90d.change_pct is not None:
+        text += f" · {value_90d.change_pct:+.1f}% vs previous 90d"
+    return text
+
+
+def country_ranking_text(ranking: Ranking) -> str:
+    parts = [f"{e.key} {format_eur(e.value_eur)}" for e in ranking.entries[:5]]
+    return " · ".join(parts) if parts else "no data"
+
+
+_COUNTRY_POPULATION = (
+    "market countries with new competitions in the last 90 or previous 90 days"
+)
+_CATEGORY_POPULATION = (
+    "strategic categories with new competitions in the last 90 or previous 90 days"
+)
+
+
+def market_metrics(
+    index: ProcedureIndex, today: date, fx: FxRateTable, taxonomy: Taxonomy
+) -> MarketMetrics:
+    countries = rank_by(index, today, fx, lambda p: [p.country or "??"], str)
+    categories = rank_by(
+        index, today, fx, lambda p: sorted(p.categories), taxonomy.label
+    )
+    country_ranking = top_ranking(countries, _COUNTRY_POPULATION)
+    competitions_90d = new_competitions(index, today, 90)
+    value_90d = estimated_value(index, today, 90, fx)
+    return MarketMetrics(
+        new_competitions_30d=new_competitions(index, today, 30),
+        new_competitions_90d=competitions_90d,
+        estimated_value_30d=estimated_value(index, today, 30, fx),
+        estimated_value_90d=value_90d,
+        award_value_30d=award_value(index, today, 30, fx),
+        award_value_90d=award_value(index, today, 90, fx),
+        country_ranking_90d=country_ranking,
+        country_growth_90d=growth_ranking(countries, f"eligible {_COUNTRY_POPULATION}"),
+        category_ranking_90d=top_ranking(categories, _CATEGORY_POPULATION),
+        category_growth_90d=growth_ranking(
+            categories, f"eligible {_CATEGORY_POPULATION}"
+        ),
+        largest_country_change_90d=largest_change(countries),
+        largest_category_change_90d=largest_change(categories),
+        process=process_metrics(index, today),
+        snapshot_text=market_snapshot_text(competitions_90d, value_90d),
+        country_ranking_text=country_ranking_text(country_ranking),
+    )
