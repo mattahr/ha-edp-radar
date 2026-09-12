@@ -290,12 +290,12 @@ def peer_countries_schema() -> vol.Schema:
     return vol.Schema({vol.Required(CONF_PEER_COUNTRIES): _multi_countries()})
 
 
-def categories_schema() -> vol.Schema:
+def categories_schema(taxonomy: Taxonomy) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_PINNED_CATEGORIES, default=[]): SelectSelector(
                 SelectSelectorConfig(
-                    options=list(Taxonomy.load().category_ids),
+                    options=list(taxonomy.category_ids),
                     multiple=True,
                     mode=SelectSelectorMode.LIST,
                     translation_key="category",
@@ -338,6 +338,10 @@ class OrganisationStepsMixin(ConfigEntryBaseFlow):
         if self._client is None:
             self._client = TedApiClient(async_get_clientsession(self.hass))
         return self._client
+
+    async def _async_taxonomy(self) -> Taxonomy:
+        """The bundled taxonomy, read off the event loop the first time."""
+        return await self.hass.async_add_executor_job(Taxonomy.load)
 
     async def _async_organisation_chosen(
         self, organisation: dict[str, Any]
@@ -466,7 +470,8 @@ class EdpRadarConfigFlow(OrganisationStepsMixin, ConfigFlow, domain=DOMAIN):
             self._options.update(user_input)
             return await self.async_step_watchlist()
         return self.async_show_form(
-            step_id="categories", data_schema=categories_schema()
+            step_id="categories",
+            data_schema=categories_schema(await self._async_taxonomy()),
         )
 
     async def async_step_watchlist(
@@ -491,7 +496,8 @@ class EdpRadarConfigFlow(OrganisationStepsMixin, ConfigFlow, domain=DOMAIN):
     async def _async_validate_universe(self) -> dict[str, str]:
         """Let TED check the query the coordinator is about to use."""
         config = RadarConfig.from_options(self._options)
-        query = config.universe_query(Taxonomy.load(), dt_util.now().date())
+        taxonomy = await self._async_taxonomy()
+        query = config.universe_query(taxonomy, dt_util.now().date())
         try:
             await self.ted_client.async_validate_query(query)
         except TedQueryError as err:
@@ -614,7 +620,7 @@ class EdpRadarOptionsFlow(OrganisationStepsMixin, OptionsFlow):
         return self.async_show_form(
             step_id="categories",
             data_schema=self.add_suggested_values_to_schema(
-                categories_schema(), self.options
+                categories_schema(await self._async_taxonomy()), self.options
             ),
         )
 

@@ -20,13 +20,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) -> 
     """Set up the radar from a config entry."""
     session = async_get_clientsession(hass)
     config = RadarConfig.from_options(entry.options)
+    taxonomy = await hass.async_add_executor_job(Taxonomy.load)
     coordinator = EdpRadarCoordinator(
         hass,
         entry,
         client=TedApiClient(session),
         fx_client=EcbFxClient(session),
         store=RadarStore(hass, entry.entry_id, retention_days=config.retention_days),
-        taxonomy=Taxonomy.load(),
+        taxonomy=taxonomy,
     )
     await coordinator.async_setup()
     await coordinator.async_config_entry_first_refresh()

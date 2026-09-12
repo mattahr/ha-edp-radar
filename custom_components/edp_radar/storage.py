@@ -82,6 +82,16 @@ class StoreIndex:
         )
 
 
+def _deserialize(items: list[dict[str, Any]]) -> list[ProcurementNotice]:
+    """Executor job: dataclass construction for thousands of notices is slow."""
+    return [ProcurementNotice.from_dict(item) for item in items]
+
+
+def _serialize(notices: list[ProcurementNotice]) -> list[dict[str, Any]]:
+    """Executor job: ``asdict`` deep-copies; notices are frozen so this is safe."""
+    return [n.to_dict() for n in notices]
+
+
 class RadarStore:
     """Normalized notices partitioned by publication month, plus index/FX/events."""
 
@@ -143,8 +153,10 @@ class RadarStore:
                 )
                 self.index.bootstrap_complete = False
                 continue
-            for item in data.get("notices") or []:
-                notice = ProcurementNotice.from_dict(item)
+            notices = await self._hass.async_add_executor_job(
+                _deserialize, data.get("notices") or []
+            )
+            for notice in notices:
                 self.notices[notice.version_key] = notice
             kept.append(month)
         self.index.partitions = sorted(kept)
@@ -202,13 +214,12 @@ class RadarStore:
         self._fx_dirty = True
         return added
 
-    def _partition_payload(self, month: str) -> dict[str, Any]:
-        notices = [
-            n.to_dict()
+    def _partition_notices(self, month: str) -> list[ProcurementNotice]:
+        return [
+            n
             for n in self.notices.values()
             if self.partition_key(n.publication_date) == month
         ]
-        return {"schema_version": SCHEMA_VERSION, "month": month, "notices": notices}
 
     async def _async_write(
         self, store: Store[dict[str, Any]], payload: dict[str, Any], immediate: bool
@@ -219,24 +230,35 @@ class RadarStore:
             store.async_delay_save(lambda: payload, SAVE_DELAY_SECONDS)
 
     async def async_save(self, *, immediate: bool = False) -> None:
-        """Write dirty partitions, FX, events and the index (delayed by default)."""
-        for month in sorted(self._dirty_partitions):
-            payload = self._partition_payload(month)
+        """Write dirty partitions, FX, events and the index (delayed by default).
+
+        The dirty flags are taken before the first await so that changes made
+        while a partition is being serialized (in the executor) stay dirty.
+        """
+        dirty = sorted(self._dirty_partitions)
+        self._dirty_partitions.clear()
+        fx_dirty, self._fx_dirty = self._fx_dirty, False
+        events_dirty, self._events_dirty = self._events_dirty, False
+        for month in dirty:
+            notices = self._partition_notices(month)
             store = self._partition_store(month)
-            if not payload["notices"]:
+            if not notices:
                 await store.async_remove()
                 self.index.partitions = [m for m in self.index.partitions if m != month]
-            else:
-                await self._async_write(store, payload, immediate)
-        self._dirty_partitions.clear()
-        if self._fx_dirty:
+                continue
+            serialized = await self._hass.async_add_executor_job(_serialize, notices)
+            payload = {
+                "schema_version": SCHEMA_VERSION,
+                "month": month,
+                "notices": serialized,
+            }
+            await self._async_write(store, payload, immediate)
+        if fx_dirty:
             fx_payload = {"schema_version": SCHEMA_VERSION, "rates": self.fx.to_dict()}
             await self._async_write(self._fx_store, fx_payload, immediate)
-            self._fx_dirty = False
-        if self._events_dirty:
+        if events_dirty:
             events_payload = {"keys": list(self.emitted_event_keys)}
             await self._async_write(self._events_store, events_payload, immediate)
-            self._events_dirty = False
         await self._async_write(self._index_store, self.index.to_dict(), immediate)
 
     async def async_remove(self) -> None:
