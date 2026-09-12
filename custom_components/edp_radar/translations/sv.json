@@ -479,6 +479,78 @@
       },
       "raw_stored_notices": {
         "name": "Lagrade notiser"
+      },
+      "my_country_awarded_value_12m": {
+        "name": "Tilldelat värde 12 mån"
+      },
+      "my_country_awarded_value_previous_12m": {
+        "name": "Tilldelat värde föregående 12 mån"
+      },
+      "my_country_awarded_value_change_pct": {
+        "name": "Förändring av tilldelat värde"
+      },
+      "my_country_rank_12m": {
+        "name": "Landsrankning 12 mån"
+      },
+      "my_country_share_12m": {
+        "name": "Andel av europeisk total 12 mån"
+      },
+      "my_country_awards_12m": {
+        "name": "Tilldelningar 12 mån"
+      },
+      "my_country_value_coverage_12m": {
+        "name": "Värdetäckning 12 mån"
+      },
+      "my_country_top_category_12m": {
+        "name": "Största kategori 12 mån"
+      },
+      "my_country_largest_award_12m": {
+        "name": "Största tilldelning 12 mån"
+      },
+      "my_country_awarded_value_90d": {
+        "name": "Tilldelat värde 90 d"
+      },
+      "my_country_summary_text": {
+        "name": "Sammanfattning"
+      },
+      "my_country_categories_text": {
+        "name": "Kategorier"
+      },
+      "europe_awarded_value_12m": {
+        "name": "Totalt tilldelat värde 12 mån"
+      },
+      "europe_awarded_value_90d": {
+        "name": "Totalt tilldelat värde 90 d"
+      },
+      "europe_largest_buyer_12m": {
+        "name": "Största köparland 12 mån"
+      },
+      "europe_largest_buyer_value_12m": {
+        "name": "Största köparens värde 12 mån"
+      },
+      "europe_countries_with_value_12m": {
+        "name": "Länder med hänförbart värde 12 mån"
+      },
+      "europe_joint_value_12m": {
+        "name": "Gemensamt/multinationellt värde 12 mån"
+      },
+      "europe_largest_award_12m": {
+        "name": "Största tilldelning 12 mån"
+      },
+      "europe_quarantined_awards": {
+        "name": "Karantänsatta tilldelningar"
+      },
+      "top_buyers_text": {
+        "name": "Största köpare"
+      },
+      "country_ranking_12m": {
+        "name": "Landsrankning 12 mån"
+      },
+      "country_ranking_90d": {
+        "name": "Landsrankning 90 d"
+      },
+      "country_growth_ranking_12m": {
+        "name": "Snabbast växande länder 12 mån"
       }
     },
     "event": {

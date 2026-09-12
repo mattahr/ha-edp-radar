@@ -479,6 +479,78 @@
       },
       "raw_stored_notices": {
         "name": "Stored notices"
+      },
+      "my_country_awarded_value_12m": {
+        "name": "Awarded value 12 m"
+      },
+      "my_country_awarded_value_previous_12m": {
+        "name": "Awarded value previous 12 m"
+      },
+      "my_country_awarded_value_change_pct": {
+        "name": "Awarded value change"
+      },
+      "my_country_rank_12m": {
+        "name": "Country rank 12 m"
+      },
+      "my_country_share_12m": {
+        "name": "Share of European total 12 m"
+      },
+      "my_country_awards_12m": {
+        "name": "Awards 12 m"
+      },
+      "my_country_value_coverage_12m": {
+        "name": "Value coverage 12 m"
+      },
+      "my_country_top_category_12m": {
+        "name": "Top category 12 m"
+      },
+      "my_country_largest_award_12m": {
+        "name": "Largest award 12 m"
+      },
+      "my_country_awarded_value_90d": {
+        "name": "Awarded value 90 d"
+      },
+      "my_country_summary_text": {
+        "name": "Summary"
+      },
+      "my_country_categories_text": {
+        "name": "Categories"
+      },
+      "europe_awarded_value_12m": {
+        "name": "Total awarded value 12 m"
+      },
+      "europe_awarded_value_90d": {
+        "name": "Total awarded value 90 d"
+      },
+      "europe_largest_buyer_12m": {
+        "name": "Largest buyer country 12 m"
+      },
+      "europe_largest_buyer_value_12m": {
+        "name": "Largest buyer value 12 m"
+      },
+      "europe_countries_with_value_12m": {
+        "name": "Countries with attributable value 12 m"
+      },
+      "europe_joint_value_12m": {
+        "name": "Joint/multinational value 12 m"
+      },
+      "europe_largest_award_12m": {
+        "name": "Largest award 12 m"
+      },
+      "europe_quarantined_awards": {
+        "name": "Quarantined awards"
+      },
+      "top_buyers_text": {
+        "name": "Top buyers"
+      },
+      "country_ranking_12m": {
+        "name": "Country ranking 12 m"
+      },
+      "country_ranking_90d": {
+        "name": "Country ranking 90 d"
+      },
+      "country_growth_ranking_12m": {
+        "name": "Fastest-growing countries 12 m"
       }
     },
     "event": {

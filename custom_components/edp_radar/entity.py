@@ -23,6 +23,10 @@ class DeviceKind(StrEnum):
     SUPPLIERS = "suppliers"
     CATEGORY = "category"
     RAW = "raw"
+    # Phase 2: country purchasing
+    MY_COUNTRY = "my_country"
+    PURCHASING = "purchasing"
+    RANKING = "ranking"
 
 
 DEVICE_NAMES: dict[DeviceKind, str] = {
@@ -31,6 +35,8 @@ DEVICE_NAMES: dict[DeviceKind, str] = {
     DeviceKind.ORGANISATION: "Selected Organisation",
     DeviceKind.PEERS: "Peer Comparison",
     DeviceKind.SUPPLIERS: "Supplier Landscape",
+    DeviceKind.PURCHASING: "European Purchasing",
+    DeviceKind.RANKING: "Country Ranking",
 }
 
 
@@ -42,13 +48,18 @@ def device_info(
     label: str | None = None,
 ) -> DeviceInfo:
     """One service device per analytics group; categories and raw-data countries
-    get one device each, keyed by ``suffix`` (category id or country code)."""
+    get one device each, keyed by ``suffix`` (category id or country code). The
+    My Country device keeps one identifier and is renamed when the country
+    changes."""
     if kind is DeviceKind.CATEGORY:
         key = f"{kind.value}_{suffix}"
         name = f"Pinned Category: {label or suffix}"
     elif kind is DeviceKind.RAW:
         key = f"{kind.value}_{suffix}"
         name = f"Raw Data: {label or suffix}"
+    elif kind is DeviceKind.MY_COUNTRY:
+        key = kind.value
+        name = f"My Country: {label or suffix}"
     else:
         key = kind.value
         name = DEVICE_NAMES[kind]

@@ -191,7 +191,13 @@ async def test_optional_devices_absent_by_default(
     names = sorted(
         d.name for d in dr.async_entries_for_config_entry(registry, ENTRY) if d.name
     )
-    assert names == ["European Defence Market", "External Radar", "Supplier Landscape"]
+    assert names == [
+        "Country Ranking",
+        "European Defence Market",
+        "European Purchasing",
+        "External Radar",
+        "Supplier Landscape",
+    ]
     market = registry.async_get_device_by_identifier((DOMAIN, f"{ENTRY}_market"), ENTRY)
     assert market is not None
     assert market.manufacturer == MANUFACTURER
@@ -448,3 +454,249 @@ async def test_raw_data_device_for_a_country(
         }
     ]
     assert entity_id(hass, "raw_FI_stored_notices") is None
+
+
+async def test_country_purchasing_sensors(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Phase 2 devices from the 18 real notices: SI leads with one EUR 531k award,
+    SK follows with two, NO/SE only had non-awarded results (EUR 0), and
+    DE/DK/PL awarded without a usable value (unknown, unranked)."""
+    freezer.move_to(NOW)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id=ENTRY,
+        unique_id=DOMAIN,
+        version=2,
+        data={},
+        options={CONF_SELECTED_COUNTRY: "SI"},
+    )
+    await setup_entry(hass, entry)
+
+    registry = dr.async_get(hass)
+    names = sorted(
+        d.name for d in dr.async_entries_for_config_entry(registry, ENTRY) if d.name
+    )
+    assert names == [
+        "Country Ranking",
+        "European Defence Market",
+        "European Purchasing",
+        "External Radar",
+        "My Country: Slovenia",
+        "Peer Comparison",
+        "Supplier Landscape",
+    ]
+
+    value = get_state(hass, "my_country_awarded_value_12m")
+    assert value.state == "531315.0"
+    assert value.attributes["friendly_name"] == (
+        "My Country: Slovenia Awarded value 12 m"
+    )
+    assert value.attributes["unit_of_measurement"] == "EUR"
+    assert value.attributes["country"] == "SI"
+    assert value.attributes["period_days"] == 365
+    assert value.attributes["period_start"] == "2025-09-12"
+    assert value.attributes["awards"] == 1
+    assert value.attributes["valued_awards"] == 1
+    assert value.attributes["value_coverage_pct"] == 100.0
+    assert value.attributes["previous_period_eur"] == 0.0
+    assert value.attributes["change_pct"] is None
+    assert value.attributes["decision_date_basis_pct"] == 0.0
+    monthly = value.attributes["monthly"]
+    assert len(monthly) == 24
+    assert monthly[-1] == {
+        "month": "2026-09",
+        "value_eur": 531315.0,
+        "awards": 1,
+        "valued_awards": 1,
+    }
+    assert monthly[0]["value_eur"] == 0.0
+
+    assert get_state(hass, "my_country_awarded_value_previous_12m").state == "0.0"
+    assert get_state(hass, "my_country_awarded_value_change_pct").state == (
+        STATE_UNKNOWN
+    )
+    rank = get_state(hass, "my_country_rank_12m")
+    assert rank.state == "1"
+    assert rank.attributes["share_pct"] == 88.1
+    assert rank.attributes["population_size"] == 4
+    assert rank.attributes["countries_active"] == 5
+    assert rank.attributes["value_status"] == "ranked"
+    assert get_state(hass, "my_country_share_12m").state == "88.1"
+    assert get_state(hass, "my_country_awards_12m").state == "1"
+    assert get_state(hass, "my_country_value_coverage_12m").state == "100.0"
+    top = get_state(hass, "my_country_top_category_12m")
+    assert top.state == "Cyber & IT"
+    assert top.attributes["categories"] == [
+        {
+            "category": "cyber_it",
+            "label": "Cyber & IT",
+            "value_eur": 531315.0,
+            "share_pct": 100.0,
+            "awards": 1,
+        }
+    ]
+    assert top.attributes["unclassified_share_pct"] == 0.0
+    largest = get_state(hass, "my_country_largest_award_12m")
+    assert largest.state == "531315.0"
+    assert largest.attributes["publication_number"] == "627092-2026"
+    assert largest.attributes["award_date_basis"] == "publication_date"
+    assert largest.attributes["currency"] == "EUR"
+    assert largest.attributes["ted_url"] == (
+        "https://ted.europa.eu/en/notice/-/detail/627092-2026"
+    )
+    assert len(largest.attributes["largest_awards"]) == 1
+    ninety = get_state(hass, "my_country_awarded_value_90d")
+    assert ninety.state == "531315.0"
+    assert ninety.attributes["period_days"] == 90
+    assert ninety.attributes["value_30d_eur"] == 531315.0
+    assert (
+        get_state(hass, "my_country_summary_text").state
+        == "SI · EUR 531k / 12m · #1 · 88.1%"
+    )
+    assert get_state(hass, "my_country_categories_text").state == "Cyber & IT EUR 531k"
+
+    europe = get_state(hass, "europe_awarded_value_12m")
+    assert europe.state == "603118.5"
+    assert europe.attributes["friendly_name"] == (
+        "European Purchasing Total awarded value 12 m"
+    )
+    assert europe.attributes["country_attributable_eur"] == 603118.5
+    assert europe.attributes["joint_multinational_eur"] is None
+    assert europe.attributes["awards"] == 6
+    assert europe.attributes["valued_awards"] == 3
+    assert europe.attributes["value_coverage_pct"] == 50.0
+    assert europe.attributes["non_awarded_results"] == 2
+    assert europe.attributes["countries_with_value"] == 2
+    assert europe.attributes["countries_active"] == 5
+    assert europe.attributes["categories"][0]["category"] == "cyber_it"
+    assert get_state(hass, "europe_awarded_value_90d").state == "603118.5"
+    buyer = get_state(hass, "europe_largest_buyer_12m")
+    assert buyer.state == "SI"
+    assert buyer.attributes["name"] == "Slovenia"
+    assert buyer.attributes["is_my_country"] is True
+    assert get_state(hass, "europe_largest_buyer_value_12m").state == "531315.0"
+    countries = get_state(hass, "europe_countries_with_value_12m")
+    assert countries.state == "2"
+    assert countries.attributes["unranked"] == ["DE", "DK", "PL"]
+    assert get_state(hass, "europe_joint_value_12m").state == STATE_UNKNOWN
+    assert get_state(hass, "europe_largest_award_12m").state == "531315.0"
+    quarantined = get_state(hass, "europe_quarantined_awards")
+    assert quarantined.state == "0"
+    assert quarantined.attributes["quarantined"] == []
+    assert get_state(hass, "top_buyers_text").state == "SI EUR 531k · SK EUR 72k"
+
+    ranking = get_state(hass, "country_ranking_12m")
+    assert ranking.state == "SI"
+    assert ranking.attributes["friendly_name"] == "Country Ranking Country ranking 12 m"
+    rows = ranking.attributes["ranking"]
+    assert [(r["rank"], r["country"], r["value_eur"]) for r in rows] == [
+        (1, "SI", 531315.0),
+        (2, "SK", 71803.5),
+        (3, "NO", 0.0),
+        (4, "SE", 0.0),
+    ]
+    assert rows[0]["is_my_country"] is True and rows[1]["is_my_country"] is False
+    assert rows[1]["top_category"] == "Unclassified"
+    assert rows[1]["value_coverage_pct"] == 100.0
+    assert ranking.attributes["my_country"]["country"] == "SI"
+    assert ranking.attributes["unranked"] == [
+        {"country": "DE", "awards": 1, "framework_results": 0},
+        {"country": "DK", "awards": 1, "framework_results": 0},
+        {"country": "PL", "awards": 1, "framework_results": 0},
+    ]
+    assert ranking.attributes["total_value_eur"] == 603118.5
+    assert len(ranking.attributes["all_countries"]) == 4
+    assert get_state(hass, "country_ranking_90d").state == "SI"
+    assert get_state(hass, "country_growth_ranking_12m").state == STATE_UNKNOWN
+    assert get_state(hass, "country_growth_ranking_12m").attributes["ranking"] == []
+
+
+async def test_my_country_without_awards_and_absent_when_unset(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_entry(hass, config_entry)
+    # No My country: no device, but the European and ranking devices exist.
+    assert entity_id(hass, "my_country_awarded_value_12m") is None
+    assert get_state(hass, "europe_awarded_value_12m").state == "603118.5"
+    ranking = get_state(hass, "country_ranking_12m")
+    assert ranking.attributes["my_country"] is None
+    assert all(r["is_my_country"] is False for r in ranking.attributes["ranking"])
+
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    hass.config_entries.async_update_entry(
+        config_entry, options={CONF_SELECTED_COUNTRY: "ES"}
+    )
+    await setup_entry(hass, config_entry)
+    # Spain has no result notice in the fixtures: nothing awarded, not unknown.
+    assert get_state(hass, "my_country_awarded_value_12m").state == STATE_UNKNOWN
+    rank = get_state(hass, "my_country_rank_12m")
+    assert rank.state == STATE_UNKNOWN
+    assert rank.attributes["value_status"] == "no awards in the period"
+    assert get_state(hass, "my_country_summary_text").state == "ES · no awards / 12m"
+    registry = dr.async_get(hass)
+    device = registry.async_get_device_by_identifier(
+        (DOMAIN, f"{ENTRY}_my_country"), ENTRY
+    )
+    assert device is not None and device.name == "My Country: Spain"
+
+
+def test_purchasing_attributes_fit_the_recorder_limit() -> None:
+    """40 countries and 100 quarantined awards must stay under 16 kB per entity."""
+    import json
+    from datetime import date
+    from decimal import Decimal
+
+    from custom_components.edp_radar.const import ALPHA2_TO_ALPHA3
+    from custom_components.edp_radar.models import Money, Winner
+    from custom_components.edp_radar.purchasing import build_purchasing_model
+    from custom_components.edp_radar.sensor import PURCHASING_SENSORS
+    from custom_components.edp_radar.taxonomy import Taxonomy
+
+    from .factories import buyer, flat_fx, result
+
+    today = date(2026, 9, 12)
+    notices = []
+    for index, country in enumerate(sorted(ALPHA2_TO_ALPHA3)):
+        for n in range(3):
+            notices.append(
+                result(
+                    f"{country}{n}",
+                    f"p-{country}{n}",
+                    today,
+                    value=Money(Decimal(1_000_000 * (index + 1) * (n + 1)), "EUR"),
+                    statuses=("selec-w",),
+                    winners=(Winner("W", None, country, None),),
+                    buyer=buyer(f"Ministry of Defence of {country} " * 3, country),
+                    title="A very long procurement title " * 6,
+                )
+            )
+    for n in range(100):
+        notices.append(
+            result(
+                f"bad{n}",
+                f"p-bad{n}",
+                today,
+                value=Money(Decimal("20000000000"), "EUR"),
+                statuses=("selec-w",),
+                winners=(Winner("W", None, "PL", None),),
+                buyer=buyer("Buyer", "PL"),
+                title="Another long title " * 10,
+            )
+        )
+    model = build_purchasing_model(
+        notices, flat_fx({}, today, today), today, taxonomy=Taxonomy.load()
+    )
+    assert len(model.quarantined) == 100
+    for description in PURCHASING_SENSORS:
+        if description.attributes_fn is None:
+            continue
+        attrs = description.attributes_fn(model, "SE")
+        size = len(json.dumps(attrs, default=str).encode())
+        assert size < 16_000, (description.key, size)

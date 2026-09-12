@@ -26,7 +26,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .config import RadarConfig
-from .const import country_name
+from .const import PURCHASING_RANKING_LIMIT, RAW_LIST_LIMIT, country_name
 from .coordinator import EdpRadarConfigEntry, EdpRadarCoordinator
 from .entity import DeviceKind, EdpRadarEntity
 from .fx_rates import FxRateTable
@@ -45,6 +45,17 @@ from .metrics import (
     SupplierMetrics,
     ValueMetric,
     notice_list_attributes,
+)
+from .purchasing import (
+    Award,
+    CountryPurchaseSummary,
+    CountryRank,
+    EuropeSummary,
+    PurchasingModel,
+    PurchasingPeriod,
+    categories_text,
+    my_country_text,
+    top_buyers_text,
 )
 
 type SensorValue = StateType | datetime
@@ -784,6 +795,544 @@ RAW_SENSORS: tuple[EdpRadarRawSensorEntityDescription, ...] = (
     ),
 )
 
+# ------------------------------------------------------------- purchasing (Phase 2)
+
+type PurchasingValueFn = Callable[[PurchasingModel, str | None], SensorValue]
+type PurchasingAttributesFn = Callable[[PurchasingModel, str | None], dict[str, Any]]
+
+
+@dataclass(frozen=True, kw_only=True)
+class EdpRadarPurchasingSensorEntityDescription(SensorEntityDescription):
+    """A sensor reading the country purchasing model; ``country`` is My country."""
+
+    device: DeviceKind
+    value_fn: PurchasingValueFn
+    attributes_fn: PurchasingAttributesFn | None = None
+    exists_fn: ExistsFn = lambda config: True
+
+
+def _award_attrs(award: Award) -> dict[str, Any]:
+    return {
+        "publication_number": award.publication_number,
+        "title": award.title,
+        "buyer": award.buyer,
+        "country": award.country,
+        "award_date": award.date.isoformat(),
+        "award_date_basis": award.date_basis,
+        "value": _eur(award.amount),
+        "currency": award.currency,
+        "value_eur": _eur(award.value_eur),
+        "category": award.primary_category,
+        "categories": list(award.categories),
+        "flags": list(award.flags),
+        "ted_url": award.source_url,
+    }
+
+
+def _period_attrs(summary: CountryPurchaseSummary | EuropeSummary) -> dict[str, Any]:
+    return {
+        "period_days": summary.window.days,
+        "period_start": summary.window.start.isoformat(),
+        "period_end": summary.window.end.isoformat(),
+    }
+
+
+def _summary_attrs(summary: CountryPurchaseSummary) -> dict[str, Any]:
+    """Every count behind a country's awarded value (Phase 2 §15, §29)."""
+    return {
+        "country": summary.country,
+        **_period_attrs(summary),
+        "awarded_value_eur": _eur(summary.award_value_eur),
+        "previous_period_eur": _eur(summary.previous_value_eur),
+        "change_eur": _eur(summary.change_eur),
+        "change_pct": summary.change_pct,
+        "awards": summary.award_count,
+        "valued_awards": summary.valued_awards,
+        "value_coverage_pct": summary.value_coverage_pct,
+        "framework_results": summary.framework_results,
+        "non_awarded_results": summary.non_awarded_results,
+        "quarantined_results": summary.suspicious_results,
+        "unconvertible_results": summary.unconvertible_results,
+        "unverified_large_results": summary.unverified_large_results,
+        "unverified_large_value_eur": _eur(summary.unverified_large_value_eur),
+        "decision_date_basis_pct": _pct(
+            summary.decision_date_awards, summary.award_count
+        ),
+    }
+
+
+def _pct(numerator: int, denominator: int) -> float | None:
+    return None if not denominator else round(numerator / denominator * 100, 1)
+
+
+def _categories_attrs(
+    summary: CountryPurchaseSummary | EuropeSummary,
+) -> dict[str, Any]:
+    return {
+        "categories": [
+            {
+                "category": share.category_id,
+                "label": share.label,
+                "value_eur": _eur(share.value_eur),
+                "share_pct": share.share_pct,
+                "awards": share.awards,
+            }
+            for share in summary.top_categories
+        ],
+    }
+
+
+def _europe_attrs(europe: EuropeSummary) -> dict[str, Any]:
+    return {
+        **_period_attrs(europe),
+        "total_value_eur": _eur(europe.total_value_eur),
+        "country_attributable_eur": _eur(europe.attributable_value_eur),
+        "joint_multinational_eur": _eur(europe.joint_value_eur),
+        "unknown_country_eur": _eur(europe.unknown_country_value_eur),
+        "previous_period_eur": _eur(europe.previous_total_value_eur),
+        "change_pct": europe.change_pct,
+        "awards": europe.award_count,
+        "valued_awards": europe.valued_awards,
+        "value_coverage_pct": europe.value_coverage_pct,
+        "framework_results": europe.framework_results,
+        "non_awarded_results": europe.non_awarded_results,
+        "quarantined_results": europe.suspicious_results,
+        "unverified_large_results": europe.unverified_large_results,
+        "countries_with_value": europe.countries_with_value,
+        "countries_active": europe.countries_active,
+    }
+
+
+def _rank_row(entry: CountryRank, my_country: str | None) -> dict[str, Any]:
+    summary = entry.summary
+    return {
+        "rank": entry.rank,
+        "country": entry.country,
+        "name": country_name(entry.country),
+        "value_eur": _eur(summary.award_value_eur),
+        "share_pct": entry.share_pct,
+        "previous_value_eur": _eur(summary.previous_value_eur),
+        "change_pct": summary.change_pct,
+        "awards": summary.award_count,
+        "valued_awards": summary.valued_awards,
+        "value_coverage_pct": summary.value_coverage_pct,
+        "framework_results": summary.framework_results,
+        "quarantined_results": summary.suspicious_results,
+        "unverified_large_results": summary.unverified_large_results,
+        "top_category": (
+            summary.top_categories[0].label if summary.top_categories else None
+        ),
+        "is_my_country": entry.country == my_country,
+    }
+
+
+def _ranking_rows(
+    period: PurchasingPeriod, my_country: str | None
+) -> list[dict[str, Any]]:
+    """Top N plus My country even when it ranks lower (Phase 2 §18)."""
+    rows = list(period.ranking[:PURCHASING_RANKING_LIMIT])
+    mine = period.rank_of(my_country) if my_country else None
+    if mine is not None and mine not in rows:
+        rows.append(mine)
+    return [_rank_row(entry, my_country) for entry in rows]
+
+
+def _country_ranking_attrs(
+    period: PurchasingPeriod, my_country: str | None
+) -> dict[str, Any]:
+    mine = period.rank_of(my_country) if my_country else None
+    return {
+        **_period_attrs(period.europe),
+        "ranking": _ranking_rows(period, my_country),
+        "all_countries": [
+            {
+                "rank": e.rank,
+                "country": e.country,
+                "value_eur": _eur(e.summary.award_value_eur),
+                "share_pct": e.share_pct,
+                "value_coverage_pct": e.summary.value_coverage_pct,
+            }
+            for e in period.ranking
+        ],
+        "unranked": [
+            {
+                "country": country,
+                "awards": period.countries[country].award_count,
+                "framework_results": period.countries[country].framework_results,
+            }
+            for country in period.unranked
+        ],
+        "my_country": _rank_row(mine, my_country) if mine else None,
+        "population_size": len(period.ranking),
+        "countries_active": period.europe.countries_active,
+        "total_value_eur": _eur(period.europe.total_value_eur),
+    }
+
+
+def _growth_attrs(period: PurchasingPeriod, my_country: str | None) -> dict[str, Any]:
+    return {
+        **_period_attrs(period.europe),
+        "ranking": [
+            _rank_row(entry, my_country)
+            for entry in period.growth[:PURCHASING_RANKING_LIMIT]
+        ],
+        "population_size": len(period.growth),
+        "eligibility": "at least 5 valued awards or EUR 50m awarded in the period",
+    }
+
+
+def _mine(
+    model: PurchasingModel, country: str | None, days: int | None = None
+) -> CountryPurchaseSummary | None:
+    period = model.primary if days is None else model.secondary[days]
+    return period.countries.get(country) if country else None
+
+
+def _my_rank(model: PurchasingModel, country: str | None) -> CountryRank | None:
+    return model.primary.rank_of(country) if country else None
+
+
+def _my_country_value_attrs(
+    model: PurchasingModel, country: str | None
+) -> dict[str, Any]:
+    summary = _mine(model, country)
+    if summary is None:
+        return {"country": country}
+    return {
+        **_summary_attrs(summary),
+        "monthly": [
+            {
+                "month": m.month,
+                "value_eur": _eur(m.value_eur),
+                "awards": m.awards,
+                "valued_awards": m.valued_awards,
+            }
+            for m in model.monthly_series(summary.country)
+        ],
+    }
+
+
+def _my_country_rank_attrs(
+    model: PurchasingModel, country: str | None
+) -> dict[str, Any]:
+    period = model.primary
+    summary = _mine(model, country)
+    entry = _my_rank(model, country)
+    return {
+        "country": country,
+        **_period_attrs(period.europe),
+        "share_pct": entry.share_pct if entry else None,
+        "population_size": len(period.ranking),
+        "countries_active": period.europe.countries_active,
+        "awards": summary.award_count if summary else None,
+        "valued_awards": summary.valued_awards if summary else None,
+        "value_status": (
+            "no awards in the period"
+            if summary is None or not summary.award_count
+            else "value unknown: no award with a usable value"
+            if entry is None
+            else "ranked"
+        ),
+    }
+
+
+def _largest_attrs(
+    awards: tuple[Award, ...], summary: CountryPurchaseSummary | EuropeSummary | None
+) -> dict[str, Any]:
+    attrs: dict[str, Any] = _award_attrs(awards[0]) if awards else {}
+    attrs["largest_awards"] = [_award_attrs(a) for a in awards]
+    if summary is not None:
+        attrs.update(_period_attrs(summary))
+    return attrs
+
+
+def _my(
+    key: str,
+    value_fn: PurchasingValueFn,
+    attributes_fn: PurchasingAttributesFn | None = None,
+    **kwargs: Any,
+) -> EdpRadarPurchasingSensorEntityDescription:
+    return EdpRadarPurchasingSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        device=DeviceKind.MY_COUNTRY,
+        value_fn=value_fn,
+        attributes_fn=attributes_fn,
+        exists_fn=_has_selected_country,
+        **kwargs,
+    )
+
+
+def _purchasing_money(
+    key: str,
+    device: DeviceKind,
+    value_fn: PurchasingValueFn,
+    attributes_fn: PurchasingAttributesFn | None = None,
+    **kwargs: Any,
+) -> EdpRadarPurchasingSensorEntityDescription:
+    return EdpRadarPurchasingSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        device=device,
+        device_class=SensorDeviceClass.MONETARY,
+        native_unit_of_measurement="EUR",
+        suggested_display_precision=0,
+        value_fn=value_fn,
+        attributes_fn=attributes_fn,
+        exists_fn=(
+            _has_selected_country
+            if device is DeviceKind.MY_COUNTRY
+            else (lambda config: True)
+        ),
+        **kwargs,
+    )
+
+
+def _my_value(model: PurchasingModel, country: str | None) -> float | None:
+    summary = _mine(model, country)
+    return _eur(summary.award_value_eur) if summary else None
+
+
+PURCHASING_SENSORS: tuple[EdpRadarPurchasingSensorEntityDescription, ...] = (
+    # --- My Country (Phase 2 §19, §24)
+    _purchasing_money(
+        "my_country_awarded_value_12m",
+        DeviceKind.MY_COUNTRY,
+        _my_value,
+        _my_country_value_attrs,
+    ),
+    _purchasing_money(
+        "my_country_awarded_value_previous_12m",
+        DeviceKind.MY_COUNTRY,
+        lambda m, c: _eur(s.previous_value_eur) if (s := _mine(m, c)) else None,
+        lambda m, c: (
+            {
+                "country": c,
+                "period_days": s.window.days,
+                "period_end": s.window.start.isoformat(),
+                "awards": s.previous_award_count,
+            }
+            if (s := _mine(m, c))
+            else {"country": c}
+        ),
+    ),
+    _my(
+        "my_country_awarded_value_change_pct",
+        lambda m, c: s.change_pct if (s := _mine(m, c)) else None,
+        lambda m, c: (
+            {
+                "country": c,
+                "current_eur": _eur(s.award_value_eur),
+                "previous_eur": _eur(s.previous_value_eur),
+                "change_eur": _eur(s.change_eur),
+            }
+            if (s := _mine(m, c))
+            else {"country": c}
+        ),
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=1,
+    ),
+    _my(
+        "my_country_rank_12m",
+        lambda m, c: e.rank if (e := _my_rank(m, c)) else None,
+        _my_country_rank_attrs,
+    ),
+    _my(
+        "my_country_share_12m",
+        lambda m, c: e.share_pct if (e := _my_rank(m, c)) else None,
+        _my_country_rank_attrs,
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=1,
+    ),
+    _my(
+        "my_country_awards_12m",
+        lambda m, c: s.award_count if (s := _mine(m, c)) else None,
+        lambda m, c: _summary_attrs(s) if (s := _mine(m, c)) else {"country": c},
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    _my(
+        "my_country_value_coverage_12m",
+        lambda m, c: s.value_coverage_pct if (s := _mine(m, c)) else None,
+        lambda m, c: _summary_attrs(s) if (s := _mine(m, c)) else {"country": c},
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=1,
+    ),
+    _my(
+        "my_country_top_category_12m",
+        lambda m, c: (
+            s.top_categories[0].label
+            if (s := _mine(m, c)) and s.top_categories
+            else None
+        ),
+        lambda m, c: (
+            {
+                "country": c,
+                **_period_attrs(s),
+                **_categories_attrs(s),
+                "unclassified_share_pct": s.unclassified_share_pct,
+            }
+            if (s := _mine(m, c))
+            else {"country": c}
+        ),
+    ),
+    _purchasing_money(
+        "my_country_largest_award_12m",
+        DeviceKind.MY_COUNTRY,
+        lambda m, c: (
+            _eur(s.largest_awards[0].value_eur)
+            if (s := _mine(m, c)) and s.largest_awards
+            else None
+        ),
+        lambda m, c: _largest_attrs(s.largest_awards, s) if (s := _mine(m, c)) else {},
+    ),
+    _purchasing_money(
+        "my_country_awarded_value_90d",
+        DeviceKind.MY_COUNTRY,
+        lambda m, c: _eur(s.award_value_eur) if (s := _mine(m, c, 90)) else None,
+        lambda m, c: (
+            {
+                **_summary_attrs(s),
+                "value_30d_eur": (
+                    _eur(t.award_value_eur) if (t := _mine(m, c, 30)) else None
+                ),
+            }
+            if (s := _mine(m, c, 90))
+            else {"country": c}
+        ),
+    ),
+    _my(
+        "my_country_summary_text",
+        lambda m, c: my_country_text(m.primary, c) if c else None,
+    ),
+    _my(
+        "my_country_categories_text",
+        lambda m, c: categories_text(s) if (s := _mine(m, c)) else None,
+    ),
+    # --- European Purchasing (Phase 2 §16, §19)
+    _purchasing_money(
+        "europe_awarded_value_12m",
+        DeviceKind.PURCHASING,
+        lambda m, c: _eur(m.primary.europe.total_value_eur),
+        lambda m, c: {
+            **_europe_attrs(m.primary.europe),
+            **_categories_attrs(m.primary.europe),
+        },
+    ),
+    _purchasing_money(
+        "europe_awarded_value_90d",
+        DeviceKind.PURCHASING,
+        lambda m, c: _eur(m.secondary[90].europe.total_value_eur),
+        lambda m, c: {
+            **_europe_attrs(m.secondary[90].europe),
+            "value_30d_eur": _eur(m.secondary[30].europe.total_value_eur),
+        },
+    ),
+    EdpRadarPurchasingSensorEntityDescription(
+        key="europe_largest_buyer_12m",
+        translation_key="europe_largest_buyer_12m",
+        device=DeviceKind.PURCHASING,
+        value_fn=lambda m, c: (
+            e.country if (e := m.primary.europe.largest_buyer) else None
+        ),
+        attributes_fn=lambda m, c: (
+            _rank_row(e, c) if (e := m.primary.europe.largest_buyer) else {}
+        ),
+    ),
+    _purchasing_money(
+        "europe_largest_buyer_value_12m",
+        DeviceKind.PURCHASING,
+        lambda m, c: (
+            _eur(e.summary.award_value_eur)
+            if (e := m.primary.europe.largest_buyer)
+            else None
+        ),
+        lambda m, c: _rank_row(e, c) if (e := m.primary.europe.largest_buyer) else {},
+    ),
+    EdpRadarPurchasingSensorEntityDescription(
+        key="europe_countries_with_value_12m",
+        translation_key="europe_countries_with_value_12m",
+        device=DeviceKind.PURCHASING,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda m, c: m.primary.europe.countries_with_value,
+        attributes_fn=lambda m, c: {
+            **_period_attrs(m.primary.europe),
+            "countries_active": m.primary.europe.countries_active,
+            "unranked": list(m.primary.unranked),
+        },
+    ),
+    _purchasing_money(
+        "europe_joint_value_12m",
+        DeviceKind.PURCHASING,
+        lambda m, c: _eur(m.primary.europe.joint_value_eur),
+        lambda m, c: {
+            **_period_attrs(m.primary.europe),
+            "unknown_country_eur": _eur(m.primary.europe.unknown_country_value_eur),
+            "joint_awards": (
+                s.award_count if (s := m.primary.countries.get("MULTI")) else 0
+            ),
+        },
+    ),
+    _purchasing_money(
+        "europe_largest_award_12m",
+        DeviceKind.PURCHASING,
+        lambda m, c: (
+            _eur(a[0].value_eur) if (a := m.primary.europe.largest_awards) else None
+        ),
+        lambda m, c: _largest_attrs(m.primary.europe.largest_awards, m.primary.europe),
+    ),
+    EdpRadarPurchasingSensorEntityDescription(
+        key="europe_quarantined_awards",
+        translation_key="europe_quarantined_awards",
+        device=DeviceKind.PURCHASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda m, c: len(m.quarantined),
+        attributes_fn=lambda m, c: {
+            # Largest first; the recorder caps attributes at 16 kB.
+            "quarantined": [_award_attrs(a) for a in m.quarantined[:RAW_LIST_LIMIT]],
+            "rules": [
+                "above_absolute_cap: EUR 10bn",
+                "exceeds_estimate: 100× a real estimate (≥ 10 000)",
+                "exceeds_tender_values: 100× the notice's own tender values",
+                "duplicate_value_in_procedure: same value repeated in a procedure",
+            ],
+        },
+    ),
+    EdpRadarPurchasingSensorEntityDescription(
+        key="top_buyers_text",
+        translation_key="top_buyers_text",
+        device=DeviceKind.PURCHASING,
+        value_fn=lambda m, c: top_buyers_text(m.primary),
+    ),
+    # --- Country Ranking (Phase 2 §18, §23)
+    EdpRadarPurchasingSensorEntityDescription(
+        key="country_ranking_12m",
+        translation_key="country_ranking_12m",
+        device=DeviceKind.RANKING,
+        value_fn=lambda m, c: (
+            m.primary.ranking[0].country if m.primary.ranking else None
+        ),
+        attributes_fn=lambda m, c: _country_ranking_attrs(m.primary, c),
+    ),
+    EdpRadarPurchasingSensorEntityDescription(
+        key="country_ranking_90d",
+        translation_key="country_ranking_90d",
+        device=DeviceKind.RANKING,
+        value_fn=lambda m, c: (
+            m.secondary[90].ranking[0].country if m.secondary[90].ranking else None
+        ),
+        attributes_fn=lambda m, c: _country_ranking_attrs(m.secondary[90], c),
+    ),
+    EdpRadarPurchasingSensorEntityDescription(
+        key="country_growth_ranking_12m",
+        translation_key="country_growth_ranking_12m",
+        device=DeviceKind.RANKING,
+        value_fn=lambda m, c: m.primary.growth[0].country if m.primary.growth else None,
+        attributes_fn=lambda m, c: _growth_attrs(m.primary, c),
+    ),
+)
+
+
 FRESHNESS = SensorEntityDescription(
     key="ted_data_last_updated",
     translation_key="ted_data_last_updated",
@@ -810,6 +1359,11 @@ async def async_setup_entry(
         if description.exists_fn(config)
     ]
     entities.append(EdpRadarFreshnessSensor(coordinator))
+    entities.extend(
+        EdpRadarPurchasingSensor(coordinator, description)
+        for description in PURCHASING_SENSORS
+        if description.exists_fn(config)
+    )
     for category_id in config.metrics.pinned_categories:
         label = coordinator.taxonomy.label(category_id)
         entities.extend(
@@ -849,6 +1403,44 @@ class EdpRadarSensor(EdpRadarEntity, SensorEntity):
         if snapshot is None or self.entity_description.attributes_fn is None:
             return None
         return self.entity_description.attributes_fn(snapshot)
+
+
+class EdpRadarPurchasingSensor(EdpRadarEntity, SensorEntity):
+    """A sensor reading the country purchasing model for My country."""
+
+    entity_description: EdpRadarPurchasingSensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: EdpRadarCoordinator,
+        description: EdpRadarPurchasingSensorEntityDescription,
+    ) -> None:
+        country = coordinator.config.metrics.selected_country
+        if description.device is DeviceKind.MY_COUNTRY and country:
+            super().__init__(
+                coordinator,
+                description,
+                description.device,
+                suffix=country,
+                label=country_name(country),
+            )
+        else:
+            super().__init__(coordinator, description, description.device)
+        self._country = country
+
+    @property
+    def native_value(self) -> SensorValue:
+        snapshot = self.snapshot
+        if snapshot is None:
+            return None
+        return self.entity_description.value_fn(snapshot.purchasing, self._country)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        snapshot = self.snapshot
+        if snapshot is None or self.entity_description.attributes_fn is None:
+            return None
+        return self.entity_description.attributes_fn(snapshot.purchasing, self._country)
 
 
 class EdpRadarCategorySensor(EdpRadarEntity, SensorEntity):
