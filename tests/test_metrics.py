@@ -511,3 +511,205 @@ def test_organisation_metrics_counts_changes_and_modifications() -> None:
     assert own.modifications_365d.value == 1 and own.modifications_365d.previous == 1
     assert own.process.median_tenders_365d.value == 2
     assert [h.notice_id for h in own.recent][:2] == ["r1", "c1"]
+
+
+# --- Task 14: peers, suppliers, categories ----------------------------------
+from custom_components.edp_radar.metrics import (  # noqa: E402
+    RankingEntry,
+    activity_rank,
+    category_metrics,
+    peer_metrics,
+    supplier_metrics,
+    value_percentile,
+)
+
+
+def _entries() -> list[RankingEntry]:
+    notices = [
+        competition(
+            "de",
+            "p-de",
+            days_ago(TODAY, 10),
+            buyer=buyer("B", "DE", "de"),
+            estimated_value=Money(Decimal("300"), "EUR"),
+        ),
+        competition(
+            "pl",
+            "p-pl",
+            days_ago(TODAY, 10),
+            buyer=buyer("A", "PL", "pl"),
+            estimated_value=Money(Decimal("200"), "EUR"),
+        ),
+        competition(
+            "pl2",
+            "p-pl2",
+            days_ago(TODAY, 11),
+            buyer=buyer("A", "PL", "pl"),
+            estimated_value=None,
+        ),
+        competition(
+            "se",
+            "p-se",
+            days_ago(TODAY, 10),
+            estimated_value=Money(Decimal("100"), "EUR"),
+        ),
+        competition(
+            "fi",
+            "p-fi",
+            days_ago(TODAY, 10),
+            buyer=buyer("PV", "FI", "fi"),
+            estimated_value=None,
+        ),
+    ]
+    index = ProcedureIndex.build(notices)
+    return rank_by(index, TODAY, FX, lambda p: [p.country or "??"], str)
+
+
+def test_ranks_and_percentile() -> None:
+    entries = _entries()
+    assert [e.key for e in entries] == ["DE", "PL", "SE", "FI"]
+    assert activity_rank(entries, "PL") == 1
+    assert activity_rank(entries, "SE") == 2  # DE, SE, FI tie on 1 procedure
+    assert activity_rank(entries, "XX") is None
+    assert value_percentile(entries, "SE") == 50.0  # SE and FI(None→0) are <= SE
+    assert value_percentile(entries, "DE") == 100.0
+    assert value_percentile(entries, "XX") is None
+
+
+def test_peer_metrics_by_country_and_deltas() -> None:
+    notices = [
+        result("r-se", "p-se", days_ago(TODAY, 10), tenders=(1, 1)),
+        result(
+            "r-fi",
+            "p-fi",
+            days_ago(TODAY, 10),
+            buyer=buyer("PV", "FI", "fi"),
+            tenders=(4, 2, 1),
+        ),
+        result(
+            "r-dk",
+            "p-dk",
+            days_ago(TODAY, 10),
+            buyer=buyer("FMI", "DK", "dk"),
+            tenders=(3,),
+        ),
+    ]
+    config = MetricsConfig(
+        peer_countries=frozenset({"FI", "DK"}), selected_country="SE"
+    )
+    own = organisation_metrics(ProcedureIndex.build([notices[0]]), TODAY, FX)
+    peers = peer_metrics(config, notices, _entries(), own, TODAY, FX)
+    assert peers is not None
+    assert peers.population == "configured peer countries"
+    assert peers.population_size == 2
+    assert peers.process.median_tenders_365d.value == 2.5
+    assert peers.process.single_bid_share_365d.pct == 25.0
+    assert peers.single_bid_delta_pp == 75.0
+    assert peers.median_tenders_delta == -1.5
+    assert peers.time_to_result_delta_days is None
+    assert peers.selected_country == "SE" and peers.value_rank_90d == 3
+    assert peers.rank_population_size == 4
+
+
+def test_peer_metrics_by_organisation_and_none_when_unconfigured() -> None:
+    notices = [
+        result(
+            "r-x",
+            "p-x",
+            days_ago(TODAY, 10),
+            buyer=buyer("X", "NO", "no-1"),
+            tenders=(2,),
+        )
+    ]
+    by_org = MetricsConfig(peer_organisation_identifiers=frozenset({"no-1"}))
+    peers = peer_metrics(by_org, notices, [], None, TODAY, FX)
+    assert peers is not None and peers.population == "configured peer organisations"
+    assert peers.process.median_tenders_365d.value == 2
+    assert peers.single_bid_delta_pp is None
+    assert peer_metrics(MetricsConfig(), notices, [], None, TODAY, FX) is None
+
+
+def test_supplier_metrics_do_not_double_count_consortia() -> None:
+    saab = Winner("Saab AB", "556036-0793", "SE", "large")
+    bae = Winner("BAE Systems Hägglunds", "556028-3838", "SE", "large")
+    eur = "EUR"
+    notices = [
+        result(
+            "r1",
+            "p1",
+            days_ago(TODAY, 10),
+            value=Money(Decimal("100"), eur),
+            winners=(saab,),
+        ),
+        result(
+            "r2",
+            "p2",
+            days_ago(TODAY, 20),
+            value=Money(Decimal("300"), eur),
+            winners=(bae, saab),
+        ),
+        result(
+            "r3",
+            "p3",
+            days_ago(TODAY, 30),
+            value=Money(Decimal("50"), eur),
+            winners=(bae,),
+        ),
+        result("r4", "p4", days_ago(TODAY, 30), value=None, winners=(bae,)),
+        result(
+            "r5",
+            "p5",
+            days_ago(TODAY, 30),
+            value=Money(Decimal("999"), eur),
+            winners=(),
+        ),
+        result(
+            "r6",
+            "p6",
+            days_ago(TODAY, 400),
+            value=Money(Decimal("999"), eur),
+            winners=(saab,),
+        ),
+    ]
+    suppliers = supplier_metrics(ProcedureIndex.build(notices), TODAY, FX)
+    assert [
+        (s.name, s.award_value_eur, s.awards, s.rank) for s in suppliers.top_suppliers
+    ] == [
+        ("BAE Systems Hägglunds + Saab AB", Decimal("300.00"), 1, 1),
+        ("Saab AB", Decimal("100.00"), 1, 2),
+        ("BAE Systems Hägglunds", Decimal("50.00"), 1, 3),
+    ]
+    assert suppliers.total_award_value_eur == Decimal("450.00")
+    assert suppliers.top5_share_pct == 100.0
+    assert suppliers.groups == 3
+    assert suppliers.coverage == Coverage(3, 4)
+    assert suppliers.top_suppliers[0].country == "SE"
+
+
+def test_category_metrics_use_procedure_level_membership(taxonomy: Taxonomy) -> None:
+    notices = [
+        competition(
+            "c1",
+            "p1",
+            days_ago(TODAY, 10),
+            categories=("naval_maritime",),
+            estimated_value=Money(Decimal("10"), "EUR"),
+        ),
+        result(
+            "r1",
+            "p1",
+            days_ago(TODAY, 5),
+            categories=(),
+            value=Money(Decimal("7"), "EUR"),
+        ),
+        competition("c2", "p2", days_ago(TODAY, 10), categories=("cyber_it",)),
+    ]
+    index_all = ProcedureIndex.build(notices)
+    label = taxonomy.label("naval_maritime")
+    naval = category_metrics(index_all, notices, "naval_maritime", label, TODAY, FX)
+    assert naval.label == "Naval & maritime"
+    assert naval.competitions_30d.value == 1
+    assert naval.estimated_value_90d.value_eur == Decimal("10.00")
+    assert naval.award_value_90d.value_eur == Decimal(
+        "7.00"
+    )  # via procedure membership

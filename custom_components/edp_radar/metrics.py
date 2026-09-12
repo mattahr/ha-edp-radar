@@ -834,3 +834,174 @@ def organisation_metrics(
         process=process_metrics(index, today),
         recent=tuple(highlight(n, fx) for n in recent[:RECENT_ITEMS_LIMIT]),
     )
+
+
+# --------------------------------------------------------------------------- peers
+
+
+def activity_rank(entries: Sequence[RankingEntry], key: str) -> int | None:
+    """Competition rank by number of new procedures."""
+    ordered = sorted(entries, key=lambda e: (-e.procedures, e.key))
+    rank = 0
+    last: int | None = None
+    for position, entry in enumerate(ordered, 1):
+        if entry.procedures != last:
+            rank = position
+            last = entry.procedures
+        if entry.key == key:
+            return rank
+    return None
+
+
+def value_percentile(entries: Sequence[RankingEntry], key: str) -> float | None:
+    """Share of the population whose value is <= the key's value (inclusive rank)."""
+    selected = next((e for e in entries if e.key == key), None)
+    if selected is None or not entries:
+        return None
+    own_value = selected.value_eur or Decimal(0)
+    below = sum(1 for e in entries if (e.value_eur or Decimal(0)) <= own_value)
+    return pct(below, len(entries))
+
+
+def _delta(own: float | None, peer: float | None) -> float | None:
+    if own is None or peer is None:
+        return None
+    return round(own - peer, 1)
+
+
+_RANK_POPULATION = _COUNTRY_POPULATION
+
+
+def peer_metrics(
+    config: MetricsConfig,
+    relevant: Sequence[ProcurementNotice],
+    market_countries_ranking: Sequence[RankingEntry],
+    own: OrganisationMetrics | None,
+    today: date,
+    fx: FxRateTable,
+) -> PeerMetrics | None:
+    if config.peer_organisation_identifiers:
+        population = "configured peer organisations"
+        size = len(config.peer_organisation_identifiers)
+        wanted = config.peer_organisation_identifiers
+        notices = [n for n in relevant if set(n.buyer.identifiers) & wanted]
+    elif config.peer_countries:
+        population = "configured peer countries"
+        size = len(config.peer_countries)
+        notices = [n for n in relevant if n.buyer.country in config.peer_countries]
+    elif config.selected_country:
+        population = "none"
+        size = 0
+        notices = []
+    else:
+        return None
+    process = process_metrics(ProcedureIndex.build(notices), today)
+    selected = config.selected_country
+    entry = next((e for e in market_countries_ranking if e.key == selected), None)
+    own_process = own.process if own else None
+    return PeerMetrics(
+        population=population,
+        population_size=size,
+        selected_country=selected,
+        rank_population=_RANK_POPULATION,
+        rank_population_size=len(market_countries_ranking),
+        value_rank_90d=entry.rank if entry else None,
+        activity_rank_90d=(
+            activity_rank(market_countries_ranking, selected) if selected else None
+        ),
+        value_percentile_90d=(
+            value_percentile(market_countries_ranking, selected) if selected else None
+        ),
+        process=process,
+        single_bid_delta_pp=(
+            _delta(
+                own_process.single_bid_share_365d.pct,
+                process.single_bid_share_365d.pct,
+            )
+            if own_process
+            else None
+        ),
+        median_tenders_delta=(
+            _delta(
+                own_process.median_tenders_365d.value,
+                process.median_tenders_365d.value,
+            )
+            if own_process
+            else None
+        ),
+        time_to_result_delta_days=(
+            _delta(
+                own_process.median_time_to_result_365d.value,
+                process.median_time_to_result_365d.value,
+            )
+            if own_process
+            else None
+        ),
+    )
+
+
+# --------------------------------------------------------------------------- suppliers
+
+
+def supplier_metrics(
+    index: ProcedureIndex, today: date, fx: FxRateTable
+) -> SupplierMetrics:
+    """Top supplier groups by normalized award value; a consortium is one group."""
+    results = [r for r in results_in(index, current_window(today, 365)) if r.winners]
+    groups: dict[str, tuple[str, str | None, Decimal, int]] = {}
+    covered = 0
+    for notice in results:
+        eur = value_in_eur(notice.result_value, notice.award_date, fx)
+        if eur is None:
+            continue
+        covered += 1
+        winners = sorted(notice.winners, key=lambda w: w.identity_key)
+        key = "+".join(w.identity_key for w in winners)
+        name = " + ".join(w.name or w.identity_key for w in winners)
+        countries = {w.country for w in winners}
+        country = countries.pop() if len(countries) == 1 else None
+        _, _, total, awards = groups.get(key, (name, country, Decimal(0), 0))
+        groups[key] = (name, country, total + eur, awards + 1)
+    ordered = sorted(groups.items(), key=lambda item: (-item[1][2], item[0]))
+    total = sum((g[2] for g in groups.values()), Decimal(0)) if groups else None
+    top5 = sum((g[2] for _, g in ordered[:5]), Decimal(0))
+    return SupplierMetrics(
+        top_suppliers=tuple(
+            SupplierEntry(key, name, country, rank, value, awards)
+            for rank, (key, (name, country, value, awards)) in enumerate(
+                ordered[:RANKING_LIMIT], 1
+            )
+        ),
+        top5_share_pct=round(float(top5 / total * 100), 1) if total else None,
+        total_award_value_eur=total,
+        groups=len(groups),
+        coverage=Coverage(covered, len(results)),
+    )
+
+
+# --------------------------------------------------------------------------- categories
+
+
+def notices_for_procedures(
+    notices: Iterable[ProcurementNotice], keys: set[str]
+) -> list[ProcurementNotice]:
+    return [n for n in notices if (n.procedure_id or f"notice:{n.notice_id}") in keys]
+
+
+def category_metrics(
+    index_all: ProcedureIndex,
+    notices: Sequence[ProcurementNotice],
+    category_id: str,
+    label: str,
+    today: date,
+    fx: FxRateTable,
+) -> CategoryMetrics:
+    keys = {p.key for p in index_all.procedures.values() if category_id in p.categories}
+    index = ProcedureIndex.build(notices_for_procedures(notices, keys))
+    return CategoryMetrics(
+        category_id=category_id,
+        label=label,
+        competitions_30d=new_competitions(index, today, 30),
+        estimated_value_90d=estimated_value(index, today, 90, fx),
+        award_value_90d=award_value(index, today, 90, fx),
+    )
