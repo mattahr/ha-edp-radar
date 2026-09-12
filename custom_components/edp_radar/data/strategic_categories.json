@@ -1,0 +1,19 @@
+{
+  "version": "2026.09.1",
+  "description": "Deterministic CPV-prefix rules (plan §14, phase 1). A CPV code is assigned to the category owning the longest matching prefix. A notice may belong to several categories. Codes matching no rule are unclassified.",
+  "categories": [
+    {"id": "air_missile_defence", "label": "Air & missile defence", "cpv_prefixes": ["3562", "35322100"]},
+    {"id": "ammunition_explosives", "label": "Ammunition & explosives", "cpv_prefixes": ["3533", "246"]},
+    {"id": "land_systems", "label": "Land systems", "cpv_prefixes": ["3531", "3532", "3534", "354", "5062", "5063"]},
+    {"id": "naval_maritime", "label": "Naval & maritime", "cpv_prefixes": ["355", "5064"]},
+    {"id": "air_systems", "label": "Air systems", "cpv_prefixes": ["3561", "3564", "5065"]},
+    {"id": "uas_cuas", "label": "UAS / C-UAS", "cpv_prefixes": ["35612"]},
+    {"id": "c4isr_communications", "label": "C4ISR & communications", "cpv_prefixes": ["3571", "5066", "32"]},
+    {"id": "sensors_radar_ew", "label": "Sensors, radar & electronic warfare", "cpv_prefixes": ["3572", "3573", "38115"]},
+    {"id": "cyber_it", "label": "Cyber & IT", "cpv_prefixes": ["72", "48", "302"]},
+    {"id": "space", "label": "Space", "cpv_prefixes": ["3563"]},
+    {"id": "logistics_support", "label": "Logistics & support", "cpv_prefixes": ["358", "60", "63", "09", "15", "18", "501", "341", "342", "343"]},
+    {"id": "defence_rd", "label": "Defence R&D", "cpv_prefixes": ["73"]},
+    {"id": "other_defence", "label": "Other defence", "cpv_prefixes": ["353", "7522", "806", "50600000"]}
+  ]
+}

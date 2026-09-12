@@ -1,0 +1,23 @@
+{
+  "version": "2026.09.1",
+  "description": "CPV prefixes that identify defence-specific procurement (plan §5.3). Prefix matching on the 8-digit CPV code. Deliberately excludes CPV 351* (emergency/security equipment), 352* (police equipment) and generic 358* support equipment.",
+  "prefixes": [
+    {"prefix": "353", "label": "Weapons, ammunition and associated parts"},
+    {"prefix": "354", "label": "Military vehicles and associated parts"},
+    {"prefix": "355", "label": "Warships and associated parts"},
+    {"prefix": "356", "label": "Military aircraft, missiles and spacecraft"},
+    {"prefix": "357", "label": "Military electronic systems"},
+    {"prefix": "35811300", "label": "Military uniforms"},
+    {"prefix": "35812", "label": "Combat uniforms"},
+    {"prefix": "35813", "label": "Military helmets"},
+    {"prefix": "246", "label": "Explosives"},
+    {"prefix": "734", "label": "R&D services on security and defence materials"},
+    {"prefix": "7522", "label": "Defence services"},
+    {"prefix": "806", "label": "Training services for defence and security materials"},
+    {"prefix": "5062", "label": "Repair and maintenance of firearms and ammunition"},
+    {"prefix": "5063", "label": "Repair and maintenance of military vehicles"},
+    {"prefix": "5064", "label": "Repair and maintenance of warships"},
+    {"prefix": "5065", "label": "Repair and maintenance of military aircraft, missiles and spacecraft"},
+    {"prefix": "5066", "label": "Repair and maintenance of military electronic systems"}
+  ]
+}
