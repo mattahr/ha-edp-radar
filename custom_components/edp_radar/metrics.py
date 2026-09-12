@@ -6,11 +6,10 @@ given its inputs so the statistics can be unit-tested with hand-calculated data.
 
 from __future__ import annotations
 
-import statistics
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -28,6 +27,16 @@ from .const import (
 from .fx_rates import FxRateTable
 from .lifecycle import ProcedureIndex, ProcedureSummary
 from .models import Money, NoticeStage, ProcurementNotice, normalize_name
+from .periods import (
+    Window,
+    current_window,
+    format_eur,
+    median,
+    pct,
+    pct_change,
+    previous_window,
+    value_in_eur,
+)
 from .taxonomy import Taxonomy
 
 # --------------------------------------------------------------------------- config
@@ -92,78 +101,6 @@ class MetricsConfig:
     pinned_categories: tuple[str, ...] = ()
     raw_countries: tuple[str, ...] = ()
     watchlist: WatchlistConfig = field(default_factory=WatchlistConfig)
-
-
-# --------------------------------------------------------------------------- windows
-
-
-@dataclass(frozen=True)
-class Window:
-    """Half-open rolling period: start < d <= end (plan §15)."""
-
-    start: date
-    end: date
-
-    @property
-    def days(self) -> int:
-        return (self.end - self.start).days
-
-    def contains(self, d: date) -> bool:
-        return self.start < d <= self.end
-
-
-def current_window(today: date, days: int) -> Window:
-    return Window(today - timedelta(days=days), today)
-
-
-def previous_window(today: date, days: int) -> Window:
-    return Window(today - timedelta(days=2 * days), today - timedelta(days=days))
-
-
-# --------------------------------------------------------------------------- helpers
-
-
-def pct_change(
-    current: Decimal | int | None, previous: Decimal | int | None
-) -> float | None:
-    if current is None or previous is None or previous == 0:
-        return None
-    change = (Decimal(current) - Decimal(previous)) / Decimal(previous) * 100
-    return round(float(change), 1)
-
-
-def pct(numerator: int, denominator: int) -> float | None:
-    if denominator == 0:
-        return None
-    return round(numerator / denominator * 100, 1)
-
-
-def median(values: Sequence[float | int]) -> float | None:
-    if not values:
-        return None
-    return float(statistics.median(values))
-
-
-def value_in_eur(money: Money | None, on: date, fx: FxRateTable) -> Decimal | None:
-    if money is None:
-        return None
-    conversion = fx.convert_to_eur(money, on)
-    return conversion.eur_amount if conversion else None
-
-
-def format_eur(amount: Decimal | None) -> str:
-    if amount is None:
-        return "EUR n/a"
-    value = float(amount)
-    if value >= 1e9:
-        return f"EUR {value / 1e9:.1f}bn"
-    if value >= 1e7:
-        return f"EUR {value / 1e6:.0f}m"
-    if value >= 1e6:
-        return f"EUR {value / 1e6:.1f}m"
-    if value >= 1e3:
-        return f"EUR {value / 1e3:.0f}k"
-    return f"EUR {value:.0f}"
 
 
 # --------------------------------------------------------------------------- universe
