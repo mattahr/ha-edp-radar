@@ -963,7 +963,9 @@ def supplier_metrics(
         _, _, total, awards = groups.get(key, (name, country, Decimal(0), 0))
         groups[key] = (name, country, total + eur, awards + 1)
     ordered = sorted(groups.items(), key=lambda item: (-item[1][2], item[0]))
-    total = sum((g[2] for g in groups.values()), Decimal(0)) if groups else None
+    grand_total: Decimal | None = (
+        sum((g[2] for g in groups.values()), Decimal(0)) if groups else None
+    )
     top5 = sum((g[2] for _, g in ordered[:5]), Decimal(0))
     return SupplierMetrics(
         top_suppliers=tuple(
@@ -972,8 +974,10 @@ def supplier_metrics(
                 ordered[:RANKING_LIMIT], 1
             )
         ),
-        top5_share_pct=round(float(top5 / total * 100), 1) if total else None,
-        total_award_value_eur=total,
+        top5_share_pct=(
+            round(float(top5 / grand_total * 100), 1) if grand_total else None
+        ),
+        total_award_value_eur=grand_total,
         groups=len(groups),
         coverage=Coverage(covered, len(results)),
     )
