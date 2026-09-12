@@ -129,7 +129,20 @@ def fetch_statskontoret(cache: Path) -> None:
     )
 
 
-FETCHERS = {"statskontoret": fetch_statskontoret}
+# ---------------------------------------------------------------------- Eurostat
+
+EUROSTAT_URL = (
+    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_ev"
+    "?lang=en&expend=DEF&na_item=TE&na_item=P51G&unit=MIO_EUR&unit=PC_GDP&unit=MIO_NAC"
+)
+
+
+def fetch_eurostat(cache: Path) -> None:
+    payload = download(EUROSTAT_URL, cache, "eurostat-gov_ev.json")
+    write(FIXTURES / "eurostat" / "gov_ev-defence.json", payload)
+
+
+FETCHERS = {"statskontoret": fetch_statskontoret, "eurostat": fetch_eurostat}
 
 
 def main(argv: list[str]) -> int:
