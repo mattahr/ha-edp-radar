@@ -398,6 +398,7 @@ class DataQualityMetrics:
     records_by_stage: Mapping[str, int]
     parse_errors: int
     unlinked_results: int
+    framework_results: int
     fx_coverage: Coverage
     estimated_value_coverage: Coverage
     result_value_coverage: Coverage
@@ -1052,6 +1053,7 @@ def data_quality(
         records_by_stage=dict(sorted(Counter(n.stage.value for n in latest).items())),
         parse_errors=parse_errors,
         unlinked_results=sum(1 for r in results if r.procedure_id is None),
+        framework_results=sum(1 for r in results if r.is_framework),
         fx_coverage=Coverage(convertible, len(monetary)),
         estimated_value_coverage=Coverage(
             sum(1 for c in competitions if c.estimated_value), len(competitions)

@@ -195,6 +195,36 @@ def test_result_value_sentinel_minus_one_is_unknown(
     )
 
 
+def test_framework_result_keeps_ceiling_but_no_award_value(
+    real_notice: Lookup, taxonomy: Taxonomy
+) -> None:
+    raw = real_notice("626136-2026")
+    raw["framework-agreement-lot"] = ["fa-mix"]
+    raw["result-value-notice"] = "17424000000"
+    raw["result-framework-maximum-value-notice"] = "316800000"
+    raw["result-framework-maximum-value-cur-notice"] = "EUR"
+    notice = normalize_notice(raw, taxonomy)
+    assert notice.is_framework is True
+    assert notice.result_value is None
+    assert notice.framework_value == Money(Decimal("316800000"), "EUR")
+    assert type(notice).from_dict(notice.to_dict()) == notice
+
+    plain = normalize_notice(real_notice("626136-2026"), taxonomy)
+    assert plain.is_framework is False and plain.framework_value is None
+
+    without_max = real_notice("626136-2026")
+    without_max["framework-agreement-lot"] = ["fa-wo-rc"]
+    fallback = normalize_notice(without_max, taxonomy)
+    assert fallback.framework_value == Money(Decimal("55600000"), "DKK")
+    assert fallback.result_value is None
+
+    competition = real_notice("626359-2026")
+    competition["framework-agreement-lot"] = ["fa-mix"]
+    framework_competition = normalize_notice(competition, taxonomy)
+    assert framework_competition.is_framework is True
+    assert framework_competition.framework_value is None
+
+
 def test_winner_with_two_identifiers_gets_no_identifier(
     real_notice: Lookup, taxonomy: Taxonomy
 ) -> None:

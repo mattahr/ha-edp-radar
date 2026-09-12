@@ -74,6 +74,10 @@ REQUESTED_FIELDS: tuple[str, ...] = (
     "non-award-justification",
     "tender-value",
     "tender-value-cur",
+    # framework agreements (D21)
+    "framework-agreement-lot",
+    "result-framework-maximum-value-notice",
+    "result-framework-maximum-value-cur-notice",
     # changes
     "change-description",
     "change-reason-code",
@@ -229,6 +233,28 @@ def _result_value(raw: Mapping[str, Any]) -> Money | None:
     )
 
 
+def _is_framework(raw: Mapping[str, Any]) -> bool:
+    """BT-765: any lot that is a framework agreement (``fa-mix``, ``fa-w-rc`` …)."""
+    return any(
+        v not in ("none", "false")
+        for v in as_strings(raw.get("framework-agreement-lot"))
+    )
+
+
+def _framework_value(raw: Mapping[str, Any]) -> Money | None:
+    """Framework ceiling: the declared maximum, else whatever TED reports as result.
+
+    Verified 2026-09-12: framework CANs put the ceiling (sometimes multiplied by
+    the number of winners) in ``result-value-notice`` with all tender values 0,
+    so it must never be summed as an award (plan §39, addendum D21).
+    """
+    maximum = Money.parse(
+        first_text(raw.get("result-framework-maximum-value-notice")),
+        first_text(raw.get("result-framework-maximum-value-cur-notice")),
+    )
+    return maximum if maximum is not None else _result_value(raw)
+
+
 def _buyer(raw: Mapping[str, Any]) -> Buyer:
     names = _texts(raw.get("buyer-name"))
     countries = as_strings(raw.get("buyer-country"))
@@ -351,6 +377,9 @@ def normalize_notice(raw: Mapping[str, Any], taxonomy: Taxonomy) -> ProcurementN
     buyer = _buyer(raw)
     legal_basis = _unique(as_strings(raw.get("legal-basis")))
     cpv_codes = _cpv_codes(raw)
+    stage = _STAGE_BY_FORM_TYPE.get(form_type, NoticeStage.OTHER)
+    is_framework = _is_framework(raw)
+    framework_result = is_framework and stage is NoticeStage.RESULT
     title = first_text(raw.get("title-proc"))
     if title is not None and len(title) > TITLE_MAX_LENGTH:
         title = title[: TITLE_MAX_LENGTH - 1] + "…"
@@ -361,7 +390,7 @@ def normalize_notice(raw: Mapping[str, Any], taxonomy: Taxonomy) -> ProcurementN
         publication_number=publication_number,
         publication_date=publication_date,
         procedure_id=first_text(raw.get("procedure-identifier")),
-        stage=_STAGE_BY_FORM_TYPE.get(form_type, NoticeStage.OTHER),
+        stage=stage,
         notice_type=first_text(raw.get("notice-type")),
         notice_subtype=first_text(raw.get("notice-subtype")),
         title=title,
@@ -377,13 +406,15 @@ def normalize_notice(raw: Mapping[str, Any], taxonomy: Taxonomy) -> ProcurementN
         procedure_type=first_text(raw.get("procedure-type")),
         contract_nature=_unique(as_strings(raw.get("contract-nature"))),
         estimated_value=_estimated_value(raw),
-        result_value=_result_value(raw),
+        result_value=None if framework_result else _result_value(raw),
         tender_statistics=_tender_statistics(raw),
         winners=_winners(raw),
         change=_change(raw),
         modification=_modification(raw),
         source_url=TED_NOTICE_URL.format(publication_number=publication_number),
         classification_rule_version=taxonomy.version,
+        is_framework=is_framework,
+        framework_value=_framework_value(raw) if framework_result else None,
     )
 
 

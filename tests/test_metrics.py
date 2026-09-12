@@ -772,6 +772,7 @@ def test_compute_snapshot_end_to_end(taxonomy: Taxonomy) -> None:
     assert q.stored_versions == 5 and q.stored_notices == 5
     assert q.relevant_notices == 3
     assert q.excluded_central_purchasing == 1 and q.parse_errors == 2
+    assert q.framework_results == 0 and q.unlinked_results == 0
     assert q.records_by_stage == {"competition": 5}
     assert q.estimated_value_coverage == Coverage(5, 5)
     assert q.fx_coverage == Coverage(5, 5)
