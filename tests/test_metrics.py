@@ -403,3 +403,111 @@ def test_market_metrics_assembles_rankings_and_texts(taxonomy: Taxonomy) -> None
     assert market.snapshot_text == "6 competitions / 90d · EUR 63m"
     assert market.country_ranking_text == "DE EUR 60m · PL EUR 2.0m · SE EUR 1.2m"
     assert market.process.median_tenders_365d.sample_size == 4
+
+
+# --- Task 13: external radar & own footprint --------------------------------
+from custom_components.edp_radar.metrics import (  # noqa: E402
+    external_metrics,
+    highlight,
+    organisation_metrics,
+)
+from custom_components.edp_radar.models import NoticeStage  # noqa: E402
+
+
+def test_highlight_uses_estimated_value_for_competitions_and_result_value() -> None:
+    comp = competition("c", "p", TODAY, estimated_value=Money(Decimal("100"), "SEK"))
+    h = highlight(comp, FX)
+    assert (h.original_amount, h.original_currency) == (Decimal("100"), "SEK")
+    assert h.value_eur == Decimal("10.00")
+    res = result(
+        "r",
+        "p",
+        TODAY,
+        value=Money(Decimal("40"), "PLN"),
+        decision_dates=(date(2026, 8, 1),),
+    )
+    assert highlight(res, FX).value_eur == Decimal("10.00")
+    assert highlight(res, FX).stage is NoticeStage.RESULT
+
+
+def test_external_metrics_7d(taxonomy: Taxonomy) -> None:
+    notices = [
+        competition(
+            "a",
+            "pa",
+            days_ago(TODAY, 1),
+            buyer=buyer("A", "DE", "a"),
+            estimated_value=Money(Decimal("640000000"), "EUR"),
+            categories=("air_missile_defence",),
+        ),
+        competition(
+            "b",
+            "pb",
+            days_ago(TODAY, 6),
+            buyer=buyer("B", "PL", "b"),
+            estimated_value=None,
+        ),
+        competition("c", "pc", days_ago(TODAY, 8), buyer=buyer("C", "FR", "c")),
+        result("r", "pc", days_ago(TODAY, 2), value=Money(Decimal("5000000"), "EUR")),
+        result(
+            "r-old", "px", days_ago(TODAY, 9), value=Money(Decimal("9000000"), "EUR")
+        ),
+    ]
+    external = external_metrics(ProcedureIndex.build(notices), TODAY, FX, taxonomy)
+    assert external.new_competitions_7d == 2
+    assert [h.notice_id for h in external.recent_competitions] == ["a", "b"]
+    assert external.largest_competition_7d is not None
+    assert external.largest_competition_7d.notice_id == "a"
+    assert external.largest_award_7d is not None
+    assert external.largest_award_7d.notice_id == "r"
+    published = days_ago(TODAY, 1).isoformat()
+    assert external.latest_text == (
+        f"DE · Air & missile defence · EUR 640m · published {published}"
+    )
+
+
+def test_external_metrics_without_values_is_unknown(taxonomy: Taxonomy) -> None:
+    only = ProcedureIndex.build([competition("b", "pb", TODAY, estimated_value=None)])
+    external = external_metrics(only, TODAY, FX, taxonomy)
+    assert external.largest_competition_7d is None
+    assert external.largest_award_7d is None
+    assert external.new_competitions_7d == 1
+    assert external.latest_text is not None
+    assert external.latest_text.startswith("SE · Land systems · EUR n/a")
+    empty = external_metrics(ProcedureIndex.build([]), TODAY, FX, taxonomy)
+    assert empty.latest_text is None
+
+
+def test_organisation_metrics_counts_changes_and_modifications() -> None:
+    comp = competition("c1", "p1", days_ago(TODAY, 10))
+    notices = [
+        comp,
+        change_of(comp, published=days_ago(TODAY, 5)),
+        change_of(comp, published=days_ago(TODAY, 40), notice_id="c1-chg", version=1),
+        result(
+            "r1",
+            "p1",
+            days_ago(TODAY, 3),
+            value=Money(Decimal("2000000"), "SEK"),
+            tenders=(2,),
+        ),
+        make_notice(
+            notice_id="m1",
+            stage=NoticeStage.MODIFICATION,
+            publication_date=days_ago(TODAY, 200),
+        ),
+        make_notice(
+            notice_id="m2",
+            stage=NoticeStage.MODIFICATION,
+            publication_date=days_ago(TODAY, 400),
+        ),
+    ]
+    own = organisation_metrics(ProcedureIndex.build(notices), TODAY, FX)
+    assert own.competitions_30d.value == 1
+    assert own.estimated_value_30d.value_eur == Decimal("1000000.00")
+    assert own.awards_30d.value == 1
+    assert own.award_value_30d.value_eur == Decimal("200000.00")
+    assert own.changes_30d.value == 1 and own.changes_30d.previous == 1
+    assert own.modifications_365d.value == 1 and own.modifications_365d.previous == 1
+    assert own.process.median_tenders_365d.value == 2
+    assert [h.notice_id for h in own.recent][:2] == ["r1", "c1"]

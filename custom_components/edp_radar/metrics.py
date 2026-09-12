@@ -18,6 +18,7 @@ from .const import (
     GROWTH_MIN_VALUE_EUR,
     MATCH_DEFENCE_BUYER,
     RANKING_LIMIT,
+    RECENT_ITEMS_LIMIT,
     RelevanceMode,
 )
 from .fx_rates import FxRateTable
@@ -720,4 +721,116 @@ def market_metrics(
         process=process_metrics(index, today),
         snapshot_text=market_snapshot_text(competitions_90d, value_90d),
         country_ranking_text=country_ranking_text(country_ranking),
+    )
+
+
+# --------------------------------------------------------------------------- external
+
+
+def highlight(notice: ProcurementNotice, fx: FxRateTable) -> NoticeHighlight:
+    if notice.stage is NoticeStage.RESULT:
+        money, on = notice.result_value, notice.award_date
+    else:
+        money, on = notice.estimated_value, notice.publication_date
+    return NoticeHighlight(
+        notice_id=notice.notice_id,
+        publication_number=notice.publication_number,
+        procedure_id=notice.procedure_id,
+        title=notice.title,
+        buyer=notice.buyer.name,
+        country=notice.buyer.country,
+        publication_date=notice.publication_date,
+        stage=notice.stage,
+        original_amount=money.amount if money else None,
+        original_currency=money.currency if money else None,
+        value_eur=value_in_eur(money, on, fx),
+        categories=notice.categories,
+        source_url=notice.source_url,
+    )
+
+
+def _by_significance(h: NoticeHighlight) -> tuple[bool, Decimal, int, str]:
+    """Value descending (unknown last), then most recent, then stable id."""
+    return (
+        h.value_eur is None,
+        -(h.value_eur or Decimal(0)),
+        -h.publication_date.toordinal(),
+        h.notice_id,
+    )
+
+
+def _largest(highlights: Iterable[NoticeHighlight]) -> NoticeHighlight | None:
+    valued = [h for h in highlights if h.value_eur is not None]
+    if not valued:
+        return None
+    return min(valued, key=_by_significance)
+
+
+def latest_notices_in(index: ProcedureIndex, window: Window) -> list[ProcurementNotice]:
+    return [n for n in index.notices if window.contains(n.publication_date)]
+
+
+def external_latest_text(h: NoticeHighlight, taxonomy: Taxonomy) -> str:
+    category = taxonomy.label(h.categories[0]) if h.categories else "Unclassified"
+    return (
+        f"{h.country or '??'} · {category} · {format_eur(h.value_eur)}"
+        f" · published {h.publication_date.isoformat()}"
+    )
+
+
+def external_metrics(
+    index: ProcedureIndex, today: date, fx: FxRateTable, taxonomy: Taxonomy
+) -> ExternalMetrics:
+    window = current_window(today, 7)
+    competitions = [
+        p.latest_competition
+        for p in procedures_started_in(index, window)
+        if p.latest_competition is not None
+    ]
+    highlights = [highlight(n, fx) for n in competitions]
+    recent = sorted(highlights, key=_by_significance)
+    awards = [highlight(r, fx) for r in results_in(index, window)]
+    latest = max(
+        highlights,
+        key=lambda h: (h.publication_date, h.value_eur or Decimal(0)),
+        default=None,
+    )
+    return ExternalMetrics(
+        new_competitions_7d=len(competitions),
+        recent_competitions=tuple(recent[:RECENT_ITEMS_LIMIT]),
+        largest_competition_7d=_largest(highlights),
+        largest_award_7d=_largest(awards),
+        latest_text=external_latest_text(latest, taxonomy) if latest else None,
+    )
+
+
+# --------------------------------------------------------------------------- own
+
+
+def organisation_metrics(
+    index: ProcedureIndex, today: date, fx: FxRateTable
+) -> OrganisationMetrics:
+    now_30, before_30 = current_window(today, 30), previous_window(today, 30)
+    now_365, before_365 = current_window(today, 365), previous_window(today, 365)
+    changes_now = [c for c in index.changes if now_30.contains(c.publication_date)]
+    changes_before = [
+        c for c in index.changes if before_30.contains(c.publication_date)
+    ]
+    modifications = [n for n in index.notices if n.stage is NoticeStage.MODIFICATION]
+    mods_now = [m for m in modifications if now_365.contains(m.publication_date)]
+    mods_before = [m for m in modifications if before_365.contains(m.publication_date)]
+    recent = sorted(
+        index.notices,
+        key=lambda n: (n.publication_date, n.notice_version),
+        reverse=True,
+    )
+    return OrganisationMetrics(
+        competitions_30d=new_competitions(index, today, 30),
+        estimated_value_30d=estimated_value(index, today, 30, fx),
+        awards_30d=awards_count(index, today, 30),
+        award_value_30d=award_value(index, today, 30, fx),
+        changes_30d=CountMetric(len(changes_now), len(changes_before), 30),
+        modifications_365d=CountMetric(len(mods_now), len(mods_before), 365),
+        process=process_metrics(index, today),
+        recent=tuple(highlight(n, fx) for n in recent[:RECENT_ITEMS_LIMIT]),
     )
