@@ -7,7 +7,7 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/mattahr/ha-edp-radar/issues",
-  "requirements": [],
+  "requirements": ["openpyxl==3.1.5"],
   "single_config_entry": true,
   "version": "0.2.0"
 }
