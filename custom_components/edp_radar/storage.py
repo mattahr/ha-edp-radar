@@ -17,7 +17,12 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import DEFAULT_RETENTION_DAYS, DOMAIN, EMITTED_EVENT_KEYS_LIMIT
+from .const import (
+    DEFAULT_BOOTSTRAP_DAYS,
+    DEFAULT_RETENTION_DAYS,
+    DOMAIN,
+    EMITTED_EVENT_KEYS_LIMIT,
+)
 from .fx_rates import FxRateTable
 from .models import ProcurementNotice
 
@@ -36,6 +41,9 @@ class StoreIndex:
     last_successful_update: datetime | None = None
     last_publication_date: date | None = None
     bootstrap_complete: bool = False
+    # How many days the completed bootstrap covered; a wider configured window
+    # (Phase 2 grew it from 400 to 760 days) means history must be re-fetched.
+    bootstrap_days: int | None = None
     retention_days: int = DEFAULT_RETENTION_DAYS
     taxonomy_version: str | None = None
     parse_errors: int = 0
@@ -55,6 +63,7 @@ class StoreIndex:
                 else None
             ),
             "bootstrap_complete": self.bootstrap_complete,
+            "bootstrap_days": self.bootstrap_days,
             "retention_days": self.retention_days,
             "taxonomy_version": self.taxonomy_version,
             "parse_errors": self.parse_errors,
@@ -76,6 +85,11 @@ class StoreIndex:
                 else None
             ),
             bootstrap_complete=bool(data.get("bootstrap_complete", False)),
+            bootstrap_days=(
+                int(data["bootstrap_days"])
+                if data.get("bootstrap_days") is not None
+                else None
+            ),
             retention_days=int(data.get("retention_days", DEFAULT_RETENTION_DAYS)),
             taxonomy_version=data.get("taxonomy_version"),
             parse_errors=int(data.get("parse_errors", 0)),
@@ -101,9 +115,11 @@ class RadarStore:
         entry_id: str,
         *,
         retention_days: int = DEFAULT_RETENTION_DAYS,
+        bootstrap_days: int = DEFAULT_BOOTSTRAP_DAYS,
     ) -> None:
         self._hass = hass
         self._prefix = f"{DOMAIN}.{entry_id}"
+        self.bootstrap_days = bootstrap_days
         self.index = StoreIndex(retention_days=retention_days)
         self.notices: dict[str, ProcurementNotice] = {}
         self.fx = FxRateTable()
@@ -142,6 +158,15 @@ class RadarStore:
                 await self._partition_store(month).async_remove()
             loaded = StoreIndex()
         loaded.retention_days = retention
+        if loaded.bootstrap_complete and (
+            loaded.bootstrap_days is None or loaded.bootstrap_days < self.bootstrap_days
+        ):
+            _LOGGER.info(
+                "Stored history covers %s days, %s configured; bootstrapping again",
+                loaded.bootstrap_days,
+                self.bootstrap_days,
+            )
+            loaded.bootstrap_complete = False
         self.index = loaded
 
         kept: list[str] = []

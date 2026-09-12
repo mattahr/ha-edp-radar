@@ -37,6 +37,7 @@ from .periods import (
     previous_window,
     value_in_eur,
 )
+from .purchasing import PurchasingModel, build_purchasing_model
 from .taxonomy import Taxonomy
 
 # --------------------------------------------------------------------------- config
@@ -396,6 +397,7 @@ class RadarSnapshot:
     suppliers: SupplierMetrics
     categories: Mapping[str, CategoryMetrics]
     raw: Mapping[str, CountryRawMetrics]
+    purchasing: PurchasingModel
     quality: DataQualityMetrics
     bootstrap_complete: bool
 
@@ -1206,6 +1208,9 @@ def compute_snapshot(
             )
             for country in config.raw_countries
         },
+        # Country purchasing (Phase 2) spans every ingested country: the market
+        # filter and the selected country only shape presentation.
+        purchasing=build_purchasing_model(relevant, fx, today, taxonomy=taxonomy),
         quality=data_quality(
             all_notices, relevant, excluded, parse_errors, fx, index_all
         ),

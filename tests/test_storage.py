@@ -65,6 +65,7 @@ async def test_restart_reloads_everything(
     first.update_fx({date(2026, 9, 11): {"SEK": Decimal("11.2373")}})
     first.mark_events_emitted(["a:1"])
     first.index.bootstrap_complete = True
+    first.index.bootstrap_days = first.bootstrap_days
     await first.async_save(immediate=True)
 
     second = RadarStore(hass, ENTRY)
@@ -76,6 +77,35 @@ async def test_restart_reloads_everything(
     assert rate == (Decimal("11.2373"), date(2026, 9, 11))
     assert second.was_event_emitted("a:1") is True
     assert second.was_event_emitted("b:1") is False
+
+
+async def test_wider_bootstrap_window_requires_a_new_bootstrap(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    """Upgrading from 400 to 760 days re-fetches history without discarding data."""
+    first = RadarStore(hass, ENTRY, retention_days=400, bootstrap_days=400)
+    await first.async_load()
+    first.upsert(competition("a", "p1", date(2026, 9, 1)))
+    first.index.bootstrap_complete = True
+    first.index.bootstrap_days = 400
+    await first.async_save(immediate=True)
+    assert hass_storage[f"{DOMAIN}.{ENTRY}.index"]["data"]["bootstrap_days"] == 400
+
+    same = RadarStore(hass, ENTRY, retention_days=400, bootstrap_days=400)
+    await same.async_load()
+    assert same.index.bootstrap_complete is True
+
+    wider = RadarStore(hass, ENTRY, retention_days=760, bootstrap_days=760)
+    await wider.async_load()
+    assert wider.index.bootstrap_complete is False
+    assert list(wider.notices) == ["a:1"]
+
+    # Stores written before Phase 2 carry no bootstrap_days: treat as too narrow.
+    del hass_storage[f"{DOMAIN}.{ENTRY}.index"]["data"]["bootstrap_days"]
+    legacy = RadarStore(hass, ENTRY, retention_days=400, bootstrap_days=400)
+    await legacy.async_load()
+    assert legacy.index.bootstrap_days is None
+    assert legacy.index.bootstrap_complete is False
 
 
 async def test_only_dirty_partitions_are_rewritten(

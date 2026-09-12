@@ -147,10 +147,11 @@ class RadarConfig:
 
     @property
     def query_countries(self) -> frozenset[str]:
-        """Countries to fetch: market plus peers, own organisation and watchlist.
+        """Countries to fetch: market plus peers, own organisation, watchlist,
+        raw-data countries and the selected country.
 
-        Peers outside the market must still be ingested for the comparison to
-        work; the TED preset already covers everything, so it needs no filter.
+        Anything compared against the market must still be ingested; the TED
+        preset already covers everything, so it needs no filter.
         """
         if self.market_preset is MarketPreset.TED:
             return frozenset()
@@ -160,6 +161,8 @@ class RadarConfig:
         own = self.metrics.own_organisation
         if own is not None and own.country:
             extra.add(own.country)
+        if self.metrics.selected_country:
+            extra.add(self.metrics.selected_country)
         return self.market_countries | extra
 
     def universe_query(self, taxonomy: Taxonomy, since: date) -> str:

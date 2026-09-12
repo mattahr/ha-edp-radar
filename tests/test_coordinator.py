@@ -251,6 +251,7 @@ async def test_ted_failure_with_empty_store_fails_setup(
             "schema_version": SCHEMA_VERSION,
             "partitions": [],
             "bootstrap_complete": True,
+            "bootstrap_days": 760,
             "last_publication_date": "2026-09-11",
         },
     }

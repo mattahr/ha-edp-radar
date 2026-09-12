@@ -224,6 +224,7 @@ class EdpRadarCoordinator(DataUpdateCoordinator[RadarSnapshot]):
         self.store.mark_events_emitted(self._version_keys_oldest_first())
         self._finish_refresh(today)
         self.store.index.bootstrap_complete = True
+        self.store.index.bootstrap_days = self.config.bootstrap_days
         await self.store.async_save(immediate=True)
         self.bootstrap_progress = None
         _LOGGER.info("Bootstrap complete: %s notice versions", len(self.store.notices))

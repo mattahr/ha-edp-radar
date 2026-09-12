@@ -106,6 +106,14 @@ def test_query_countries_include_own_organisation_watchlist_and_raw() -> None:
     assert config.query_countries == NORDIC_COUNTRIES | {"DE", "FR", "PL"}
 
 
+def test_query_countries_include_the_selected_country() -> None:
+    """My country controls presentation, but it must be ingested to exist."""
+    config = RadarConfig.from_options(
+        {CONF_MARKET_PRESET: "eu", CONF_SELECTED_COUNTRY: "NO"}
+    )
+    assert config.query_countries == EU_COUNTRIES | {"NO"}
+
+
 def test_ted_preset_has_no_country_filter() -> None:
     config = RadarConfig.from_options({CONF_MARKET_PRESET: "ted"})
     assert config.query_countries == frozenset()

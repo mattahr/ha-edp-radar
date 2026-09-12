@@ -37,7 +37,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) -> 
         entry,
         client=TedApiClient(session),
         fx_client=EcbFxClient(session),
-        store=RadarStore(hass, entry.entry_id, retention_days=config.retention_days),
+        store=RadarStore(
+            hass,
+            entry.entry_id,
+            retention_days=config.retention_days,
+            bootstrap_days=config.bootstrap_days,
+        ),
         taxonomy=taxonomy,
     )
     await coordinator.async_setup()

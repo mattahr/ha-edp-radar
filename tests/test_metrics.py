@@ -780,6 +780,44 @@ def test_compute_snapshot_end_to_end(taxonomy: Taxonomy) -> None:
     assert q.latest_publication_date == days_ago(TODAY, 2)
     assert q.fx_latest_date == date(2026, 12, 31)
     assert snapshot.suppliers.groups == 0
+    # The purchasing model covers every relevant country, not just the market.
+    assert snapshot.purchasing.today == TODAY
+    assert snapshot.purchasing.primary.window.days == 365
+
+
+def test_compute_snapshot_purchasing_uses_all_relevant_countries(
+    taxonomy: Taxonomy,
+) -> None:
+    se = result(
+        "se",
+        "p-se",
+        days_ago(TODAY, 10),
+        value=Money(Decimal("100"), "EUR"),
+        statuses=("selec-w",),
+    )
+    no = result(
+        "no",
+        "p-no",
+        days_ago(TODAY, 10),
+        value=Money(Decimal("300"), "EUR"),
+        statuses=("selec-w",),
+        buyer=buyer("FMA", "NO", "no"),
+    )
+    cpb = result(
+        "cpb",
+        "p-cpb",
+        days_ago(TODAY, 10),
+        value=Money(Decimal("900"), "EUR"),
+        statuses=("selec-w",),
+        buyer=buyer("CPB", "HR", "1", count=500),
+    )
+    config = MetricsConfig(market_countries=frozenset({"SE"}), selected_country="SE")
+    snapshot = compute_snapshot([se, no, cpb], FX, config, TODAY, taxonomy=taxonomy)
+    period = snapshot.purchasing.primary
+    assert [e.country for e in period.ranking] == ["NO", "SE"]
+    assert "HR" not in period.countries  # central purchasing stays excluded
+    assert period.europe.total_value_eur == Decimal("400")
+    assert snapshot.market.award_value_30d.value_eur == Decimal("100")
 
 
 def test_compute_snapshot_without_own_or_peers(taxonomy: Taxonomy) -> None:
