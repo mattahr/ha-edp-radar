@@ -84,6 +84,18 @@ async def test_diagnostics_shape(
     assert quality["latest_publication_date"] == "2026-09-11"
     assert quality["unclassified_share_pct"] == 58.8
 
+    purchasing = diagnostics["purchasing"]
+    assert purchasing["period_days"] == 365
+    assert purchasing["total_value_eur"] == 603118.5
+    assert purchasing["countries_with_value"] == 2
+    assert purchasing["countries_active"] == 5
+    assert purchasing["awards"] == 6 and purchasing["valued_awards"] == 3
+    assert purchasing["quarantined_results"] == 0
+    assert purchasing["unranked"] == ["DE", "DK", "PL"]
+    assert purchasing["my_country"]["country"] == "ES"
+    assert purchasing["my_country"]["awards"] == 0
+    assert purchasing["largest_buyer"] == "SI"
+
     assert diagnostics["errors"] == {
         "last_ted_error": None,
         "last_fx_error": None,

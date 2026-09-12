@@ -16,7 +16,8 @@ from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN
 from .coordinator import EdpRadarConfigEntry
-from .metrics import Coverage, DataQualityMetrics, WatchlistConfig
+from .metrics import Coverage, DataQualityMetrics, RadarSnapshot, WatchlistConfig
+from .purchasing_attrs import europe_attrs, period_attrs, summary_attrs
 
 
 def _plain(value: Any) -> Any:
@@ -49,6 +50,27 @@ def _watchlist(watchlist: WatchlistConfig) -> dict[str, Any]:
         "categories": sorted(watchlist.categories),
         "min_estimated_value_eur": _plain(watchlist.min_estimated_value_eur),
         "min_award_value_eur": _plain(watchlist.min_award_value_eur),
+    }
+
+
+def _purchasing(snapshot: RadarSnapshot, my_country: str | None) -> dict[str, Any]:
+    """The 12-month country purchasing picture at a glance (Phase 2 §29)."""
+    period = snapshot.purchasing.primary
+    europe = period.europe
+    mine = period.countries.get(my_country) if my_country else None
+    return {
+        **europe_attrs(europe),
+        "largest_buyer": europe.largest_buyer.country if europe.largest_buyer else None,
+        "ranked_countries": len(period.ranking),
+        "unranked": list(period.unranked),
+        "quarantined_total": len(snapshot.purchasing.quarantined),
+        "my_country": (
+            summary_attrs(mine)
+            if mine
+            else {"country": my_country, "awards": 0, **period_attrs(europe)}
+            if my_country
+            else None
+        ),
     }
 
 
@@ -108,6 +130,11 @@ async def async_get_config_entry_diagnostics(
             "emitted_event_keys": len(store.emitted_event_keys),
         },
         "quality": _quality(data.quality) if data else None,
+        "purchasing": (
+            _purchasing(data, metrics.selected_country)
+            if data and data.bootstrap_complete
+            else None
+        ),
         "errors": {
             "last_ted_error": coordinator.last_ted_error,
             "last_fx_error": coordinator.last_fx_error,
