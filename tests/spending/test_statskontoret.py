@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import zipfile
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -36,6 +38,13 @@ def _page(year: int) -> str:
 
 def _csv(name: str) -> bytes:
     return (FIXTURES / name).read_bytes()
+
+
+def _zip(member_name: str, content: bytes) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr(member_name, content)
+    return buffer.getvalue()
 
 
 def test_discovery_lists_expenditure_releases_newest_last() -> None:
@@ -145,6 +154,38 @@ async def test_provider_discovers_and_fetches(
     assert isinstance(payload, bytes)
     result = provider.parse_release(payload, fetched)
     assert len(result.datapoints) == 57
+
+
+async def test_provider_fetches_zipped_csv(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """The real download is a Zip; the provider must unzip it, not just read CSV."""
+    aioclient_mock.get(PAGE_2026, text=_page(2026))
+    provider = StatskontoretProvider(today=lambda: date(2026, 9, 12))
+    session = async_get_clientsession(hass)
+    release = await provider.async_discover_latest(session)
+    zip_bytes = _zip(
+        "Månadsutfall utgifter januari 2006 - juli 2026, definitivt.csv",
+        _csv("utgifter-2026-07.csv"),
+    )
+    aioclient_mock.get(release.download_url, content=zip_bytes)
+    fetched, payload = await provider.async_fetch_release(session, release)
+    result = provider.parse_release(payload, fetched)
+    assert len(result.datapoints) == 57
+    points = {
+        (p.metric_id, p.reference.start.year, p.reference.start.month): p
+        for p in result.datapoints
+    }
+    assert points[("materiel_outturn", 2026, 7)].value == Decimal("3753.54717975")
+
+
+def test_zip_without_csv_member_fails_loudly() -> None:
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    zip_bytes = _zip("readme.txt", b"no csv in here")
+    with pytest.raises(SchemaChangedError, match="no CSV"):
+        parse_outturn_csv(zip_bytes, release)
 
 
 async def test_provider_falls_back_to_previous_year_in_january(
