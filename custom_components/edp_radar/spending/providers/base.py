@@ -7,6 +7,7 @@ without Home Assistant; discovery and fetching take the aiohttp session.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -127,6 +128,16 @@ async def async_fetch_bytes(
         raise SourceUnavailableError(f"Timeout fetching {url}") from err
     except ClientError as err:
         raise SourceUnavailableError(f"Error fetching {url}: {err}") from err
+
+
+def with_fetch_metadata(release: SourceRelease, fetched: FetchResult) -> SourceRelease:
+    """Copy of ``release`` carrying the validators and checksum of ``fetched``."""
+    return dataclasses.replace(
+        release,
+        etag=fetched.etag,
+        last_modified=fetched.last_modified,
+        checksum=fetched.checksum,
+    )
 
 
 async def async_head_metadata(

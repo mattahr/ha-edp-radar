@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from .base import SpendingProvider
+from .statskontoret import StatskontoretProvider
 
 
 def all_providers() -> tuple[SpendingProvider, ...]:
     """Providers in plan order (Statskontoret, Eurostat, NATO, EDA, SIPRI)."""
-    return ()
+    return (StatskontoretProvider(),)
