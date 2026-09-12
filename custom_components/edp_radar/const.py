@@ -49,11 +49,16 @@ PURCHASING_PERIOD_DAYS = 365
 PURCHASING_SECONDARY_PERIODS = (90, 30)
 PURCHASING_RANKING_LIMIT = 10
 PURCHASING_LARGEST_AWARDS_LIMIT = 10
-PURCHASING_CATEGORIES_LIMIT = 6
 PURCHASING_MONTHS = 24
 MAX_DECISION_LAG_DAYS = 365
 SUSPICIOUS_ABSOLUTE_EUR = Decimal("10000000000")
 SUSPICIOUS_ESTIMATE_RATIO = Decimal("100")
+SUSPICIOUS_TENDER_RATIO = Decimal("100")
+# Placeholder estimates and tender values (1, 98, 100 …) are common; only a
+# reference of at least this amount is compared with the Notice Value.
+SUSPICIOUS_REFERENCE_MIN = Decimal("10000")
+# Large awards that no estimate corroborates are flagged for a human eye (§14).
+UNVERIFIED_LARGE_EUR = Decimal("250000000")
 RECENT_ITEMS_LIMIT = 10
 RAW_LIST_LIMIT = 15
 RAW_BUYERS_LIMIT = 20

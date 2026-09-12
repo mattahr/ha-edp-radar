@@ -233,6 +233,17 @@ def _result_value(raw: Mapping[str, Any]) -> Money | None:
     )
 
 
+def _tender_value_total(raw: Mapping[str, Any]) -> Money | None:
+    """Sum of the winning tenders (BT-720): a plausibility check for the Notice
+    Value, so only when every value is positive, the currency is unambiguous
+    and no awarded lot is missing its tender value."""
+    values = as_strings(raw.get("tender-value"))
+    awarded_lots = as_strings(raw.get("winner-selection-status")).count("selec-w")
+    if len(values) < awarded_lots:
+        return None
+    return _lot_money(values, as_strings(raw.get("tender-value-cur")))
+
+
 def _is_framework(raw: Mapping[str, Any]) -> bool:
     """BT-765: any lot that is a framework agreement (``fa-mix``, ``fa-w-rc`` …)."""
     return any(
@@ -416,6 +427,7 @@ def normalize_notice(raw: Mapping[str, Any], taxonomy: Taxonomy) -> ProcurementN
         classification_rule_version=taxonomy.version,
         is_framework=is_framework,
         framework_value=_framework_value(raw) if framework_result else None,
+        tender_value_total=_tender_value_total(raw),
     )
 
 

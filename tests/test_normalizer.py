@@ -347,3 +347,25 @@ def test_result_value_comes_from_notice_value_only(
     raw["result-value-lot"] = ["1000", "2000"]
     raw["result-value-cur-lot"] = ["DKK"]
     assert normalize_notice(raw, taxonomy).result_value is None
+
+
+def test_tender_value_total_sums_winning_tenders_when_unambiguous(
+    real_notice: Lookup, taxonomy: Taxonomy
+) -> None:
+    multi = normalize_notice(real_notice("627236-2026"), taxonomy)
+    assert multi.tender_value_total == Money(Decimal("10306545.80"), "PLN")
+    single = normalize_notice(real_notice("626136-2026"), taxonomy)
+    assert single.tender_value_total == Money(Decimal("55600000"), "DKK")
+    assert type(single).from_dict(single.to_dict()) == single
+
+    raw = real_notice("627236-2026")
+    raw["tender-value"][0] = "0"  # an undisclosed tender makes the total unknown
+    assert normalize_notice(raw, taxonomy).tender_value_total is None
+    raw = real_notice("627236-2026")
+    raw["tender-value-cur"] = ["PLN", "EUR"]
+    assert normalize_notice(raw, taxonomy).tender_value_total is None
+    raw = real_notice("627236-2026")
+    raw["tender-value"] = raw["tender-value"][:3]  # 9 awarded lots, 3 values
+    assert normalize_notice(raw, taxonomy).tender_value_total is None
+    sentinel = normalize_notice(real_notice("628418-2026"), taxonomy)
+    assert sentinel.tender_value_total is None

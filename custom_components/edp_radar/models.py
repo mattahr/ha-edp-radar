@@ -165,6 +165,7 @@ class ProcurementNotice:
     classification_rule_version: str | None = field(default=None)
     is_framework: bool = field(default=False)
     framework_value: Money | None = field(default=None)
+    tender_value_total: Money | None = field(default=None)
 
     @property
     def is_change(self) -> bool:
@@ -217,6 +218,9 @@ class ProcurementNotice:
         data["framework_value"] = (
             self.framework_value.to_dict() if self.framework_value else None
         )
+        data["tender_value_total"] = (
+            self.tender_value_total.to_dict() if self.tender_value_total else None
+        )
         if self.tender_statistics:
             data["tender_statistics"]["decision_dates"] = [
                 d.isoformat() for d in self.tender_statistics.decision_dates
@@ -256,6 +260,11 @@ class ProcurementNotice:
             else None
         )
         kwargs["is_framework"] = bool(data.get("is_framework", False))
+        kwargs["tender_value_total"] = (
+            Money.from_dict(data["tender_value_total"])
+            if data.get("tender_value_total")
+            else None
+        )
         ts = data.get("tender_statistics")
         kwargs["tender_statistics"] = (
             TenderStatistics(
