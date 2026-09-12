@@ -7,10 +7,12 @@ given its inputs so the statistics can be unit-tested with hand-calculated data.
 from __future__ import annotations
 
 import statistics
+from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from .const import (
     CENTRAL_PURCHASING_BUYER_THRESHOLD,
@@ -1009,3 +1011,198 @@ def category_metrics(
         estimated_value_90d=estimated_value(index, today, 90, fx),
         award_value_90d=award_value(index, today, 90, fx),
     )
+
+
+# --------------------------------------------------------------------------- quality
+
+
+def data_quality(
+    all_notices: Sequence[ProcurementNotice],
+    relevant: Sequence[ProcurementNotice],
+    excluded: int,
+    parse_errors: int,
+    fx: FxRateTable,
+    index_all: ProcedureIndex,
+) -> DataQualityMetrics:
+    latest = index_all.notices
+    competitions = index_all.competitions()
+    results = index_all.results()
+    monetary = [n for n in latest if n.estimated_value or n.result_value]
+    convertible = sum(
+        1
+        for n in monetary
+        if (
+            n.estimated_value
+            and value_in_eur(n.estimated_value, n.publication_date, fx) is not None
+        )
+        or (
+            n.result_value
+            and value_in_eur(n.result_value, n.award_date, fx) is not None
+        )
+    )
+    with_counts = sum(
+        1 for r in results if r.tender_statistics and r.tender_statistics.tender_counts
+    )
+    return DataQualityMetrics(
+        stored_versions=len(all_notices),
+        stored_notices=len(latest),
+        stored_procedures=len(index_all),
+        relevant_notices=len(relevant),
+        excluded_central_purchasing=excluded,
+        records_by_stage=dict(sorted(Counter(n.stage.value for n in latest).items())),
+        parse_errors=parse_errors,
+        unlinked_results=sum(1 for r in results if r.procedure_id is None),
+        fx_coverage=Coverage(convertible, len(monetary)),
+        estimated_value_coverage=Coverage(
+            sum(1 for c in competitions if c.estimated_value), len(competitions)
+        ),
+        result_value_coverage=Coverage(
+            sum(1 for r in results if r.result_value), len(results)
+        ),
+        bid_count_coverage=Coverage(with_counts, len(results)),
+        procedure_link_coverage=Coverage(
+            sum(1 for r in results if r.procedure_id), len(results)
+        ),
+        unclassified_share_pct=pct(
+            sum(1 for n in relevant if not n.categories), len(relevant)
+        ),
+        latest_publication_date=max(
+            (n.publication_date for n in all_notices), default=None
+        ),
+        fx_latest_date=fx.latest_date(),
+    )
+
+
+# --------------------------------------------------------------------------- snapshot
+
+
+def compute_snapshot(
+    notices: Iterable[ProcurementNotice],
+    fx: FxRateTable,
+    config: MetricsConfig,
+    today: date,
+    *,
+    taxonomy: Taxonomy,
+    parse_errors: int = 0,
+    bootstrap_complete: bool = True,
+    computed_at: datetime | None = None,
+) -> RadarSnapshot:
+    """Compute every metric from stored notice versions (plan §33, §37)."""
+    all_notices = list(notices)
+    relevant, excluded = relevant_notices(all_notices, config, taxonomy)
+    own_org = config.own_organisation
+    market = [
+        n
+        for n in relevant
+        if not config.market_countries or n.buyer.country in config.market_countries
+    ]
+    own_notices = [n for n in relevant if own_org is not None and own_org.matches(n)]
+    external = [n for n in market if own_org is None or not own_org.matches(n)]
+
+    index_all = ProcedureIndex.build(all_notices)
+    index_market = ProcedureIndex.build(market)
+    own_result = (
+        organisation_metrics(ProcedureIndex.build(own_notices), today, fx)
+        if own_org
+        else None
+    )
+    country_entries = rank_by(
+        index_market, today, fx, lambda p: [p.country or "??"], str
+    )
+    return RadarSnapshot(
+        computed_at=computed_at or datetime.now(UTC),
+        today=today,
+        market=market_metrics(index_market, today, fx, taxonomy),
+        external=external_metrics(ProcedureIndex.build(external), today, fx, taxonomy),
+        own=own_result,
+        peers=peer_metrics(config, relevant, country_entries, own_result, today, fx),
+        suppliers=supplier_metrics(index_market, today, fx),
+        categories={
+            category_id: category_metrics(
+                index_market,
+                market,
+                category_id,
+                taxonomy.label(category_id),
+                today,
+                fx,
+            )
+            for category_id in config.pinned_categories
+        },
+        quality=data_quality(
+            all_notices, relevant, excluded, parse_errors, fx, index_all
+        ),
+        bootstrap_complete=bootstrap_complete,
+    )
+
+
+# --------------------------------------------------------------------------- events
+
+
+def event_type_for(notice: ProcurementNotice) -> str | None:
+    if notice.is_change:
+        return "change"
+    if notice.stage is NoticeStage.COMPETITION:
+        return "new_competition"
+    if notice.stage is NoticeStage.RESULT:
+        return "result"
+    if notice.stage is NoticeStage.MODIFICATION:
+        return "contract_modification"
+    return None
+
+
+def _float(value: Decimal | None) -> float | None:
+    return None if value is None else float(value)
+
+
+def notice_event_attributes(
+    notice: ProcurementNotice, fx: FxRateTable
+) -> dict[str, Any]:
+    """Hard facts only (plan §23)."""
+    estimated, result = notice.estimated_value, notice.result_value
+    return {
+        "notice_id": notice.notice_id,
+        "notice_version": notice.notice_version,
+        "publication_number": notice.publication_number,
+        "procedure_id": notice.procedure_id,
+        "stage": notice.stage.value,
+        "is_change": notice.is_change,
+        "title": notice.title,
+        "buyer": notice.buyer.name,
+        "buyer_country": notice.buyer.country,
+        "publication_date": notice.publication_date.isoformat(),
+        "estimated_value": _float(estimated.amount) if estimated else None,
+        "estimated_currency": estimated.currency if estimated else None,
+        "estimated_value_eur": _float(
+            value_in_eur(estimated, notice.publication_date, fx)
+        ),
+        "result_value": _float(result.amount) if result else None,
+        "result_currency": result.currency if result else None,
+        "result_value_eur": _float(value_in_eur(result, notice.award_date, fx)),
+        "categories": list(notice.categories),
+        "match_reasons": sorted(notice.match_reasons),
+        "source_url": notice.source_url,
+    }
+
+
+def watchlist_matches(
+    notice: ProcurementNotice, watchlist: WatchlistConfig, fx: FxRateTable
+) -> bool:
+    if watchlist.is_empty:
+        return False
+    if watchlist.countries and notice.buyer.country not in watchlist.countries:
+        return False
+    if watchlist.buyer_identifiers and not (
+        set(notice.buyer.identifiers) & watchlist.buyer_identifiers
+    ):
+        return False
+    if watchlist.categories and not (set(notice.categories) & watchlist.categories):
+        return False
+    if watchlist.min_estimated_value_eur is not None:
+        estimated = value_in_eur(notice.estimated_value, notice.publication_date, fx)
+        if estimated is None or estimated < watchlist.min_estimated_value_eur:
+            return False
+    if watchlist.min_award_value_eur is not None:
+        awarded = value_in_eur(notice.result_value, notice.award_date, fx)
+        if awarded is None or awarded < watchlist.min_award_value_eur:
+            return False
+    return True

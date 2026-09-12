@@ -713,3 +713,125 @@ def test_category_metrics_use_procedure_level_membership(taxonomy: Taxonomy) -> 
     assert naval.award_value_90d.value_eur == Decimal(
         "7.00"
     )  # via procedure membership
+
+
+# --- Task 15: quality, snapshot, events -------------------------------------
+from datetime import UTC, datetime  # noqa: E402
+
+from custom_components.edp_radar.metrics import (  # noqa: E402
+    compute_snapshot,
+    event_type_for,
+    notice_event_attributes,
+    watchlist_matches,
+)
+
+
+def test_compute_snapshot_end_to_end(taxonomy: Taxonomy) -> None:
+    cpb = make_notice(
+        notice_id="cpb",
+        buyer=buyer("CPB", "HR", "1", count=500),
+        publication_date=days_ago(TODAY, 3),
+    )
+    own_comp = competition("own", "p-own", days_ago(TODAY, 4))
+    de = competition(
+        "de",
+        "p-de",
+        days_ago(TODAY, 2),
+        buyer=buyer("B", "DE", "de"),
+        estimated_value=Money(Decimal("60000000"), "EUR"),
+        categories=("air_systems",),
+    )
+    no = competition("no", "p-no", days_ago(TODAY, 2), buyer=buyer("FMA", "NO", "no"))
+    unparsed = competition("x", "p-x", days_ago(TODAY, 2), match_reasons=frozenset())
+    config = MetricsConfig(
+        market_countries=frozenset({"SE", "DE"}),
+        own_organisation=OwnOrganisation.from_options(["202100-0340"], "SE", "FMV", []),
+        peer_countries=frozenset({"NO"}),
+        selected_country="SE",
+        pinned_categories=("air_systems",),
+    )
+    snapshot = compute_snapshot(
+        [cpb, own_comp, de, no, unparsed],
+        FX,
+        config,
+        TODAY,
+        taxonomy=taxonomy,
+        parse_errors=2,
+        computed_at=datetime(2026, 9, 12, 12, tzinfo=UTC),
+    )
+    assert snapshot.today == TODAY and snapshot.bootstrap_complete is True
+    # own + de (NO outside market, cpb excluded, x irrelevant)
+    assert snapshot.market.new_competitions_30d.value == 2
+    assert snapshot.external.new_competitions_7d == 1  # de only: own excluded
+    assert snapshot.own is not None and snapshot.own.competitions_30d.value == 1
+    assert snapshot.peers is not None and snapshot.peers.population_size == 1
+    assert snapshot.peers.value_rank_90d == 2
+    assert set(snapshot.categories) == {"air_systems"}
+    assert snapshot.categories["air_systems"].competitions_30d.value == 1
+    q = snapshot.quality
+    assert q.stored_versions == 5 and q.stored_notices == 5
+    assert q.relevant_notices == 3
+    assert q.excluded_central_purchasing == 1 and q.parse_errors == 2
+    assert q.records_by_stage == {"competition": 5}
+    assert q.estimated_value_coverage == Coverage(5, 5)
+    assert q.fx_coverage == Coverage(5, 5)
+    assert q.unclassified_share_pct == 0.0
+    assert q.latest_publication_date == days_ago(TODAY, 2)
+    assert q.fx_latest_date == date(2026, 12, 31)
+    assert snapshot.suppliers.groups == 0
+
+
+def test_compute_snapshot_without_own_or_peers(taxonomy: Taxonomy) -> None:
+    snapshot = compute_snapshot(
+        [], FX, MetricsConfig(), TODAY, taxonomy=taxonomy, bootstrap_complete=False
+    )
+    assert snapshot.own is None and snapshot.peers is None
+    assert snapshot.market.new_competitions_30d.value == 0
+    assert snapshot.market.estimated_value_90d.value_eur is None
+    assert snapshot.quality.unclassified_share_pct is None
+    assert snapshot.bootstrap_complete is False
+
+
+def test_event_type_and_attributes() -> None:
+    comp = competition("c", "p", TODAY, estimated_value=Money(Decimal("100"), "SEK"))
+    assert event_type_for(comp) == "new_competition"
+    assert event_type_for(change_of(comp, published=TODAY)) == "change"
+    assert event_type_for(result("r", "p", TODAY)) == "result"
+    modification = make_notice(stage=NoticeStage.MODIFICATION)
+    assert event_type_for(modification) == "contract_modification"
+    assert event_type_for(make_notice(stage=NoticeStage.PLANNING)) is None
+    attrs = notice_event_attributes(comp, FX)
+    assert attrs["notice_id"] == "c" and attrs["stage"] == "competition"
+    assert attrs["publication_date"] == TODAY.isoformat()
+    assert attrs["estimated_value"] == 100.0 and attrs["estimated_currency"] == "SEK"
+    assert attrs["estimated_value_eur"] == 10.0
+    assert attrs["result_value"] is None
+    assert attrs["categories"] == ["land_systems"]
+    assert attrs["match_reasons"] == ["defence_buyer"]
+    assert attrs["buyer"] == "FMV" and attrs["buyer_country"] == "SE"
+
+
+def test_watchlist_matching() -> None:
+    comp = competition(
+        "c",
+        "p",
+        TODAY,
+        buyer=buyer("AU", "PL", "pl"),
+        categories=("air_missile_defence",),
+        estimated_value=Money(Decimal("600000000"), "EUR"),
+    )
+    assert watchlist_matches(comp, WatchlistConfig(), FX) is False
+    assert watchlist_matches(comp, WatchlistConfig(countries=frozenset({"PL"})), FX)
+    assert not watchlist_matches(comp, WatchlistConfig(countries=frozenset({"SE"})), FX)
+    by_buyer = WatchlistConfig(buyer_identifiers=frozenset({"pl"}))
+    assert watchlist_matches(comp, by_buyer, FX) is True
+    by_category = WatchlistConfig(categories=frozenset({"space"}))
+    assert watchlist_matches(comp, by_category, FX) is False
+    big = WatchlistConfig(
+        countries=frozenset({"PL"}), min_estimated_value_eur=Decimal("500000000")
+    )
+    assert watchlist_matches(comp, big, FX) is True
+    bigger = WatchlistConfig(min_estimated_value_eur=Decimal("700000000"))
+    assert watchlist_matches(comp, bigger, FX) is False
+    awarded = WatchlistConfig(min_award_value_eur=Decimal("1"))
+    assert watchlist_matches(comp, awarded, FX) is False
