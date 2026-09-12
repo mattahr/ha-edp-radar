@@ -118,7 +118,7 @@ async def test_fresh_entry_bootstraps_in_background_without_events(
 
     queries = ted_queries(mock_backend)
     assert len(queries) == 1
-    assert queries[0].startswith("PD>=20250808 AND (authority-main-activity=defence")
+    assert queries[0].startswith("PD>=20240813 AND (authority-main-activity=defence")
     assert "buyer-country IN (" in queries[0]
     ecb = [str(c[1]) for c in mock_backend.mock_calls if c[0] == "GET"]
     assert ecb == [ECB_HISTORY_URL]

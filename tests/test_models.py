@@ -111,3 +111,49 @@ def test_properties() -> None:
         tender_statistics=TenderStatistics((), (), (), (date(2026, 7, 21),)),
     )
     assert decided.award_date == date(2026, 7, 21)
+
+
+def test_buyer_countries_default_and_round_trip() -> None:
+    single = Buyer("FMV", ("202100-0340",), "SE", "cga", ("defence",), 1)
+    assert single.countries == ("SE",)
+    joint = Buyer("PVK", (), "FI", "cga", ("defence",), 2, countries=("FI", "SE"))
+    notice = _notice(buyer=joint)
+    data = notice.to_dict()
+    assert list(data["buyer"]["countries"]) == ["FI", "SE"]
+    assert ProcurementNotice.from_dict(data) == notice
+    # Data stored before Phase 2 has no ``countries``: derive it from ``country``.
+    del data["buyer"]["countries"]
+    legacy = ProcurementNotice.from_dict(data)
+    assert legacy.buyer.countries == ("FI",)
+    data["buyer"]["country"] = None
+    assert ProcurementNotice.from_dict(data).buyer.countries == ()
+
+
+def test_award_date_prefers_a_plausible_decision_date() -> None:
+    published = date(2026, 9, 1)
+
+    def decided(*decisions: date) -> ProcurementNotice:
+        return _notice(
+            stage=NoticeStage.RESULT,
+            publication_date=published,
+            tender_statistics=TenderStatistics((), (), (), decisions),
+        )
+
+    plain = _notice(stage=NoticeStage.RESULT, publication_date=published)
+    assert plain.award_date == published
+    assert plain.award_date_basis == "publication_date"
+
+    recent = decided(date(2026, 8, 20), date(2026, 7, 30))
+    assert recent.award_date == date(2026, 7, 30)
+    assert recent.award_date_basis == "decision_date"
+
+    # A decision dated after publication or more than a year before it is not
+    # a reliable award date (plan §9): fall back to the publication date.
+    future = decided(date(2026, 9, 2))
+    assert future.award_date == published
+    assert future.award_date_basis == "publication_date"
+    stale = decided(date(2025, 8, 31))
+    assert stale.award_date == published
+    assert stale.award_date_basis == "publication_date"
+    boundary = decided(date(2025, 9, 1))
+    assert boundary.award_date == date(2025, 9, 1)

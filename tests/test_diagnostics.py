@@ -56,7 +56,7 @@ async def test_diagnostics_shape(
         "names": ["totalförsvarets forskningsinstitut"],
     }
     assert config["watchlist"]["is_empty"] is True
-    assert config["retention_days"] == 400
+    assert config["retention_days"] == 760
 
     assert diagnostics["taxonomy_version"] == "2026.09.1/2026.09.1"
     store = diagnostics["store"]

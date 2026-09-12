@@ -9,6 +9,11 @@ from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Any, Self
 
+from .const import MAX_DECISION_LAG_DAYS
+
+AWARD_DATE_BASIS_DECISION = "decision_date"
+AWARD_DATE_BASIS_PUBLICATION = "publication_date"
+
 _WHITESPACE = re.compile(r"\s+")
 _PUNCTUATION = re.compile(r"[^\w\s]", re.UNICODE)
 
@@ -62,7 +67,12 @@ class Money:
 
 @dataclass(frozen=True, slots=True)
 class Buyer:
-    """Primary buyer plus notice-wide buyer facts (arrays are not aligned, D5)."""
+    """Primary buyer plus notice-wide buyer facts (arrays are not aligned, D5).
+
+    ``countries`` holds every distinct buyer country on the notice (plan Phase 2
+    §7); a joint procurement lists more than one. It defaults to the primary
+    country so that data stored before Phase 2 keeps working.
+    """
 
     name: str | None
     identifiers: tuple[str, ...]
@@ -70,6 +80,11 @@ class Buyer:
     legal_type: str | None
     main_activities: tuple[str, ...]
     count: int
+    countries: tuple[str, ...] = field(default=())
+
+    def __post_init__(self) -> None:
+        if not self.countries and self.country is not None:
+            object.__setattr__(self, "countries", (self.country,))
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,12 +174,34 @@ class ProcurementNotice:
     def version_key(self) -> str:
         return f"{self.notice_id}:{self.notice_version}"
 
+    def _decision_date(self) -> date | None:
+        """Earliest winner decision date when it is a plausible award date.
+
+        A decision after publication, or more than ``MAX_DECISION_LAG_DAYS``
+        before it, is treated as unreliable (Phase 2 plan §9).
+        """
+        if not (self.tender_statistics and self.tender_statistics.decision_dates):
+            return None
+        decided = min(self.tender_statistics.decision_dates)
+        lag = (self.publication_date - decided).days
+        if lag < 0 or lag > MAX_DECISION_LAG_DAYS:
+            return None
+        return decided
+
     @property
     def award_date(self) -> date:
-        """Date used for FX normalization of result values (plan §10)."""
-        if self.tender_statistics and self.tender_statistics.decision_dates:
-            return min(self.tender_statistics.decision_dates)
-        return self.publication_date
+        """Award date: plausible decision date, else publication date (plan §9, §10).
+
+        Used both for the purchasing periods and for FX normalization.
+        """
+        return self._decision_date() or self.publication_date
+
+    @property
+    def award_date_basis(self) -> str:
+        """Which date ``award_date`` is based on (stored with every statistic)."""
+        if self._decision_date() is not None:
+            return AWARD_DATE_BASIS_DECISION
+        return AWARD_DATE_BASIS_PUBLICATION
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -198,6 +235,7 @@ class ProcurementNotice:
             legal_type=data["buyer"]["legal_type"],
             main_activities=tuple(data["buyer"]["main_activities"]),
             count=data["buyer"]["count"],
+            countries=tuple(data["buyer"].get("countries") or ()),
         )
         kwargs["legal_basis"] = tuple(data["legal_basis"])
         kwargs["cpv_codes"] = tuple(data["cpv_codes"])

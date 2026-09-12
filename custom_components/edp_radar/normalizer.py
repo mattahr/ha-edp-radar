@@ -221,15 +221,15 @@ def _estimated_value(raw: Mapping[str, Any]) -> Money | None:
 
 
 def _result_value(raw: Mapping[str, Any]) -> Money | None:
-    notice = Money.parse(
+    """Notice Value (BT-161) only: the value of all contracts awarded in the notice.
+
+    Profiled 2026-09-12 (docs/country-purchasing-data-profile.md): lot-level
+    result values never occur on non-framework results and tender values
+    over-count, so no lower level is a proven-safe fallback (Phase 2 §13).
+    """
+    return Money.parse(
         first_text(raw.get("result-value-notice")),
         first_text(raw.get("result-value-cur-notice")),
-    )
-    if notice is not None:
-        return notice
-    return _lot_money(
-        as_strings(raw.get("result-value-lot")),
-        as_strings(raw.get("result-value-cur-lot")),
     )
 
 
@@ -257,15 +257,16 @@ def _framework_value(raw: Mapping[str, Any]) -> Money | None:
 
 def _buyer(raw: Mapping[str, Any]) -> Buyer:
     names = _texts(raw.get("buyer-name"))
-    countries = as_strings(raw.get("buyer-country"))
+    countries = tuple(to_alpha2(c) for c in as_strings(raw.get("buyer-country")))
     legal_types = as_strings(raw.get("buyer-legal-type"))
     return Buyer(
         name=names[0] if names else None,
         identifiers=_unique(as_strings(raw.get("buyer-identifier"))),
-        country=to_alpha2(countries[0]) if countries else None,
+        country=countries[0] if countries else None,
         legal_type=legal_types[0] if legal_types else None,
         main_activities=_unique(as_strings(raw.get("authority-main-activity"))),
         count=max(len(names), len(countries), 1),
+        countries=_unique(countries),
     )
 
 

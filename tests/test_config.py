@@ -36,7 +36,7 @@ def test_defaults() -> None:
     assert config.metrics.own_organisation is None
     assert config.metrics.peer_countries == frozenset()
     assert config.metrics.watchlist.is_empty
-    assert config.bootstrap_days == 400 and config.retention_days == 400
+    assert config.bootstrap_days == 760 and config.retention_days == 760
 
 
 def test_full_options() -> None:

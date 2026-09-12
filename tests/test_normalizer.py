@@ -315,3 +315,35 @@ def test_all_fixtures_normalize(
     assert len(notices) == 18
     for notice in notices:
         assert type(notice).from_dict(notice.to_dict()) == notice
+
+
+def test_buyer_countries_are_unique_alpha2(
+    real_notice: Lookup, taxonomy: Taxonomy
+) -> None:
+    single = normalize_notice(real_notice("626136-2026"), taxonomy)
+    assert single.buyer.countries == ("DK",)
+
+    raw = real_notice("626136-2026")
+    raw["buyer-name"] = {"fin": ["Puolustusvoimat", "FMV"]}
+    raw["buyer-country"] = ["FIN", "SWE", "FIN"]
+    joint = normalize_notice(raw, taxonomy)
+    assert joint.buyer.country == "FI"
+    assert joint.buyer.countries == ("FI", "SE")
+    assert joint.buyer.count == 3
+
+    raw = real_notice("626136-2026")
+    del raw["buyer-country"]
+    assert normalize_notice(raw, taxonomy).buyer.countries == ()
+
+
+def test_result_value_comes_from_notice_value_only(
+    real_notice: Lookup, taxonomy: Taxonomy
+) -> None:
+    """Lot-level result values are never summed (plan §13): they only occur on
+    framework notices in the profiled data, where they are ceilings."""
+    raw = real_notice("626136-2026")
+    del raw["result-value-notice"]
+    del raw["result-value-cur-notice"]
+    raw["result-value-lot"] = ["1000", "2000"]
+    raw["result-value-cur-lot"] = ["DKK"]
+    assert normalize_notice(raw, taxonomy).result_value is None
