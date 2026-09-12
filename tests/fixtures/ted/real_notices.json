@@ -1,0 +1,1990 @@
+[
+ {
+  "notice-identifier": "b9715a4e-3a2b-479a-9acd-d09032f6bc70",
+  "title-proc": {
+   "deu": "Generalunternehmer für die Gesamtbaumaßnahme Bundespräsidialamt"
+  },
+  "notice-type": "pin-only",
+  "publication-number": "626028-2026",
+  "legal-basis": [
+   "32009L0081"
+  ],
+  "main-classification-proc": [
+   "45200000"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "additional-classification-proc": [
+   "71000000"
+  ],
+  "buyer-country": [
+   "DEU"
+  ],
+  "authority-main-activity": [
+   "gen-pub"
+  ],
+  "classification-cpv": [
+   "45200000",
+   "71000000",
+   "45200000"
+  ],
+  "notice-subtype": "6",
+  "contract-nature": [
+   "works",
+   "services",
+   "works",
+   "services"
+  ],
+  "buyer-name": {
+   "deu": [
+    "Bundesrepublik Deutschland vertreten durch das Bundesamt für Bauwesen und Raumordnung"
+   ]
+  },
+  "publication-date": "2026-09-10+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626028-2026/xml"
+   }
+  },
+  "notice-version": 1,
+  "form-type": "planning",
+  "description-proc": {
+   "deu": "Die Liegenschaft des Bundespräsidialamtes, mit dem 1786 errichteten Schloss Bellevue, dem 1998 errichteten Verwaltungsgebäude mit Hauptwache und den 2001 restaurierten denkmalgeschützten Parkanlagen, …"
+  },
+  "buyer-identifier": [
+   "Leitweg-ID: 991-00606-79"
+  ]
+ },
+ {
+  "deadline-receipt-tender-date-lot": [
+   "2026-09-28+02:00"
+  ],
+  "notice-type": "cn-standard",
+  "publication-number": "626977-2026",
+  "main-classification-lot": [
+   "31000000"
+  ],
+  "main-classification-proc": [
+   "31000000"
+  ],
+  "procedure-identifier": "df98839a-96e5-40e5-bfc8-165dc0c6e571",
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "16",
+  "publication-date": "2026-09-11+02:00",
+  "estimated-value-proc": "185000",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626977-2026/xml"
+   }
+  },
+  "notice-identifier": "05bda7d3-9510-41db-81d2-0fa4e0eef464",
+  "title-proc": {
+   "spa": "Suministro de dos grupos electrógenos para el patrullero Tagomago"
+  },
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "estimated-value-cur-proc": "EUR",
+  "buyer-country": [
+   "ESP"
+  ],
+  "procedure-type": "open",
+  "deadline-receipt-tender-time-lot": [
+   "09:00:00+02:00"
+  ],
+  "classification-cpv": [
+   "31000000",
+   "31000000"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "spa": [
+    "Intendente de San Fernando"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "competition",
+  "internal-identifier-proc": "2026/AR43U/00002303E",
+  "description-proc": {
+   "spa": "Suministro de dos grupos electrógenos para el patrullero Tagomago"
+  },
+  "buyer-identifier": [
+   "10000140000584",
+   "S1115005I"
+  ]
+ },
+ {
+  "deadline-receipt-tender-date-lot": [
+   "2026-10-12+02:00",
+   "2026-10-12+02:00",
+   "2026-10-12+02:00"
+  ],
+  "notice-type": "cn-standard",
+  "publication-number": "626146-2026",
+  "main-classification-lot": [
+   "15811000",
+   "15811000",
+   "15811000"
+  ],
+  "main-classification-proc": [
+   "15811000"
+  ],
+  "procedure-identifier": "a742cd1b-38df-4d30-9989-9660f5291db6",
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "16",
+  "publication-date": "2026-09-11+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626146-2026/xml"
+   }
+  },
+  "notice-identifier": "87caa395-6844-48f6-91d5-21bd1ba55e9d",
+  "title-proc": {
+   "fra": "Approvisionnement en pains et viennoiseries à l’état frais au profit des restaurants du cercle du groupement de soutien commissariat (GSC) de Strasbourg"
+  },
+  "estimated-value-lot": [
+   "171312",
+   "228631.2",
+   "247065.6"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "buyer-country": [
+   "FRA"
+  ],
+  "procedure-type": "open",
+  "deadline-receipt-tender-time-lot": [
+   "15:00:00+02:00",
+   "15:00:00+02:00",
+   "15:00:00+02:00"
+  ],
+  "classification-cpv": [
+   "15811000",
+   "15811000",
+   "15811000",
+   "15811000"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "fra": [
+    "PFC Est"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "competition",
+  "internal-identifier-proc": "DAF_2025_001758",
+  "description-proc": {
+   "fra": "Approvisionnement en pains et viennoiseries à l’état frais au profit des restaurants du cercle du groupement de soutien commissariat (GSC) de Strasbourg"
+  },
+  "buyer-identifier": [
+   "13001535700010"
+  ]
+ },
+ {
+  "deadline-receipt-tender-date-lot": [
+   "2026-10-10+02:00",
+   "2026-10-10+02:00"
+  ],
+  "notice-type": "cn-standard",
+  "publication-number": "626585-2026",
+  "main-classification-lot": [
+   "44810000",
+   "44810000"
+  ],
+  "main-classification-proc": [
+   "44810000"
+  ],
+  "procedure-identifier": "eb7775c0-d8a8-46b1-b313-e4835830d392",
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "16",
+  "publication-date": "2026-09-11+02:00",
+  "estimated-value-proc": "339075",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626585-2026/xml"
+   }
+  },
+  "notice-identifier": "ee8b9c65-0d08-473d-961e-d7a3be73658b",
+  "title-proc": {
+   "spa": "Adquisición de pinturas aeronáuticas y no aeronáuticas necesarias para el departamento de aeronaves, motores y de accesorios de la Maestranza Aérea de Sevilla (MAESE)"
+  },
+  "estimated-value-lot": [
+   "273690",
+   "65385"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "estimated-value-cur-proc": "EUR",
+  "buyer-country": [
+   "ESP"
+  ],
+  "procedure-type": "open",
+  "deadline-receipt-tender-time-lot": [
+   "23:59:00+02:00",
+   "23:59:00+02:00"
+  ],
+  "classification-cpv": [
+   "44810000",
+   "44810000",
+   "44810000"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "spa": [
+    "Jefatura de la Sección Económico Administrativa 12 - Agrupación del Acuartelamiento Aéreo Tablada"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "competition",
+  "internal-identifier-proc": "2026/EA12/00001472E",
+  "description-proc": {
+   "spa": "Adquisición de pinturas aeronáuticas y no aeronáuticas necesarias para el departamento de aeronaves, motores y de accesorios de la Maestranza Aérea de Sevilla (MAESE)"
+  },
+  "buyer-identifier": [
+   "10000140000193",
+   "S4130033F"
+  ]
+ },
+ {
+  "change-reason-code": "cor-buy",
+  "notice-identifier": "5909dadd-a56b-4d62-b2d1-0ac678d180b1",
+  "title-proc": {
+   "pol": "Zakup i dostawa kamizelek kuloodpornych typu plate carrier w ilości 8000 szt.- umowa ramowa"
+  },
+  "notice-type": "cn-standard",
+  "publication-number": "626359-2026",
+  "main-classification-lot": [
+   "35815100"
+  ],
+  "legal-basis": [
+   "32009L0081"
+  ],
+  "main-classification-proc": [
+   "35815100"
+  ],
+  "procedure-identifier": "8d24a8e6-a8e2-46db-a869-d7ea4d132704",
+  "buyer-country": [
+   "POL"
+  ],
+  "procedure-type": "restricted",
+  "classification-cpv": [
+   "35815100",
+   "35815100"
+  ],
+  "notice-subtype": "18",
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "pol": [
+    "KOMENDA GŁÓWNA POLICJI"
+   ]
+  },
+  "publication-date": "2026-09-11+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626359-2026/xml"
+   }
+  },
+  "notice-version": 1,
+  "form-type": "competition",
+  "internal-identifier-proc": "142/cut/24/EZ",
+  "description-proc": {
+   "pol": "1. Postępowanie prowadzone jest w trybie przetargu ograniczonego w dziedzinach obronności i bezpieczeństwa na podstawie art. 410 ust. 1 ustawy Pzp. Przetarg ograniczony, zgodnie z art. 140 Pzp, to try…"
+  },
+  "buyer-identifier": [
+   "012137497"
+  ]
+ },
+ {
+  "change-reason-code": "update-add",
+  "change-procurement-documents": [
+   true
+  ],
+  "deadline-receipt-tender-date-lot": [
+   "2026-09-28+02:00",
+   "2026-09-28+02:00",
+   "2026-09-28+02:00",
+   "2026-09-28+02:00",
+   "2026-09-28+02:00"
+  ],
+  "notice-type": "cn-standard",
+  "publication-number": "626569-2026",
+  "main-classification-lot": [
+   "90911000",
+   "90911000",
+   "90911000",
+   "90911000",
+   "90911000"
+  ],
+  "main-classification-proc": [
+   "90911000"
+  ],
+  "change-description": {
+   "fra": [
+    "Modification de la date limite de réception des offres"
+   ]
+  },
+  "procedure-identifier": "a8692d2e-d3f1-4fa3-875a-0bd56a31824e",
+  "change-reason-description": {
+   "fra": "Modification de la date limite de réception des offres suite à des visites tardives"
+  },
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "16",
+  "publication-date": "2026-09-11+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626569-2026/xml"
+   }
+  },
+  "notice-identifier": "7f6229a5-b3f1-48e0-823d-20316f68bf8c",
+  "change-procurement-documents-date": [
+   "2026-09-10+02:00"
+  ],
+  "title-proc": {
+   "fra": "Nettoyage des locaux tertiaires, d'hébergement et d'hôtellerie au profit des unités ou formations bénéficiaires soutenues par le Groupement de Soutien du Commissariat (GSC) de MOURMELON"
+  },
+  "estimated-value-lot": [
+   "498857.88",
+   "313474.32",
+   "273405.16",
+   "169890.84",
+   "83186"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "buyer-country": [
+   "FRA"
+  ],
+  "procedure-type": "open",
+  "deadline-receipt-tender-time-lot": [
+   "15:00:00+02:00",
+   "15:00:00+02:00",
+   "15:00:00+02:00",
+   "15:00:00+02:00",
+   "15:00:00+02:00"
+  ],
+  "classification-cpv": [
+   "90911000",
+   "90911000",
+   "90911000",
+   "90911000",
+   "90911000",
+   "90911000"
+  ],
+  "contract-nature": [
+   "services",
+   "services",
+   "services",
+   "services",
+   "services",
+   "services"
+  ],
+  "buyer-name": {
+   "fra": [
+    "PFC Est"
+   ]
+  },
+  "notice-version": 2,
+  "form-type": "competition",
+  "internal-identifier-proc": "DAF_2025_001721",
+  "description-proc": {
+   "fra": "Nettoyage des locaux tertiaires, d'hébergement et d'hôtellerie au profit des unités ou formations bénéficiaires soutenues par le Groupement de Soutien du Commissariat (GSC) de MOURMELON"
+  },
+  "buyer-identifier": [
+   "13001535700010"
+  ]
+ },
+ {
+  "deadline-receipt-tender-date-lot": [
+   "2026-10-14Z"
+  ],
+  "notice-type": "cn-standard",
+  "publication-number": "628113-2026",
+  "main-classification-lot": [
+   "44613300"
+  ],
+  "main-classification-proc": [
+   "44613300"
+  ],
+  "procedure-identifier": "670391e1-21ec-4452-b1c4-3886f48ad3c2",
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "16",
+  "publication-date": "2026-09-11+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/628113-2026/xml"
+   }
+  },
+  "notice-identifier": "1a93673a-5572-4cf4-b34e-a89557da9b2b",
+  "title-proc": {
+   "fin": "Kylkiaukeavat 20'wide CSC meriliikenne katsastetut kontit"
+  },
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "buyer-country": [
+   "FIN"
+  ],
+  "procedure-type": "open",
+  "deadline-receipt-tender-time-lot": [
+   "11:00:00Z"
+  ],
+  "classification-cpv": [
+   "44613300",
+   "44613300"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "fin": [
+    "Puolustusvoimien logistiikkalaitos"
+   ]
+  },
+  "notice-version": 2,
+  "form-type": "competition",
+  "internal-identifier-proc": "32444/2026",
+  "description-proc": {
+   "fin": "Puolustusvoimat (jäljempänä hankintayksikkö) pyytää tarjousta 40:stä kylkiaukeavasta 20'wide CSC meriliikenne katsastetusta kontista. Hankinta sisältää option vuosille 2026-2028 100:sta kylkiaukeavast…"
+  },
+  "buyer-identifier": [
+   "0952029-9"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "626136-2026",
+  "main-classification-lot": [
+   "63121100"
+  ],
+  "result-value-notice": "55600000",
+  "winner-country": [
+   "DNK"
+  ],
+  "main-classification-proc": [
+   "63121100"
+  ],
+  "procedure-identifier": "d3649275-c76b-4ef0-b5ec-ea70ca15010d",
+  "winner-identifier": [
+   "29847096"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "selec-w"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders"
+  ],
+  "estimated-value-proc": "85000000",
+  "winner-decision-date": [
+   "2026-07-21Z"
+  ],
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626136-2026/xml"
+   }
+  },
+  "previous-notice-id-proc": [
+   "995d8f0e-bd50-4865-8c8c-82540831f454-01"
+  ],
+  "notice-identifier": "4655c43e-d89a-46d9-829d-0f3a8aa0616b",
+  "title-proc": {
+   "dan": "Kontrakt om anskaffelse og etablering af et kasselagersystem, samt efterfølgende support, servicevedligehold og reparation heraf"
+  },
+  "estimated-value-lot": [
+   "85000000"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "DKK"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "estimated-value-cur-proc": "DKK",
+  "winner-size": [
+   "sme"
+  ],
+  "buyer-country": [
+   "DNK"
+  ],
+  "received-submissions-type-val": [
+   "3"
+  ],
+  "tender-value-cur": [
+   "DKK"
+  ],
+  "tender-value": [
+   "55600000"
+  ],
+  "procedure-type": "open",
+  "classification-cpv": [
+   "63121100",
+   "63121100"
+  ],
+  "contract-nature": [
+   "services",
+   "services"
+  ],
+  "buyer-name": {
+   "dan": [
+    "Forsvarsministeriets Materiel- og Indkøbsstyrelse"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "dan": [
+    "Element Logic Denmark A/S"
+   ]
+  },
+  "result-value-cur-notice": "DKK",
+  "form-type": "result",
+  "internal-identifier-proc": "4022529",
+  "description-proc": {
+   "dan": "Forsvarsministeriets Materiel- og Indkøbsstyrelse (FMI) har udbudt en kontrakt vedrørende anskaffelse og etablering af kasselagersystem (kasselager og operativsystem), anskaffelse af relevante kasser …"
+  },
+  "buyer-identifier": [
+   "16287180"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "627236-2026",
+  "main-classification-lot": [
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000"
+  ],
+  "non-award-justification": [
+   "no-rece",
+   "no-rece",
+   "no-rece",
+   "no-rece",
+   "no-rece"
+  ],
+  "result-value-notice": "10306545.8",
+  "winner-country": [
+   "POL",
+   "POL",
+   "POL",
+   "POL"
+  ],
+  "main-classification-proc": [
+   "35340000"
+  ],
+  "procedure-identifier": "89ad73f7-15a8-44e3-9ab7-38ae4e6c4035",
+  "additional-classification-proc": [
+   "35322200",
+   "35322100",
+   "38631000",
+   "35813000"
+  ],
+  "additional-classification-lot": [
+   "35322200",
+   "35322100",
+   "38631000",
+   "35813000",
+   "35322200"
+  ],
+  "winner-identifier": [
+   "5741002058",
+   "8792618405",
+   "8730006835",
+   "9482182612"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "31",
+  "winner-selection-status": [
+   "clos-nw",
+   "selec-w",
+   "selec-w",
+   "selec-w",
+   "selec-w",
+   "clos-nw",
+   "selec-w",
+   "selec-w",
+   "clos-nw",
+   "selec-w",
+   "selec-w",
+   "selec-w",
+   "clos-nw",
+   "clos-nw"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-sme"
+  ],
+  "winner-decision-date": [
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00",
+   "2026-08-20+02:00"
+  ],
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/627236-2026/xml"
+   }
+  },
+  "previous-notice-id-proc": [
+   "352294-2026"
+  ],
+  "notice-identifier": "9b9b8a27-ba83-4de9-ad77-9d0180439939",
+  "title-proc": {
+   "pol": "Dostawa technicznych środków materiałowych (tśm) do sprzętu wojskowego (SpW)"
+  },
+  "legal-basis": [
+   "32009L0081"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "winner-size": [
+   "large",
+   "small",
+   "large",
+   "large"
+  ],
+  "buyer-country": [
+   "POL"
+  ],
+  "received-submissions-type-val": [
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "1",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0"
+  ],
+  "tender-value-cur": [
+   "PLN"
+  ],
+  "tender-value": [
+   "26265",
+   "1089915.88",
+   "235.42",
+   "154244.46",
+   "2013172.98",
+   "417289.8",
+   "5706422.64",
+   "496789.62",
+   "402210"
+  ],
+  "tender-value-highest": [
+   "26265",
+   "1089915.88",
+   "235.42",
+   "154244.46",
+   "2013172.98",
+   "417289.8",
+   "5706422.64",
+   "496789.62",
+   "402210"
+  ],
+  "procedure-type": "restricted",
+  "tender-value-lowest": [
+   "26265",
+   "1089915.88",
+   "235.42",
+   "154244.46",
+   "2013172.98",
+   "417289.8",
+   "5706422.64",
+   "496789.62",
+   "402210"
+  ],
+  "classification-cpv": [
+   "35340000",
+   "35322200",
+   "35322100",
+   "38631000",
+   "35813000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35340000",
+   "35322200",
+   "35322100",
+   "38631000",
+   "35813000",
+   "35322200"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "pol": [
+    "2. Regionalna Baza Logistyczna"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "pol": [
+    "Fabryka Broni \"ŁUCZNIK\" - Radom Sp. z o.o.",
+    "Fabryka Broni \"ŁUCZNIK\" - Radom Sp. z o.o.",
+    "Fabryka Broni \"ŁUCZNIK\" - Radom Sp. z o.o.",
+    "Zakłady Mechaniczne \"TARNÓW\" S.A.",
+    "Zakłady Mechaniczne \"TARNÓW\" S.A.",
+    "Zakłady Mechaniczne \"TARNÓW\" S.A.",
+    "Zakłady Mechaniczne \"TARNÓW\" S.A.",
+    "Pagacz i Synowie Sp. z o.o.",
+    "Przedsiębiorstwo Sprzętu Ochronnego MASKPOL S.A."
+   ]
+  },
+  "result-value-cur-notice": "PLN",
+  "form-type": "result",
+  "internal-identifier-proc": "W/64/2026",
+  "description-proc": {
+   "pol": "1. Przedmiotem zamówienia jest dostawa technicznych środków materiałowych do sprzętu wojskowego, z podziałem na 14 części (zadań). zadanie nr 1 - 9 mm pistolet maszynowy PM-84P, PM-98; zadanie nr 2 - …"
+  },
+  "buyer-identifier": [
+   "952-209-95-97"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "627671-2026",
+  "main-classification-lot": [
+   "90620000"
+  ],
+  "non-award-justification": [
+   "all-rej"
+  ],
+  "main-classification-proc": [
+   "90620000"
+  ],
+  "procedure-identifier": "3a900895-eb45-4b55-80fb-63d3c97e29f0",
+  "additional-classification-proc": [
+   "90610000",
+   "90630000"
+  ],
+  "additional-classification-lot": [
+   "90610000",
+   "90630000"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "clos-nw"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "t-esubm",
+   "t-sme",
+   "t-oth-eea",
+   "t-no-eea"
+  ],
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/627671-2026/xml"
+   }
+  },
+  "previous-notice-id-proc": [
+   "c886ae96-c14a-4417-b9d1-19adda540523-01"
+  ],
+  "notice-identifier": "d19c38ae-3646-4e87-b773-f13091394ab3",
+  "title-proc": {
+   "eng": "R01993 Winter maintenance, Region West - Hammernesodden"
+  },
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "buyer-country": [
+   "NOR"
+  ],
+  "received-submissions-type-val": [
+   "2",
+   "2",
+   "2",
+   "0",
+   "0"
+  ],
+  "procedure-type": "open",
+  "classification-cpv": [
+   "90620000",
+   "90610000",
+   "90630000",
+   "90620000",
+   "90610000",
+   "90630000"
+  ],
+  "contract-nature": [
+   "services",
+   "services"
+  ],
+  "buyer-name": {
+   "eng": [
+    "Forsvarsbygg"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "result",
+  "internal-identifier-proc": "2026/1246",
+  "description-proc": {
+   "eng": "The contract mainly comprises snow clearing, gritting, responsibility for snow ploughing, sweeping and costing. Further details on the assignment are in the tender documentation part III. The contract…"
+  },
+  "buyer-identifier": [
+   "975950662"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "628418-2026",
+  "main-classification-lot": [
+   "50600000",
+   "50600000"
+  ],
+  "winner-country": [
+   "DEU"
+  ],
+  "main-classification-proc": [
+   "50600000"
+  ],
+  "procedure-identifier": "1fc46a81-ca2b-4026-bb11-c1529597cf84",
+  "result-value-lot": [
+   "-1",
+   "-1"
+  ],
+  "additional-classification-proc": [
+   "50000000",
+   "50630000"
+  ],
+  "additional-classification-lot": [
+   "50000000",
+   "50630000",
+   "50000000",
+   "50630000"
+  ],
+  "winner-identifier": [
+   "DE 811127845"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "31",
+  "winner-selection-status": [
+   "selec-w",
+   "selec-w"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-verif-inad",
+   "t-verif-inad-low",
+   "tenders",
+   "t-esubm",
+   "t-oth-eea",
+   "t-no-eea",
+   "t-verif-inad",
+   "t-verif-inad-low"
+  ],
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/628418-2026/xml"
+   }
+  },
+  "notice-identifier": "f4bc5125-c810-472d-be24-cdf47584e8df",
+  "title-proc": {
+   "deu": "BG_1619_EU/25_II - Werksinstandsetzung von diversen Baugruppen des Systems BeobAufklAusstattung BAA Fennek"
+  },
+  "estimated-value-lot": [
+   "516459.48",
+   "633039.72"
+  ],
+  "legal-basis": [
+   "32009L0081"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "def-cont"
+  ],
+  "winner-size": [
+   "large"
+  ],
+  "buyer-country": [
+   "DEU"
+  ],
+  "received-submissions-type-val": [
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "0"
+  ],
+  "result-value-cur-lot": [
+   "EUR"
+  ],
+  "procedure-type": "neg-wo-call",
+  "classification-cpv": [
+   "50600000",
+   "50000000",
+   "50630000",
+   "50600000",
+   "50600000",
+   "50000000",
+   "50630000",
+   "50000000",
+   "50630000"
+  ],
+  "contract-nature": [
+   "services",
+   "services",
+   "services"
+  ],
+  "buyer-name": {
+   "deu": [
+    "HIL Heeresinstandsetzungslogistik GmbH"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "deu": [
+    "Rheinmetall Electronics GmbH",
+    "Rheinmetall Electronics GmbH",
+    "Rheinmetall Electronics GmbH",
+    "Rheinmetall Electronics GmbH"
+   ]
+  },
+  "form-type": "result",
+  "internal-identifier-proc": "BG_1619_EU/25_II",
+  "description-proc": {
+   "deu": "Der Auftrag umfasst die Werksinstandsetzung von diversen Baugruppen des Systems BeobAufklAusstattung BAA Fennek. Die Bieter müssen im Rahmen der Angebotsabgabe berücksichtigen, dass die Angaben zu den…"
+  },
+  "buyer-identifier": [
+   "992-80013-14"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "627391-2026",
+  "main-classification-lot": [
+   "39220000"
+  ],
+  "result-value-notice": "1031.00",
+  "winner-country": [
+   "SVK"
+  ],
+  "main-classification-proc": [
+   "39220000"
+  ],
+  "procedure-identifier": "db9c91bb-3453-49c7-908f-b525afd4198f",
+  "additional-classification-proc": [
+   "42968100"
+  ],
+  "additional-classification-lot": [
+   "42968100"
+  ],
+  "winner-identifier": [
+   "46729445",
+   "2023562948"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "selec-w"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "part-req",
+   "t-esubm",
+   "t-no-eea",
+   "t-no-verif",
+   "t-oth-eea",
+   "t-sme",
+   "t-verif-inad",
+   "t-verif-inad-low"
+  ],
+  "estimated-value-proc": "481567.48",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/627391-2026/xml"
+   }
+  },
+  "notice-identifier": "8eef4a21-c559-4f7d-a79b-62fe7b812491",
+  "title-proc": {
+   "slk": "Vybavenie kuchynských zariadení – DNS"
+  },
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "estimated-value-cur-proc": "EUR",
+  "winner-size": [
+   "micro"
+  ],
+  "buyer-country": [
+   "SVK"
+  ],
+  "received-submissions-type-val": [
+   "1",
+   "0",
+   "1",
+   "0",
+   "0",
+   "0",
+   "1",
+   "0",
+   "0"
+  ],
+  "tender-value-cur": [
+   "EUR"
+  ],
+  "tender-value": [
+   "1031.00"
+  ],
+  "procedure-type": "restricted",
+  "classification-cpv": [
+   "39220000",
+   "42968100",
+   "39220000",
+   "42968100"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "slk": [
+    "Ministerstvo obrany Slovenskej republiky"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "slk": [
+    "IGGY-TRADE s.r.o."
+   ]
+  },
+  "result-value-cur-notice": "EUR",
+  "form-type": "result",
+  "internal-identifier-proc": "SEVO-211/2025",
+  "description-proc": {
+   "slk": "Predmetom čiastkových zákaziek bude kúpa a dodanie drobného domáceho vybavenia a potrieb pre kuchynské zariadenia, ktoré sú bežne dostupné na trhu a ktoré sú zaradené podľa spoločného slovníka obstará…"
+  },
+  "buyer-identifier": [
+   "30845572",
+   "2020947698"
+  ]
+ },
+ {
+  "notice-type": "veat",
+  "publication-number": "626308-2026",
+  "main-classification-lot": [
+   "34930000"
+  ],
+  "main-classification-proc": [
+   "34930000"
+  ],
+  "procedure-identifier": "babd82e1-a334-470d-ad45-043e42b89345",
+  "additional-classification-proc": [
+   "39111000"
+  ],
+  "additional-classification-lot": [
+   "39111000"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "25",
+  "publication-date": "2026-09-11+02:00",
+  "winner-decision-date": [
+   "2026-09-08Z"
+  ],
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626308-2026/xml"
+   }
+  },
+  "notice-identifier": "00cf4a7d-48e6-4ee0-b612-285405b61361",
+  "title-proc": {
+   "dan": "Anskaffelse og installering af sæder i Fast Rescue Boats"
+  },
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "winner-size": [
+   "large"
+  ],
+  "buyer-country": [
+   "DNK"
+  ],
+  "tender-value-cur": [
+   "DKK"
+  ],
+  "tender-value": [
+   "1200000"
+  ],
+  "procedure-type": "neg-wo-call",
+  "classification-cpv": [
+   "34930000",
+   "39111000",
+   "34930000",
+   "39111000"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "dan": [
+    "Forsvarsministeriets Materiel- og Indkøbsstyrelse"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "dir-awa-pre",
+  "internal-identifier-proc": "4044026",
+  "description-proc": {
+   "dan": "FMI har efter modtagelse og ibrugtagning af ni (9) FRB-både (Fast Rescue Boats) af typen Marathon fra VIKING Life-Saving Equipment A/S, CVR-nr. 15 01 62 13 (herefter \"Leverandøren\"), konstateret, at s…"
+  },
+  "buyer-identifier": [
+   "16287180"
+  ]
+ },
+ {
+  "notice-type": "can-modif",
+  "publication-number": "619411-2026",
+  "main-classification-lot": [
+   "15811000",
+   "15812000",
+   "15800000",
+   "15300000",
+   "15300000"
+  ],
+  "main-classification-proc": [
+   "15800000"
+  ],
+  "procedure-identifier": "b945691c-58c3-4d01-85bd-9a046c0ed8cc",
+  "modification-justification": [
+   "add-wss",
+   "add-wss"
+  ],
+  "modification-description": {
+   "pol": [
+    "zgodnie z art. 455 ust. 1 pkt 4 ustawy Pzp zwiększenie wartości umowy o 158 037,68 zł netto do wartości 474 113 05 zł netto",
+    "zgodnie z art. 455 ust. 1 pkt 4 ustawy Pzp zwiększenie wartości umowy o 36 946,50 zł netto do wartości 110 839,50 zł netto"
+   ]
+  },
+  "notice-subtype": "E6",
+  "publication-date": "2026-09-09+02:00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/619411-2026/xml"
+   }
+  },
+  "notice-identifier": "741abfb9-161b-4fab-a031-a08d48c9b62a",
+  "title-proc": {
+   "pol": "Zakup i dostawa produktów spożywczych niezwierzęcych"
+  },
+  "legal-basis": [
+   "32009L0081"
+  ],
+  "buyer-country": [
+   "POL"
+  ],
+  "modification-previous-notice-identifier": [
+   "291876-2024",
+   "291876-2024"
+  ],
+  "tender-value-cur": [
+   "PLN"
+  ],
+  "tender-value": [
+   "68778.2",
+   "63794",
+   "316075.37",
+   "386230.4",
+   "73893"
+  ],
+  "classification-cpv": [
+   "15800000",
+   "15811000",
+   "15812000",
+   "15800000",
+   "15300000",
+   "15300000"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "pol": [
+    "Jednostka Wojskowa Nr 2063"
+   ]
+  },
+  "modification-reason-description": {
+   "pol": [
+    "zgodnie z art. 455 ust. 1 pkt 4 ustawy Pzp zwiększenie wartości umowy o 158 037,68 zł netto do wartości 474 113 05 zł netto",
+    "zgodnie z art. 455 ust. 1 pkt 4 ustawy Pzp zwiększenie wartości umowy o 36 946,50 zł netto do wartości 110 839,50 zł netto"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "cont-modif",
+  "internal-identifier-proc": "28/25",
+  "description-proc": {
+   "pol": "1. Przedmiotem zamówienia w prowadzonym postępowaniu o udzielenie zamówienia publicznego jest zakup i dostawa produktów spożywczych niezwierzęcych (kod CPV: 15811000-6, 158120003, 15800000-6, 15300000…"
+  },
+  "buyer-identifier": [
+   "5211207048"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "626862-2026",
+  "main-classification-lot": [
+   "38433100",
+   "38433100",
+   "38433100"
+  ],
+  "non-award-justification": [
+   "other",
+   "other",
+   "other"
+  ],
+  "main-classification-proc": [
+   "38433100"
+  ],
+  "procedure-identifier": "140c1743-7bf4-4ad4-9847-964e46df1c83",
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "clos-nw",
+   "clos-nw",
+   "clos-nw"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "tenders",
+   "tenders"
+  ],
+  "estimated-value-proc": "6000000",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626862-2026/xml"
+   }
+  },
+  "previous-notice-id-proc": [
+   "0794278a-96f4-4b10-bc3d-66a4f06afa4a-01"
+  ],
+  "notice-identifier": "4a4b8950-3e32-40f0-953b-3bedc972814a",
+  "title-proc": {
+   "swe": "LC-HRMS System"
+  },
+  "estimated-value-lot": [
+   "6000000",
+   "6000000",
+   "6000000"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "SEK"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "estimated-value-cur-proc": "SEK",
+  "buyer-country": [
+   "SWE"
+  ],
+  "received-submissions-type-val": [
+   "0",
+   "1",
+   "1"
+  ],
+  "procedure-type": "open",
+  "classification-cpv": [
+   "38433100",
+   "38433100",
+   "38433100",
+   "38433100"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies",
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "swe": [
+    "Totalförsvarets Forskningsinstitut, Foi"
+   ]
+  },
+  "notice-version": 1,
+  "form-type": "result",
+  "internal-identifier-proc": "FOI-2026-645",
+  "description-proc": {
+   "swe": "Upphandlingen omfattar leverans av ett (1) komplett LC-HRMS System. Systemet ska vara en analytisk plattform för forskning och metodutveckling och kunna hantera ett brett spektrum av biologiska, kemis…"
+  },
+  "buyer-identifier": [
+   "2021005182"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "613361-2026",
+  "main-classification-lot": [
+   "30125100"
+  ],
+  "result-value-notice": "649.6",
+  "winner-country": [
+   "HRV"
+  ],
+  "main-classification-proc": [
+   "30125100"
+  ],
+  "procedure-identifier": "10104aea-b5f3-48ff-9c97-03846140121f",
+  "additional-classification-lot": [
+   "30192110"
+  ],
+  "winner-identifier": [
+   "92528715879"
+  ],
+  "authority-main-activity": [
+   "econ-aff",
+   "gen-pub",
+   "gen-pub",
+   "gen-pub",
+   "gen-pub",
+   "pub-os",
+   "defence",
+   "econ-aff",
+   "econ-aff",
+   "gen-pub",
+   "education",
+   "rcr"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "selec-w"
+  ],
+  "publication-date": "2026-09-07+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "t-esubm",
+   "t-no-eea",
+   "t-oth-eea",
+   "t-sme"
+  ],
+  "estimated-value-proc": "6500000.00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/613361-2026/xml"
+   }
+  },
+  "notice-identifier": "299a3c4d-2331-48a1-9e3c-93a7ad95e628",
+  "title-proc": {
+   "hrv": "TONERI I TINTE"
+  },
+  "estimated-value-lot": [
+   "1925000.00"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "cga",
+   "body-pl",
+   "cga",
+   "cga",
+   "body-pl",
+   "cga",
+   "cga",
+   "cga",
+   "body-pl",
+   "cga",
+   "cga",
+   "cga"
+  ],
+  "estimated-value-cur-proc": "EUR",
+  "winner-size": [
+   "micro"
+  ],
+  "buyer-country": [
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV",
+   "HRV"
+  ],
+  "received-submissions-type-val": [
+   "6",
+   "6",
+   "0",
+   "0",
+   "6"
+  ],
+  "tender-value-cur": [
+   "EUR"
+  ],
+  "tender-value": [
+   "649.6"
+  ],
+  "procedure-type": "open",
+  "classification-cpv": [
+   "30125100",
+   "30125100",
+   "30192110"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "hrv": [
+    "Središnji državni ured za središnju javnu nabavu",
+    "URED PREDSJEDNIKA REPUBLIKE HRVATSKE",
+    "HRVATSKI SABOR",
+    "VLADA REPUBLIKE HRVATSKE",
+    "REPUBLIKA HRVATSKA MINISTARSTVO VANJSKIH I EUROPSKIH POSLOVA",
+    "… 27 more"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "hrv": [
+    "INSEPO d.o.o."
+   ]
+  },
+  "result-value-cur-notice": "EUR",
+  "form-type": "result",
+  "internal-identifier-proc": "1/2024",
+  "description-proc": {
+   "hrv": "Predmet nabave je nabava i isporuka tonera i tinti za ispisne uređaje te ostalog potrošnog materijala. Svi ponuđeni proizvodi moraju udovoljavati zakonskim i podzakonskim propisima vezanim za proizvod…"
+  },
+  "buyer-identifier": [
+   "17683204722",
+   "10162055275",
+   "38597506234",
+   "64434885131",
+   "43541122224",
+   "36162371878",
+   "66486182714",
+   "18683136487",
+   "19370100881",
+   "72910430276",
+   "49508397045",
+   "37836302645"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "626208-2026",
+  "main-classification-lot": [
+   "43800000"
+  ],
+  "result-value-notice": "70772.50",
+  "winner-country": [
+   "SVK"
+  ],
+  "main-classification-proc": [
+   "43800000"
+  ],
+  "procedure-identifier": "c728124b-49f3-4d6c-95da-082b1d5ed5a3",
+  "additional-classification-proc": [
+   "42630000",
+   "42652000",
+   "43830000",
+   "44512000",
+   "39151200",
+   "42120000"
+  ],
+  "additional-classification-lot": [
+   "42630000",
+   "42652000",
+   "43830000",
+   "44512000",
+   "39151200",
+   "42120000"
+  ],
+  "winner-identifier": [
+   "46729445",
+   "2023562948"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "selec-w"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "part-req",
+   "t-esubm",
+   "t-no-eea",
+   "t-no-verif",
+   "t-oth-eea",
+   "t-sme",
+   "t-verif-inad",
+   "t-verif-inad-low"
+  ],
+  "estimated-value-proc": "1475225.00",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/626208-2026/xml"
+   }
+  },
+  "notice-identifier": "a4d43bf9-7011-4c89-8ef7-8e2b77eb125a",
+  "title-proc": {
+   "slk": "Dielenské vybavenie - DNS"
+  },
+  "estimated-value-lot": [
+   "1475225.00"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "cga"
+  ],
+  "estimated-value-cur-proc": "EUR",
+  "winner-size": [
+   "micro"
+  ],
+  "buyer-country": [
+   "SVK"
+  ],
+  "received-submissions-type-val": [
+   "2",
+   "0",
+   "2",
+   "0",
+   "1",
+   "0",
+   "2",
+   "0",
+   "0"
+  ],
+  "tender-value-cur": [
+   "EUR"
+  ],
+  "tender-value": [
+   "70772.50"
+  ],
+  "tender-value-highest": [
+   "71012.50"
+  ],
+  "procedure-type": "restricted",
+  "tender-value-lowest": [
+   "70772.50"
+  ],
+  "classification-cpv": [
+   "43800000",
+   "42630000",
+   "42652000",
+   "43830000",
+   "44512000",
+   "39151200",
+   "42120000",
+   "43800000",
+   "42630000",
+   "42652000",
+   "43830000",
+   "44512000",
+   "39151200",
+   "42120000"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "slk": [
+    "Ministerstvo obrany Slovenskej republiky"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "slk": [
+    "IGGY-TRADE s.r.o."
+   ]
+  },
+  "result-value-cur-notice": "EUR",
+  "form-type": "result",
+  "internal-identifier-proc": "SEVO-111/2025-1",
+  "description-proc": {
+   "slk": "Kúpa a dodanie na trhu bežne dostupného vybavenia pre dielne určené predovšetkým na údržbu a opravy automobilovej techniky a inej techniky a zariadení verejného obstarávateľa, pričom plnenia na základ…"
+  },
+  "buyer-identifier": [
+   "30845572",
+   "2020947698"
+  ]
+ },
+ {
+  "notice-type": "can-standard",
+  "publication-number": "627092-2026",
+  "main-classification-lot": [
+   "30233141",
+   "30233141"
+  ],
+  "result-value-notice": "531315.0000",
+  "winner-country": [
+   "SVN",
+   "SVN"
+  ],
+  "main-classification-proc": [
+   "30233141"
+  ],
+  "procedure-identifier": "ca5ae594-fdcc-4365-9bcb-c7fc3951cfcb",
+  "winner-identifier": [
+   "1622234000",
+   "nimat-500"
+  ],
+  "authority-main-activity": [
+   "defence"
+  ],
+  "notice-subtype": "29",
+  "winner-selection-status": [
+   "selec-w",
+   "selec-w"
+  ],
+  "publication-date": "2026-09-11+02:00",
+  "received-submissions-type-code": [
+   "tenders",
+   "t-esubm",
+   "t-sme",
+   "t-no-verif",
+   "t-verif-inad",
+   "t-verif-inad-low",
+   "t-oth-eea",
+   "t-no-eea",
+   "tenders",
+   "t-esubm",
+   "t-sme",
+   "t-no-verif",
+   "t-verif-inad",
+   "t-verif-inad-low",
+   "t-oth-eea",
+   "t-no-eea"
+  ],
+  "estimated-value-proc": "545082.0000",
+  "links": {
+   "xml": {
+    "MUL": "https://ted.europa.eu/en/notice/627092-2026/xml"
+   }
+  },
+  "notice-identifier": "a698582f-725b-4413-93bf-2b361e351764",
+  "title-proc": {
+   "slv": "Nakup strežniške opreme 2 - diskovno polje in diskovno polje za varnostne kopije"
+  },
+  "estimated-value-lot": [
+   "413934.0000",
+   "131147.0000"
+  ],
+  "legal-basis": [
+   "32014L0024"
+  ],
+  "estimated-value-cur-lot": [
+   "EUR"
+  ],
+  "buyer-legal-type": [
+   "eu-ins-bod-ag"
+  ],
+  "estimated-value-cur-proc": "EUR",
+  "winner-size": [
+   "sme",
+   "sme"
+  ],
+  "buyer-country": [
+   "SVN"
+  ],
+  "received-submissions-type-val": [
+   "1",
+   "1",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "0",
+   "1",
+   "1",
+   "1",
+   "1",
+   "0",
+   "0",
+   "0",
+   "0"
+  ],
+  "tender-value-cur": [
+   "EUR"
+  ],
+  "tender-value": [
+   "406400.0000",
+   "124915.0000"
+  ],
+  "tender-value-highest": [
+   "406400.0000",
+   "124915.0000"
+  ],
+  "procedure-type": "neg-wo-call",
+  "tender-value-lowest": [
+   "406400.0000",
+   "124915.0000"
+  ],
+  "classification-cpv": [
+   "30233141",
+   "30233141",
+   "30233141"
+  ],
+  "contract-nature": [
+   "supplies",
+   "supplies",
+   "supplies"
+  ],
+  "buyer-name": {
+   "slv": [
+    "MINISTRSTVO ZA OBRAMBO"
+   ]
+  },
+  "notice-version": 1,
+  "winner-name": {
+   "slv": [
+    "OUR SPACE APPLIANCES, družba za informacijski inženiring d.o.o.",
+    "OUR SPACE APPLIANCES, družba za informacijski inženiring d.o.o.",
+    "OUR SPACE APPLIANCES, družba za informacijski inženiring d.o.o.",
+    "OUR SPACE APPLIANCES, družba za informacijski inženiring d.o.o."
+   ]
+  },
+  "result-value-cur-notice": "EUR",
+  "form-type": "result",
+  "internal-identifier-proc": "MORS 222/2026-KONKPSP, 430-280/2026",
+  "description-proc": {
+   "slv": "Skladno z zahtevami iz razpisne dokumentacije."
+  },
+  "buyer-identifier": [
+   "5268923000"
+  ]
+ }
+]
