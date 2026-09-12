@@ -1,0 +1,13 @@
+{
+  "domain": "edp_radar",
+  "name": "European Defence Procurement Radar",
+  "codeowners": ["@mattahr"],
+  "config_flow": true,
+  "documentation": "https://github.com/mattahr/ha-edp-radar",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/mattahr/ha-edp-radar/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
