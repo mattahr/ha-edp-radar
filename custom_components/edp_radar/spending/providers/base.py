@@ -103,30 +103,30 @@ async def async_fetch_bytes(
     """GET ``url``; conditional when ``previous`` has validators for the same URL."""
     try:
         async with asyncio.timeout(request_timeout):
-            response = await session.get(
+            async with session.get(
                 url, headers=_conditional_headers(url, previous), allow_redirects=True
-            )
-            if response.status == 304:
+            ) as response:
+                if response.status == 304:
+                    return FetchResult(
+                        payload=b"",
+                        etag=previous.etag if previous else None,
+                        last_modified=previous.last_modified if previous else None,
+                        checksum=(previous.checksum or "") if previous else "",
+                        not_modified=True,
+                    )
+                if response.status != 200:
+                    raise SourceUnavailableError(f"HTTP {response.status} for {url}")
+                payload = await response.read()
                 return FetchResult(
-                    payload=b"",
-                    etag=previous.etag if previous else None,
-                    last_modified=previous.last_modified if previous else None,
-                    checksum=(previous.checksum or "") if previous else "",
-                    not_modified=True,
+                    payload=payload,
+                    etag=response.headers.get("ETag"),
+                    last_modified=response.headers.get("Last-Modified"),
+                    checksum=sha256_hex(payload),
                 )
-            if response.status != 200:
-                raise SourceUnavailableError(f"HTTP {response.status} for {url}")
-            payload = await response.read()
     except TimeoutError as err:
         raise SourceUnavailableError(f"Timeout fetching {url}") from err
     except ClientError as err:
         raise SourceUnavailableError(f"Error fetching {url}: {err}") from err
-    return FetchResult(
-        payload=payload,
-        etag=response.headers.get("ETag"),
-        last_modified=response.headers.get("Last-Modified"),
-        checksum=sha256_hex(payload),
-    )
 
 
 async def async_head_metadata(
@@ -138,11 +138,14 @@ async def async_head_metadata(
     """
     try:
         async with asyncio.timeout(request_timeout):
-            response = await session.head(
+            async with session.head(
                 url, headers={"User-Agent": USER_AGENT}, allow_redirects=True
-            )
-            if response.status != 200:
-                return (None, None)
-            return (response.headers.get("ETag"), response.headers.get("Last-Modified"))
+            ) as response:
+                if response.status != 200:
+                    return (None, None)
+                return (
+                    response.headers.get("ETag"),
+                    response.headers.get("Last-Modified"),
+                )
     except TimeoutError, ClientError:
         return (None, None)
