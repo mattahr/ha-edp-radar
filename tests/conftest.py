@@ -55,6 +55,16 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable loading of custom_components in every test."""
 
 
+@pytest.fixture(autouse=True)
+def stub_spending_providers(request: pytest.FixtureRequest) -> Generator[None]:
+    """Radar tests run without spending providers; ``spending_live`` tests opt in."""
+    if "spending_live" in request.keywords:
+        yield
+        return
+    with patch("custom_components.edp_radar.all_providers", return_value=()):
+        yield
+
+
 @pytest.fixture
 def config_entry() -> MockConfigEntry:
     """A config entry with default options (EU market, strict mode, no extras)."""

@@ -1190,7 +1190,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Create the sensors that the configuration calls for."""
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.radar
     config = coordinator.config
     entities: list[SensorEntity] = [
         EdpRadarSensor(coordinator, description)

@@ -16,7 +16,11 @@ from .config_flow import supported_country
 from .const import CONF_SELECTED_COUNTRY, DOMAIN
 from .coordinator import EdpRadarConfigEntry, EdpRadarCoordinator
 from .fx import EcbFxClient
+from .runtime import RuntimeData
 from .services import async_setup_services
+from .spending.coordinator import SpendingCoordinator
+from .spending.providers import all_providers
+from .spending.store import SpendingStore
 from .storage import RadarStore
 from .taxonomy import Taxonomy
 
@@ -77,7 +81,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) -> 
     )
     await coordinator.async_setup()
     await coordinator.async_config_entry_first_refresh()
-    entry.runtime_data = coordinator
+    spending = SpendingCoordinator(
+        hass,
+        entry,
+        session=session,
+        store=SpendingStore(hass, entry.entry_id),
+        providers=all_providers(),
+    )
+    await spending.async_setup()
+    entry.runtime_data = RuntimeData(radar=coordinator, spending=spending)
+    # No entities listen yet (Plan 2): a no-op listener keeps the 6 h cycle armed,
+    # and the first refresh runs in the background so a slow source never delays setup.
+    entry.async_on_unload(spending.async_add_listener(lambda: None))
+    entry.async_create_background_task(
+        hass, spending.async_refresh(), name=f"{DOMAIN} spending initial refresh"
+    )
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -94,7 +112,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) ->
     """Unload a config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        await entry.runtime_data.async_shutdown()
+        await entry.runtime_data.spending.async_shutdown()
+        await entry.runtime_data.radar.async_shutdown()
     return unloaded
 
 
@@ -103,3 +122,4 @@ async def async_remove_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) ->
     store = RadarStore(hass, entry.entry_id)
     await store.async_load()
     await store.async_remove()
+    await SpendingStore(hass, entry.entry_id).async_remove()

@@ -82,7 +82,7 @@ GET_COUNTRY_PURCHASING_SCHEMA = vol.Schema(
 
 def _coordinator(hass: HomeAssistant) -> EdpRadarCoordinator:
     for entry in hass.config_entries.async_loaded_entries(DOMAIN):
-        coordinator: EdpRadarCoordinator = entry.runtime_data
+        coordinator: EdpRadarCoordinator = entry.runtime_data.radar
         return coordinator
     raise ServiceValidationError(
         translation_domain=DOMAIN, translation_key="not_loaded"

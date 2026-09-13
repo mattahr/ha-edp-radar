@@ -419,7 +419,7 @@ async def test_options_universe_reloads_entry(
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
-    assert config_entry.runtime_data.config.relevance_mode is RelevanceMode.STRICT
+    assert config_entry.runtime_data.radar.config.relevance_mode is RelevanceMode.STRICT
 
     result = await start_options(hass, config_entry)
     result = await options_configure(hass, result, {"next_step_id": "universe"})
@@ -435,7 +435,7 @@ async def test_options_universe_reloads_entry(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert config_entry.options[CONF_RELEVANCE_MODE] == "broad"
     assert config_entry.options[CONF_MARKET_COUNTRIES] == ["SE"]
-    coordinator = config_entry.runtime_data
+    coordinator = config_entry.runtime_data.radar
     assert coordinator.config.relevance_mode is RelevanceMode.BROAD
     assert coordinator.config.market_countries == frozenset({"SE"})
 

@@ -79,7 +79,7 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     integration = await async_get_integration(hass, DOMAIN)
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.radar
     config = coordinator.config
     metrics = config.metrics
     own = metrics.own_organisation

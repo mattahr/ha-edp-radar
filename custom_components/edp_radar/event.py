@@ -36,7 +36,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Always create the activity entity; the watchlist one only when configured."""
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.radar
     entities = [EdpRadarEvent(coordinator, ACTIVITY, coordinator.signal_activity)]
     if not coordinator.config.metrics.watchlist.is_empty:
         entities.append(

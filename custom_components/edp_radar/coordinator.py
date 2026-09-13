@@ -13,7 +13,7 @@ import asyncio
 import logging
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -50,7 +50,10 @@ BOOTSTRAP_RETRY_SECONDS = 900
 SAVE_EVERY_PAGES = 10
 PAGE_BATCH = 200
 
-type EdpRadarConfigEntry = ConfigEntry[EdpRadarCoordinator]
+if TYPE_CHECKING:
+    from .runtime import RuntimeData
+
+type EdpRadarConfigEntry = ConfigEntry[RuntimeData]
 type ProgressCallback = Callable[[int, int | None], None]
 
 
