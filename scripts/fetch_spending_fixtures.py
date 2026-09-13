@@ -22,6 +22,8 @@ from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+import openpyxl
+
 FIXTURES = Path("tests/fixtures/spending")
 USER_AGENT = "ha-edp-radar fixture fetcher"
 
@@ -210,11 +212,69 @@ def fetch_eda(cache: Path) -> None:
         )
 
 
+# ------------------------------------------------------------------------- SIPRI
+
+SIPRI_LANDING = "https://www.sipri.org/databases/milex"
+_SIPRI_XLSX = re.compile(r'href="((?:https?:)?//www\.sipri\.org/[^"]*\.xlsx)"')
+_SIPRI_REVISED = re.compile(r"revised on \d{1,2} [A-Za-z]+ \d{4}[^.<]{0,200}")
+SIPRI_SHEETS = ("Constant (2024) US$", "Current US$", "Share of GDP")
+
+
+def trim_sipri_landing(html: str) -> str:
+    link = _SIPRI_XLSX.search(html)
+    revised = _SIPRI_REVISED.search(html)
+    if link is None or revised is None:
+        raise SystemExit("SIPRI landing page: xlsx link or revision sentence not found")
+    return (
+        '<!DOCTYPE html>\n<html lang="en"><body>\n'
+        f"<p>The file was {revised.group(0)}.</p>\n"
+        f'<a href="{link.group(1)}">'
+        "Download the SIPRI Military Expenditure Database (Excel)</a>\n"
+        "</body></html>\n"
+    )
+
+
+def trim_sipri_workbook(data: bytes) -> bytes:
+    """Keep three data sheets and only the rows from 'Europe' on (colours survive)."""
+    book = openpyxl.load_workbook(io.BytesIO(data))
+    for name in list(book.sheetnames):
+        if name not in SIPRI_SHEETS:
+            book.remove(book[name])
+    for name in SIPRI_SHEETS:
+        sheet = book[name]
+        header = next(
+            i for i in range(1, 15) if str(sheet.cell(i, 1).value).strip() == "Country"
+        )
+        europe = next(
+            i
+            for i in range(header + 1, sheet.max_row + 1)
+            if str(sheet.cell(i, 1).value).strip() == "Europe"
+        )
+        sheet.delete_rows(header + 2, europe - (header + 2))
+    buffer = io.BytesIO()
+    book.save(buffer)
+    return buffer.getvalue()
+
+
+def fetch_sipri(cache: Path) -> None:
+    folder = FIXTURES / "sipri"
+    landing = download(SIPRI_LANDING, cache, "sipri-landing.html").decode(
+        "utf-8", "replace"
+    )
+    write(folder / "landing.html", trim_sipri_landing(landing).encode("utf-8"))
+    url = _SIPRI_XLSX.search(landing).group(1)  # type: ignore[union-attr]
+    workbook = download(
+        "https:" + url if url.startswith("//") else url, cache, "sipri-milex.xlsx"
+    )
+    write(folder / "milex-trimmed.xlsx", trim_sipri_workbook(workbook))
+
+
 FETCHERS = {
     "statskontoret": fetch_statskontoret,
     "eurostat": fetch_eurostat,
     "nato": fetch_nato,
     "eda": fetch_eda,
+    "sipri": fetch_sipri,
 }
 
 
