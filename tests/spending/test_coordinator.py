@@ -198,6 +198,29 @@ async def test_failures_are_isolated_and_retry_sooner(hass: HomeAssistant) -> No
     assert len(eurostat.datapoints) == 1
 
 
+async def test_unexpected_provider_exception_is_isolated(hass: HomeAssistant) -> None:
+    clock = Clock(NOW)
+    broken = FakeProvider("nato")
+    fine = FakeProvider("statskontoret")
+    coordinator = await _coordinator(hass, [broken, fine], clock)
+    await coordinator.async_refresh()
+    broken.release_id = "r2"
+    broken.parse_error = RuntimeError("boom")
+    fine.release_id, fine.value = "r2", "9"
+    clock.now = NOW + timedelta(days=7, minutes=1)
+    await coordinator.async_refresh()
+    assert coordinator.last_update_success
+    nato = coordinator.data.get("nato")
+    assert nato.health.state is ProviderState.PARSER_ERROR
+    assert nato.health.last_error == "boom"
+    assert len(nato.datapoints) == 1
+    assert nato.datapoints[0].value == Decimal("1")
+    assert fine.calls == {"discover": 2, "fetch": 2, "parse": 2}
+    statskontoret = coordinator.data.get("statskontoret")
+    assert len(statskontoret.datapoints) == 1
+    assert statskontoret.datapoints[0].value == Decimal("9")
+
+
 async def test_schema_change_and_parser_error_keep_old_data(
     hass: HomeAssistant,
 ) -> None:

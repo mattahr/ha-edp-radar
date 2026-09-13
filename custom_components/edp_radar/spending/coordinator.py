@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-import zipfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,25 +25,10 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN, SPENDING_RETRY_INTERVAL, SPENDING_UPDATE_INTERVAL
 from .models import ProviderHealth, ProviderState, SourceSeries
-from .providers.base import (
-    SchemaChangedError,
-    SourceUnavailableError,
-    SpendingProvider,
-    SpendingProviderError,
-)
+from .providers.base import SchemaChangedError, SourceUnavailableError, SpendingProvider
 from .store import SpendingStore
 
 _LOGGER = logging.getLogger(__name__)
-
-_PARSE_SLIPS = (
-    ValueError,
-    KeyError,
-    IndexError,
-    TypeError,
-    AttributeError,
-    UnicodeDecodeError,
-    zipfile.BadZipFile,
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,8 +189,8 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
                 next_check_at=now + provider.spec.check_interval,
                 error=str(err),
             )
-        except (SpendingProviderError, *_PARSE_SLIPS) as err:
-            _LOGGER.error("%s parser error, keeping stored data: %r", source_id, err)
+        except Exception as err:
+            _LOGGER.exception("%s failed, keeping stored data", source_id)
             self._set_health(
                 source_id,
                 now,
