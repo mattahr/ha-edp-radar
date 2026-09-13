@@ -229,17 +229,18 @@ def _decimal(text: str) -> Decimal | None:
 
 def parse_outturn_csv(payload: bytes, release: SourceRelease) -> ParseResult:
     """Sum the three metrics per (year, month) from the appropriation rows."""
-    rows = list(csv.reader(io.StringIO(_csv_text(payload)), delimiter=";"))
-    if not rows:
+    release_year, release_month, release_status = _release_period(release)
+    reader = csv.reader(io.StringIO(_csv_text(payload)), delimiter=";")
+    header = next(reader, None)
+    if header is None:
         raise SchemaChangedError("Statskontoret CSV is empty")
-    header = rows[0]
     missing = [column for column in REQUIRED_COLUMNS if column not in header]
     if missing:
         raise SchemaChangedError(f"Statskontoret CSV lacks columns {missing}")
     index = {name: header.index(name) for name in REQUIRED_COLUMNS}
     sums: dict[tuple[str, int, int], Decimal] = {}
     matched_rows = 0
-    for row in rows[1:]:
+    for row in reader:
         if len(row) < len(header):
             continue
         area, anslag = row[index["Utgiftsområde"]], row[index["Anslag"]]
@@ -248,6 +249,11 @@ def parse_outturn_csv(payload: bytes, release: SourceRelease) -> ParseResult:
         matched_rows += 1
         year = int(row[index["År"]])
         for month, column in enumerate(MONTH_COLUMNS, start=1):
+            if (year, month) > (release_year, release_month):
+                # A row can carry a stray value for a month later than the
+                # release (plan §60); a partially reported future month must
+                # never become a datapoint.
+                continue
             value = _decimal(row[index[column]])
             if value is None:
                 continue
@@ -257,7 +263,6 @@ def parse_outturn_csv(payload: bytes, release: SourceRelease) -> ParseResult:
                     sums[key] = sums.get(key, Decimal(0)) + value
     if matched_rows == 0:
         raise SchemaChangedError("Statskontoret CSV has no rows for utgiftsområde 06")
-    release_year, release_month, release_status = _release_period(release)
     datapoints = tuple(
         SpendingDataPoint(
             source_id=STATSKONTORET,

@@ -199,3 +199,44 @@ async def test_provider_falls_back_to_previous_year_in_january(
     release = await provider.async_discover_latest(async_get_clientsession(hass))
     assert release.release_id == "2026-07-definitiv-2026-08-24"
     assert release.canonical_url == f"{DISCOVERY_URL}?year=2026"
+
+
+def test_future_month_is_not_emitted_as_a_datapoint() -> None:
+    """A row that already reports a month past the release must not surface it.
+
+    Statskontoret CSVs can carry a stray value for a later month before that
+    month's release (plan §60); a partially reported future month must never
+    become a datapoint.
+    """
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    text = _csv("utgifter-2026-07.csv").decode("utf-8-sig")
+    lines = text.splitlines()
+    header = lines[0].split(";")
+    august_index = header.index("Utfall augusti")
+    anslag_index = header.index("Anslag")
+    year_index = header.index("År")
+    modified = False
+    for i in range(1, len(lines)):
+        fields = lines[i].split(";")
+        if (
+            not modified
+            and fields[anslag_index] == MATERIEL_APPROPRIATION
+            and fields[year_index] == "2026"
+        ):
+            fields[august_index] = "1"
+            lines[i] = ";".join(fields)
+            modified = True
+    assert modified, "fixture no longer has a 2026 materiel row to modify"
+    payload = ("\n".join(lines) + "\n").encode("utf-8")
+
+    result = parse_outturn_csv(payload, release)
+
+    points = {
+        (p.metric_id, p.reference.start.year, p.reference.start.month): p
+        for p in result.datapoints
+    }
+    assert ("materiel_outturn", 2026, 8) not in points
+    assert points[("materiel_outturn", 2026, 7)].value == Decimal("3753.54717975")
+    assert len(result.datapoints) == 57

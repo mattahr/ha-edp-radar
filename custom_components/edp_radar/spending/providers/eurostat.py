@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -130,6 +131,19 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
         code = EXPEND if dim == "expend" else next(iter(index))
         fixed_offset += index[code] * strides[dim]
     warnings: list[str] = []
+    # A ``geo`` code survives only as an exact two-letter country code; an
+    # aggregate we don't recognise (e.g. a future euro-area rollup) must never
+    # be guessed into a country, so it is warned about once here rather than
+    # silently emitted as a datapoint.
+    valid_geo: dict[str, str] = {}
+    for geo in indexes["geo"]:
+        if geo in EUROSTAT_AGGREGATES:
+            continue
+        code = EUROSTAT_GEO_FIXES.get(geo, geo)
+        if re.fullmatch(r"[A-Z]{2}", code):
+            valid_geo[geo] = code
+        else:
+            warnings.append(f"geo code {geo!r} is not a country")
     datapoints: list[SpendingDataPoint] = []
     for (na_item, unit), (metric_id, unit_id) in METRICS.items():
         base = (
@@ -137,11 +151,10 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
             + indexes["na_item"][na_item] * strides["na_item"]
             + indexes["unit"][unit] * strides["unit"]
         )
-        for (geo, geo_pos), (time, time_pos) in itertools.product(
-            indexes["geo"].items(), indexes["time"].items()
+        for (geo, country), (time, time_pos) in itertools.product(
+            valid_geo.items(), indexes["time"].items()
         ):
-            if geo in EUROSTAT_AGGREGATES:
-                continue
+            geo_pos = indexes["geo"][geo]
             flat = base + geo_pos * strides["geo"] + time_pos * strides["time"]
             raw = values.get(str(flat))
             if raw is None:
@@ -160,7 +173,7 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
                 SpendingDataPoint(
                     source_id=EUROSTAT,
                     metric_id=metric_id,
-                    country=EUROSTAT_GEO_FIXES.get(geo, geo),
+                    country=country,
                     reference=ReferencePeriod.year(year),
                     value=Decimal(str(raw)),
                     unit=unit_id,

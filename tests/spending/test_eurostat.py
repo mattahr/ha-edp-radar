@@ -218,3 +218,15 @@ async def test_fetch_release_on_cache_miss_derives_release_from_fresh_payload(
     fetched, _payload_bytes = await provider.async_fetch_release(session, stale)
     assert fetched.release_id == "2026-04-27T23:00:00+0200"
     assert fetched.published_at == date(2026, 4, 27)
+
+
+def test_unknown_geo_code_is_skipped_with_warning() -> None:
+    """An aggregate Eurostat doesn't recognise must never be guessed as a country."""
+    data = json.loads(_payload())
+    geo_index = data["dimension"]["geo"]["category"]["index"]
+    geo_index["EA21"] = geo_index.pop("EU27_2020")
+    payload = json.dumps(data).encode()
+    result = parse_jsonstat(payload, release_from_payload(payload))
+    assert not any(p.country == "EA21" for p in result.datapoints)
+    assert len({p.country for p in result.datapoints}) == 27
+    assert sum(1 for w in result.warnings if "EA21" in w) == 1

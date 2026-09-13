@@ -462,7 +462,10 @@ async def run(args: argparse.Namespace) -> str:
                     f"{source_id}: {len(results[source_id][1].datapoints)} datapoints",
                     file=sys.stderr,
                 )
-            except (SpendingProviderError, OSError, ValueError) as err:
+            except Exception as err:
+                # Mirrors the coordinator's per-provider isolation: a
+                # KeyError/IndexError bug in one parser must not abort the
+                # whole report, only that source's "no" row.
                 errors[source_id] = f"{type(err).__name__}: {err}"
                 print(f"{source_id}: FAILED {errors[source_id]}", file=sys.stderr)
         budget = await check_budget_page(session, cache, today)
