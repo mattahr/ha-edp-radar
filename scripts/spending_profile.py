@@ -48,6 +48,7 @@ from custom_components.edp_radar.spending.providers import all_providers
 from custom_components.edp_radar.spending.providers.base import (
     ParseResult,
     Payload,
+    SourceUnavailableError,
     SpendingProvider,
     SpendingProviderError,
 )
@@ -176,19 +177,41 @@ async def check_budget_page(
     year = today.year if today.month > 2 else today.year - 1
     url = BUDGET_PAGE.format(year=year, month=month)
     target = cache / "statskontoret" / "budget-page.html"
+    failed = {"url": url, "sb_ab_column": False, "uo6_row": False}
     if session is not None:
-        async with session.get(
-            url, headers={"User-Agent": "ha-edp-radar profile"}
-        ) as response:
-            html = await response.text()
+        # A side check must never discard the provider results: degrade to
+        # an error entry on any network, timeout or HTTP failure.
+        try:
+            async with (
+                asyncio.timeout(60),
+                session.get(
+                    url, headers={"User-Agent": "ha-edp-radar profile"}
+                ) as response,
+            ):
+                if response.status != 200:
+                    raise SourceUnavailableError(f"HTTP {response.status} for {url}")
+                html = await response.text()
+        except (
+            aiohttp.ClientError,
+            TimeoutError,
+            OSError,
+            SpendingProviderError,
+        ) as err:
+            return {**failed, "error": f"{type(err).__name__}: {err}"}
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(html)
+    elif target.exists():
+        html = target.read_text()
     else:
-        html = target.read_text() if target.exists() else ""
+        return {
+            **failed,
+            "error": f"no cached page at {target}; run without --no-fetch",
+        }
     return {
         "url": url,
         "sb_ab_column": "SB + ÄB" in html or "SB&nbsp;+&nbsp;ÄB" in html,
         "uo6_row": UO6_NAME in html,
+        "error": None,
     }
 
 
@@ -272,6 +295,27 @@ def _rank_line(points: tuple[SpendingDataPoint, ...], metric_id: str, unit: str)
     )
 
 
+def _budget_line(budget: dict[str, Any]) -> str:
+    if budget.get("error"):
+        return (
+            f"- Budget utilisation (plan §53): the human-readable page {budget['url']} "
+            f"could not be fetched ({budget['error']}); budget utilisation stays "
+            "omitted (S16)."
+        )
+    return (
+        f"- Budget utilisation (plan §53): human-readable page {budget['url']} — "
+        f"SB + ÄB column present: {budget['sb_ab_column']}, "
+        f"UO6 row present: {budget['uo6_row']}. "
+        + (
+            "A per-expenditure-area budget is exposed; a budget metric can be "
+            "designed in Plan 2."
+            if budget["uo6_row"] and budget["sb_ab_column"]
+            else "No per-expenditure-area budget with provenance found; budget "
+            "utilisation is omitted (S16)."
+        )
+    )
+
+
 def validation_section(
     results: dict[str, tuple[SourceRelease, ParseResult]], budget: dict[str, Any]
 ) -> str:
@@ -299,18 +343,7 @@ def validation_section(
                 f"- Publication date: {release.published_at}; "
                 f"release `{release.release_id}`",
             ]
-        lines.append(
-            f"- Budget utilisation (plan §53): human-readable page {budget['url']} — "
-            f"SB + ÄB column present: {budget['sb_ab_column']}, "
-            f"UO6 row present: {budget['uo6_row']}. "
-            + (
-                "A per-expenditure-area budget is exposed; a budget metric can be "
-                "designed in Plan 2."
-                if budget["uo6_row"] and budget["sb_ab_column"]
-                else "No per-expenditure-area budget with provenance found; budget "
-                "utilisation is omitted (S16)."
-            )
-        )
+        lines.append(_budget_line(budget))
         out.append("\n".join(lines) + "\n")
     if "eurostat" in results:
         points = results["eurostat"][1].datapoints
