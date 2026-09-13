@@ -282,7 +282,11 @@ class EdaProvider:
         self, session: ClientSession, release: SourceRelease
     ) -> tuple[SourceRelease, Payload]:
         if not self._links:
-            await self.async_discover_latest(session)
+            # Fresh instance (e.g. after a Home Assistant restart): the
+            # caller-supplied release may be stale, so rediscover and
+            # describe the payload we are about to fetch with *that*
+            # release, not the possibly-outdated one passed in.
+            release = await self.async_discover_latest(session)
         workbooks: dict[str, bytes] = {}
         for year, url in sorted(self._links.items()):
             workbooks[str(year)] = (await async_fetch_bytes(session, url)).payload

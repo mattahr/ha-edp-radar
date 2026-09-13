@@ -179,3 +179,37 @@ async def test_provider_discovers_and_fetches_every_recent_workbook(
     assert fetched.checksum
     result = provider.parse_release(payload, fetched)
     assert any(p.reference.start.year == 2025 for p in result.datapoints)
+
+
+async def test_fetch_release_on_fresh_instance_uses_rediscovered_release(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    aioclient_mock.get(
+        PORTAL_URL, text=(FIXTURES / "portal.html").read_text(encoding="utf-8")
+    )
+    links = discover_workbooks(
+        (FIXTURES / "portal.html").read_text(encoding="utf-8"), PORTAL_URL
+    )
+    for year, url in links.items():
+        aioclient_mock.head(
+            url,
+            headers={"Last-Modified": f"Fri, 04 Sep 2026 10:13:{year % 60:02d} GMT"},
+        )
+        fixture = FIXTURES / f"defence-data-{year}.xlsx"
+        aioclient_mock.get(
+            url,
+            content=fixture.read_bytes()
+            if fixture.exists()
+            else (FIXTURES / "defence-data-2022.xlsx").read_bytes(),
+        )
+    provider = EdaProvider()
+    session = async_get_clientsession(hass)
+    stale = SourceRelease(
+        "eda", "2019:stale", date(2020, 1, 1), URL_2025, PORTAL_URL, "xlsx"
+    )
+    fetched, payload = await provider.async_fetch_release(session, stale)
+    assert fetched.release_id.startswith("2025:")
+    assert fetched.published_at == date(2026, 9, 4)
+    assert fetched.download_url == URL_2025
+    result = provider.parse_release(payload, fetched)
+    assert any(p.reference.start.year == 2025 for p in result.datapoints)
