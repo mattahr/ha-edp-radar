@@ -371,3 +371,71 @@ diagnostics. Quality gate unchanged.
 **S20 — Out of scope for this plan.** Entities, devices, translations and the
 version bump (0.3.0 with the sensors); `gov_10a_exp` (plan §25); budget
 utilisation without a source; any EDA metric not verified in profiling.
+
+## 7.3 Findings from the source profile and execution rulings (2026-09-13)
+
+**S21 — Provider exceptions are fully isolated.**
+`SpendingCoordinator._async_refresh_provider` catches `SourceUnavailableError`
+and `SchemaChangedError` explicitly, then any other `Exception` (→
+`parser_error`, logged with `_LOGGER.exception` for the traceback);
+`asyncio.CancelledError` is a `BaseException`, not an `Exception`, and still
+propagates. This replaces the plan's closed exception list so the isolation
+in plan §64 holds for exception types the plan did not foresee.
+
+**S22 — A cache miss returns the release that describes the fetched
+payload, never the one requested.** `EurostatProvider.async_fetch_release`
+re-derives the release from the fresh JSON's `updated` field when its
+discovery cache is empty (e.g. after a Home Assistant restart);
+`EdaProvider.async_fetch_release` re-discovers and returns the freshly
+discovered release when its per-year link cache is empty;
+`SipriProvider.async_fetch_release` keeps the HEAD-discovered
+ETag/Last-Modified only when the GET response carries none of its own. In
+every case a stale requested
+release is never stamped onto newly fetched bytes.
+
+**S23 — HTTP helper details.** `async_fetch_bytes` and `async_head_metadata`
+(`spending/providers/base.py`) wrap the request in `async with` on both the
+timeout and the response, so every path — success, timeout, HTTP error —
+releases the aiohttp response; the keyword parameter is `request_timeout`,
+not `timeout` (ruff `ASYNC109` flags the shadowed name otherwise).
+`SpendingStore.async_save(immediate=True)` also rewrites sources whose
+delayed write is still pending, not only the ones marked dirty since the
+last save, so an unload never loses the last fetched release.
+
+**S24 — Profile findings that shape Plan 2 (sensors).**
+
+(a) EDA publishes country-level equipment procurement and R&D expenditure
+only through 2021 (`Billions` sheet, frozen history); the 2022–2025
+workbooks add total expenditure, investment, % GDP, % government
+expenditure and per-capita spending but carry no country-level
+equipment/R&D breakdown for those years.
+
+(b) Eurostat's latest year has fewer reporting countries than the year
+before it: the live `gov_ev` release covers 22 of 27 member states for 2025
+(ES, IT, NL, CY, IE missing) against 25 of 27 for 2024 (IT, CY missing) —
+Sweden ranks #4 of 22 for 2025 but #6 of 25 for 2024, so a ranking sensor
+must expose the population it was computed over, not just the rank.
+
+(c) NATO's 2025 and 2026 figures are estimates; for the still-unfinished
+2026 reference year the reference age computed against today is negative,
+which needs explicit labelling rather than being read as a data error.
+
+(d) SIPRI stores Iceland's military expenditure as 0 (it has no armed
+forces); Nordic comparison sensors should label or exclude it rather than
+let a true zero skew a median or a "lowest" ranking.
+
+(e) The human-readable Statskontoret outturn page exposes the `SB + ÄB`
+budget column only at the aggregate (whole-budget) level — the UO6 row
+itself is absent — so there is still no per-expenditure-area budget figure
+with provenance. Budget utilisation (plan §53) stays omitted (S16) unless
+another official source with per-area figures is found.
+
+(f) SIPRI is stored from `MIN_YEAR = 1990` onward, to bound storage size;
+the source workbook itself covers 1949 onward.
+
+**S25 — Statskontoret fixture fetching needs its own HTTP handling.**
+Python 3.14's `urllib`/`http.client` default to `Accept-Encoding: identity`,
+which statskontoret.se rejects; `scripts/fetch_spending_fixtures.py`
+therefore requests `gzip, deflate` explicitly and decompresses the response
+itself. The runtime provider fetches through the Home Assistant aiohttp
+session, which negotiates encoding normally, so it is unaffected.

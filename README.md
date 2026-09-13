@@ -407,6 +407,10 @@ The 24-month data profile behind these rules, with every anomaly found, is in
 - Multi-buyer notices are flattened by TED, so the defence buyer inside a
   central purchasing list cannot be singled out.
 
+## Defence spending data layer (Phase 3, data only)
+
+Version 0.2.x ingests five spending sources into per-source stores — Statskontoret monthly budget outturn (SEK, appropriations 6:1:x incl. 1:3 materiel), Eurostat `gov_ev` (defence expenditure and investment, EU27), NATO defence expenditure tables, EDA defence data (member-state level) and the SIPRI Military Expenditure Database. Every value keeps its source, reference period, status (`actual`, `preliminary`, `provisional`, `estimate`, `projection`, `budget`), publication date and release; sources are never merged or ranked against each other. The requirement `openpyxl` reads the XLSX sources. Entities for this layer arrive in the next release; until then the data is visible in the integration diagnostics (`spending`) and in `docs/phase3-source-profile.md`. Provider details: `docs/providers/`.
+
 ## Dashboard examples
 
 See [`docs/dashboard-example.yaml`](docs/dashboard-example.yaml) for a full
