@@ -175,10 +175,46 @@ def fetch_nato(cache: Path) -> None:
         )
 
 
+# --------------------------------------------------------------------------- EDA
+
+EDA_PORTAL = "https://www.eda.europa.eu/publications-and-data/defence-data"
+_EDA_ANCHOR = re.compile(
+    r"""<a[^>]*href=(?:"|')[^"']*\.xlsx(?:"|')[^>]*>\s*(?:<span>)?\s*"""
+    r"""Defence Data \d{4}\s*(?:</span>)?\s*</a>""",
+    re.I | re.S,
+)
+_EDA_LINK = re.compile(
+    r"""href=(["'])([^"']*\.xlsx)\1[^>]*>\s*(?:<span>)?\s*Defence Data (\d{4})""",
+    re.I | re.S,
+)
+
+
+def trim_eda_portal(html: str) -> str:
+    anchors = _EDA_ANCHOR.findall(html)
+    return (
+        '<!DOCTYPE html>\n<html lang="en"><body>\n'
+        + "\n".join(anchors)
+        + "\n</body></html>\n"
+    )
+
+
+def fetch_eda(cache: Path) -> None:
+    folder = FIXTURES / "eda"
+    portal = download(EDA_PORTAL, cache, "eda-portal.html").decode("utf-8", "replace")
+    write(folder / "portal.html", trim_eda_portal(portal).encode("utf-8"))
+    links = {int(year): url for _, url, year in _EDA_LINK.findall(portal)}
+    for year in (2025, 2022):
+        write(
+            folder / f"defence-data-{year}.xlsx",
+            download(links[year], cache, f"eda-{year}.xlsx"),
+        )
+
+
 FETCHERS = {
     "statskontoret": fetch_statskontoret,
     "eurostat": fetch_eurostat,
     "nato": fetch_nato,
+    "eda": fetch_eda,
 }
 
 
