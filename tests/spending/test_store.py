@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.edp_radar.const import DOMAIN
 from custom_components.edp_radar.spending.models import (
@@ -18,6 +20,7 @@ from custom_components.edp_radar.spending.models import (
     SpendingDataPoint,
 )
 from custom_components.edp_radar.spending.store import (
+    SAVE_DELAY_SECONDS,
     SCHEMA_VERSION,
     SpendingStore,
     storage_key,
@@ -232,3 +235,52 @@ async def test_set_health_and_remove(
     )  # untouched sources are not written
     await store.async_remove()
     assert not [k for k in hass_storage if ".spending." in k]
+
+
+async def test_delayed_save_writes_after_the_delay(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    first = _release("2025-12-preliminar-2026-01-28", date(2026, 1, 28))
+    store.apply_release(
+        "statskontoret",
+        first,
+        [_point("materiel_outturn", 2025, 11, "3638.46181911", first)],
+        now=NOW,
+    )
+    await store.async_save()
+    assert storage_key(ENTRY, "statskontoret") not in hass_storage
+
+    async_fire_time_changed(
+        hass, dt_util.utcnow() + timedelta(seconds=SAVE_DELAY_SECONDS + 1)
+    )
+    await hass.async_block_till_done()
+    stored = hass_storage[storage_key(ENTRY, "statskontoret")]["data"]
+    assert len(stored["series"]["datapoints"]) == 1
+
+
+async def test_immediate_save_flushes_a_pending_delayed_write(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    first = _release("2025-12-preliminar-2026-01-28", date(2026, 1, 28))
+    store.apply_release(
+        "statskontoret",
+        first,
+        [_point("materiel_outturn", 2025, 11, "3638.46181911", first)],
+        now=NOW,
+    )
+    await store.async_save()
+    assert storage_key(ENTRY, "statskontoret") not in hass_storage
+
+    await store.async_save(immediate=True)
+    stored = hass_storage[storage_key(ENTRY, "statskontoret")]["data"]
+    assert len(stored["series"]["datapoints"]) == 1
+
+    async_fire_time_changed(
+        hass, dt_util.utcnow() + timedelta(seconds=SAVE_DELAY_SECONDS + 1)
+    )
+    await hass.async_block_till_done()
+    assert hass_storage[storage_key(ENTRY, "statskontoret")]["data"] == stored
