@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -107,3 +108,58 @@ async def test_diagnostics_shape(
     assert fx["first_date"] == "2026-09-08"
     assert "SEK" in fx["currencies"]
     assert "notices" not in diagnostics
+
+
+@pytest.mark.spending_live
+async def test_spending_diagnostics(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    from .spending.mocks import mock_spending_sources
+
+    freezer.move_to(NOW)
+    mock_spending_sources(mock_backend)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="test-entry",
+        unique_id=DOMAIN,
+        data={},
+        options=FULL_OPTIONS,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    spending = diagnostics["spending"]
+    assert sorted(spending) == ["eda", "eurostat", "nato", "sipri", "statskontoret"]
+    sk = spending["statskontoret"]
+    assert sk["health"]["state"] == "available"
+    assert sk["release"]["release_id"] == "2026-07-definitiv-2026-08-24"
+    assert sk["release"]["published_at"] == "2026-08-24"
+    assert sk["datapoints"] == 57
+    assert sk["countries"] == ["SE"]
+    assert sk["metrics"] == [
+        "materiel_outturn",
+        "uo6_defence_outturn",
+        "uo6_total_outturn",
+    ]
+    assert sk["latest_reference"] == {
+        "start": "2026-07-01",
+        "end": "2026-07-31",
+        "label": "Jul 2026",
+    }
+    assert sk["freshness"] == {
+        "state": "current",
+        "publication_age_days": 19,
+        "reference_age_days": 43,
+    }
+    assert sk["revisions"] == 0
+    assert sk["schema_version"] == 1
+    assert sk["parse_warnings"] == []
+    nato = spending["nato"]
+    assert nato["latest_reference"]["label"] == "2026"
+    assert set(nato["statuses"]) == {"actual", "estimate"}
+    assert set(nato["countries"]) >= {"SE", "US", "TR"}
+    json.dumps(diagnostics)  # serialisable

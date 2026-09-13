@@ -5,6 +5,7 @@ No notices are dumped; nothing in the options is sensitive.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import fields
 from datetime import date, datetime
@@ -13,11 +14,21 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .coordinator import EdpRadarConfigEntry
 from .metrics import Coverage, DataQualityMetrics, RadarSnapshot, WatchlistConfig
 from .purchasing_attrs import europe_attrs, period_attrs, summary_attrs
+from .spending.calculations import latest_reference
+from .spending.freshness import (
+    freshness_state,
+    publication_age_days,
+    reference_age_days,
+)
+from .spending.models import SourceSeries
+from .spending.registry import source_spec
+from .spending.store import SCHEMA_VERSION as SPENDING_SCHEMA_VERSION
 
 
 def _plain(value: Any) -> Any:
@@ -74,12 +85,49 @@ def _purchasing(snapshot: RadarSnapshot, my_country: str | None) -> dict[str, An
     }
 
 
+def _spending_series(series: SourceSeries, today: date) -> dict[str, Any]:
+    """One diagnostics block per source (plan §80): metadata only, no values."""
+    metrics = sorted({p.metric_id for p in series.datapoints})
+    latest = None
+    for metric_id in metrics:
+        candidate = latest_reference(series.datapoints, metric_id, min_countries=1)
+        if candidate and (latest is None or candidate.end > latest.end):
+            latest = candidate
+    published = series.release.published_at if series.release else None
+    return {
+        "health": series.health.to_dict(),
+        "release": None if series.release is None else series.release.to_dict(),
+        "retrieved_at": _plain(series.retrieved_at),
+        "datapoints": len(series.datapoints),
+        "countries": sorted({p.country for p in series.datapoints}),
+        "metrics": metrics,
+        "statuses": dict(Counter(p.status.value for p in series.datapoints)),
+        "latest_reference": None if latest is None else latest.to_dict(),
+        "freshness": {
+            "state": freshness_state(
+                source_spec(series.source_id),
+                latest.end if latest else None,
+                published,
+                today,
+            ).value,
+            "publication_age_days": publication_age_days(published, today),
+            "reference_age_days": None
+            if latest is None
+            else reference_age_days(latest.end, today),
+        },
+        "parse_warnings": list(series.health.warnings),
+        "revisions": len(series.revisions),
+        "schema_version": SPENDING_SCHEMA_VERSION,
+    }
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: EdpRadarConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     integration = await async_get_integration(hass, DOMAIN)
-    coordinator = entry.runtime_data.radar
+    runtime = entry.runtime_data
+    coordinator = runtime.radar
     config = coordinator.config
     metrics = config.metrics
     own = metrics.own_organisation
@@ -145,5 +193,9 @@ async def async_get_config_entry_diagnostics(
             "first_date": _plain(store.fx.dates[0]) if len(store.fx) else None,
             "date_count": len(store.fx),
             "currencies": sorted(store.fx.currencies()),
+        },
+        "spending": {
+            source_id: _spending_series(series, dt_util.now().date())
+            for source_id, series in runtime.spending.store.series.items()
         },
     }
