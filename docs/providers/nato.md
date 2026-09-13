@@ -34,6 +34,7 @@ Header `YYYYe` → `estimate`; otherwise `actual`. The 2026 workbook marks 2025 
 
 - Equipment value is derived, not published; the derivation is explicit and tested (plan §30).
 - Discovery depends on the archive anchor pattern `def-exp-YYYY-en.pdf` and on the XLSX sharing its path.
+- Constant-price sheet and unit year are hard-coded (S27): "constant 2021" / `USD_MILLION_CONSTANT_2021`. A future edition's base-year change will raise `schema_changed`, and because `unit` is part of the datapoint key the old series would be carried over next to the new one.
 
 ## Fixtures
 

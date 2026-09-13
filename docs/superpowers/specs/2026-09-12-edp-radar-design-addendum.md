@@ -372,7 +372,7 @@ diagnostics. Quality gate unchanged.
 version bump (0.3.0 with the sensors); `gov_10a_exp` (plan §25); budget
 utilisation without a source; any EDA metric not verified in profiling.
 
-## 7.3 Findings from the source profile and execution rulings (2026-09-13)
+### 7.3 Findings from the source profile and execution rulings (2026-09-13)
 
 **S21 — Provider exceptions are fully isolated.**
 `SpendingCoordinator._async_refresh_provider` catches `SourceUnavailableError`
@@ -439,3 +439,36 @@ which statskontoret.se rejects; `scripts/fetch_spending_fixtures.py`
 therefore requests `gzip, deflate` explicitly and decompresses the response
 itself. The runtime provider fetches through the Home Assistant aiohttp
 session, which negotiates encoding normally, so it is unaffected.
+
+**S26 — Statskontoret December status window.** Between the January release
+(published mid-February, e.g. 2026-02-18) and the definitive December release
+(late March, e.g. 2026-03-24), discovery selects `?year=<Y>` whose December
+Y-1 column still holds the preliminary figure, yet it is labelled `actual`
+because only the release month gets the release status; revisions capture the
+later value change. Fix (owner decision, Plan 2): read `?year=<Y-1>` as well
+and label December `preliminary` until a `Definitiv` December entry exists.
+
+**S27 — Constant-price sheet and unit years are hard-coded.** SIPRI
+`Constant (2024) US$` / `USD_MILLION_CONSTANT_2024` and NATO "constant 2021" /
+`USD_MILLION_CONSTANT_2021` are literals. The next SIPRI edition (April 2027,
+base year 2025) will raise `schema_changed` until the constant is updated,
+and because `unit` is part of the datapoint key the old series would be
+carried over next to the new one rather than replaced. Before sensors depend
+on `unit` (Plan 2): discover the base year from the sheet name and decide the
+carry-over policy for unit changes.
+
+**S28 — Health updates rewrite the whole series file.** `set_health` marks
+the source dirty, so every unchanged-release check rewrites the full store
+file (≈5 MB for SIPRI). Acceptable for now; Plan 2 should split health into a
+small separate store or skip persistence on the unchanged path.
+
+**S29 — Conditional GET is not exercised at runtime.** No caller passes
+`previous=` to `async_fetch_bytes`; re-download avoidance comes from
+discovery (HEAD validators inside the release id), which is sufficient.
+Either wire the stored release into `async_fetch_release` or remove the
+`previous` path in Plan 2.
+
+S14's "no background bootstrap" still holds — one full fetch, not a trickle —
+but the *first* refresh after setup runs as an entry background task
+(`entry.async_create_background_task`, `custom_components/edp_radar/__init__.py`)
+so a slow source never delays setup.

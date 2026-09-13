@@ -34,6 +34,7 @@
 
 - No budget figure (anslagsbelopp) in the CSV: budget utilisation needs another official source (see `docs/phase3-source-profile.md`).
 - The discovery page is HTML; the parser depends on `<li class="data">`, `<h2>`, `<dt>Senast uppdaterad</dt><dd>` and the `GetFile` query parameters.
+- December status window (S26): between the January release and the definitive December release in late March, the selected `?year=<Y>` page's December Y-1 column holds the preliminary figure but is labelled `actual`, since only the release month carries the release status.
 
 ## Fixtures
 
