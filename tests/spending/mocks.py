@@ -37,7 +37,11 @@ def mock_spending_sources(
     page = (FIXTURES / "statskontoret" / "discovery-2026.html").read_text(
         encoding="utf-8"
     )
-    for year in {today.year, today.year - 1, 2026}:
+    page_2025 = (FIXTURES / "statskontoret" / "discovery-2025.html").read_text(
+        encoding="utf-8"
+    )
+    aioclient_mock.get(f"{DISCOVERY_URL}?year=2025", text=page_2025)
+    for year in {today.year, today.year - 1, 2026} - {2025}:
         aioclient_mock.get(f"{DISCOVERY_URL}?year={year}", text=page)
     csv = (FIXTURES / "statskontoret" / "utgifter-2026-07.csv").read_bytes()
     for release in parse_discovery_page(page, f"{DISCOVERY_URL}?year=2026"):

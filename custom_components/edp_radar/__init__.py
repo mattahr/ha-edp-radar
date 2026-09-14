@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 
 from .api import TedApiClient
 from .config import RadarConfig
@@ -86,7 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) -> 
         entry,
         session=session,
         store=SpendingStore(hass, entry.entry_id),
-        providers=all_providers(),
+        providers=all_providers(today=lambda: dt_util.now().date()),
     )
     await spending.async_setup()
     entry.runtime_data = RuntimeData(radar=coordinator, spending=spending)

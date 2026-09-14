@@ -21,6 +21,7 @@ from custom_components.edp_radar.spending.providers.statskontoret import (
     DISCOVERY_URL,
     MATERIEL_APPROPRIATION,
     StatskontoretProvider,
+    december_is_definitive,
     parse_discovery_page,
     parse_outturn_csv,
     release_from,
@@ -144,6 +145,7 @@ async def test_provider_discovers_and_fetches(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
     aioclient_mock.get(PAGE_2026, text=_page(2026))
+    aioclient_mock.get(PAGE_2025, text=_page(2025))
     provider = StatskontoretProvider(today=lambda: date(2026, 9, 12))
     session = async_get_clientsession(hass)
     release = await provider.async_discover_latest(session)
@@ -161,6 +163,7 @@ async def test_provider_fetches_zipped_csv(
 ) -> None:
     """The real download is a Zip; the provider must unzip it, not just read CSV."""
     aioclient_mock.get(PAGE_2026, text=_page(2026))
+    aioclient_mock.get(PAGE_2025, text=_page(2025))
     provider = StatskontoretProvider(today=lambda: date(2026, 9, 12))
     session = async_get_clientsession(hass)
     release = await provider.async_discover_latest(session)
@@ -195,6 +198,7 @@ async def test_provider_falls_back_to_previous_year_in_january(
         f"{DISCOVERY_URL}?year=2027", text="<html><body><ul></ul></body></html>"
     )
     aioclient_mock.get(f"{DISCOVERY_URL}?year=2026", text=_page(2026))
+    aioclient_mock.get(PAGE_2025, text=_page(2025))
     provider = StatskontoretProvider(today=lambda: date(2027, 1, 5))
     release = await provider.async_discover_latest(async_get_clientsession(hass))
     assert release.release_id == "2026-07-definitiv-2026-08-24"
@@ -271,3 +275,71 @@ def test_zip_member_that_under_reports_its_size_is_still_capped(
     )
     with pytest.raises(SourceUnavailableError, match="larger than 10 bytes"):
         parse_outturn_csv(_zip("utfall.csv", b"x" * 11), release)
+
+
+def test_december_is_definitive_reads_the_previous_year_page() -> None:
+    releases = parse_discovery_page(_page(2025), PAGE_2025)
+    assert december_is_definitive(releases, 2025)
+    assert not december_is_definitive(releases, 2024)
+    only_preliminary = [r for r in releases if not (r.month == 12 and r.is_definitive)]
+    assert not december_is_definitive(only_preliminary, 2025)
+
+
+def test_previous_december_is_preliminary_until_definitive() -> None:
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    payload = _csv("utgifter-2026-07.csv")
+    pending = parse_outturn_csv(payload, release, previous_december_definitive=False)
+    by_month = {
+        (p.metric_id, p.reference.start.year, p.reference.start.month): p
+        for p in pending.datapoints
+    }
+    assert (
+        by_month[("materiel_outturn", 2025, 12)].status is DatapointStatus.PRELIMINARY
+    )
+    assert by_month[("materiel_outturn", 2025, 11)].status is DatapointStatus.ACTUAL
+    assert by_month[("materiel_outturn", 2026, 7)].status is DatapointStatus.ACTUAL
+    settled = parse_outturn_csv(payload, release, previous_december_definitive=True)
+    assert all(p.status is DatapointStatus.ACTUAL for p in settled.datapoints)
+
+
+async def test_provider_labels_december_from_the_previous_year_page(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    page_2025 = _page(2025)
+    without_definitive = page_2025[
+        : page_2025.index("Utgifter december 2025 &#x2014; definitiv")
+    ]
+    aioclient_mock.get(PAGE_2026, text=_page(2026))
+    aioclient_mock.get(PAGE_2025, text=without_definitive)
+    csv_url = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    ).download_url
+    aioclient_mock.get(csv_url, content=_csv("utgifter-2026-07.csv"))
+    provider = StatskontoretProvider(today=lambda: date(2026, 9, 14))
+    session = async_get_clientsession(hass)
+    release = await provider.async_discover_latest(session)
+    fetched, payload = await provider.async_fetch_release(session, release)
+    result = provider.parse_release(payload, fetched)
+    december = next(
+        p
+        for p in result.datapoints
+        if p.metric_id == "materiel_outturn" and p.reference.start == date(2025, 12, 1)
+    )
+    assert december.status is DatapointStatus.PRELIMINARY
+    assert [str(call[1]) for call in aioclient_mock.mock_calls[:2]] == [
+        PAGE_2026,
+        PAGE_2025,
+    ]
+
+
+def test_short_rows_are_counted_as_a_warning() -> None:
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    text = _csv("utgifter-2026-07.csv").decode("utf-8-sig")
+    lines = text.splitlines()
+    lines.insert(2, "06;Försvar;0601003;kort rad")
+    result = parse_outturn_csv("\n".join(lines).encode("utf-8"), release)
+    assert result.warnings == ("1 rows shorter than the header were skipped",)

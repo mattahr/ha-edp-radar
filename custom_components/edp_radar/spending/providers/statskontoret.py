@@ -75,7 +75,6 @@ class DiscoveredRelease:
     status_raw: str
     updated: date | None
     csv_url: str
-    heading: str
 
     @property
     def is_definitive(self) -> bool:
@@ -83,13 +82,12 @@ class DiscoveredRelease:
 
 
 class _DiscoveryParser(HTMLParser):
-    """Collect heading, ``Senast uppdaterad`` and links per ``<li class="data">``."""
+    """Collect ``Senast uppdaterad`` and links per ``<li class="data">``."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.entries: list[tuple[str, str | None, list[str]]] = []
+        self.entries: list[tuple[str | None, list[str]]] = []
         self._in_entry = False
-        self._heading: list[str] = []
         self._updated: str | None = None
         self._links: list[str] = []
         self._capture: str | None = None
@@ -98,14 +96,7 @@ class _DiscoveryParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
         if tag == "li" and "data" in (attributes.get("class") or "").split():
-            self._in_entry, self._heading, self._updated, self._links = (
-                True,
-                [],
-                None,
-                [],
-            )
-        elif self._in_entry and tag == "h2":
-            self._capture = "h2"
+            self._in_entry, self._updated, self._links = True, None, []
         elif self._in_entry and tag == "dt":
             self._capture = "dt"
         elif self._in_entry and tag == "dd" and self._await_dd:
@@ -114,9 +105,7 @@ class _DiscoveryParser(HTMLParser):
             self._links.append(attributes["href"] or "")
 
     def handle_data(self, data: str) -> None:
-        if self._capture == "h2":
-            self._heading.append(data)
-        elif self._capture == "dt":
+        if self._capture == "dt":
             self._await_dd = "senast uppdaterad" in data.casefold()
         elif self._capture == "dd":
             match = _DATE.search(data)
@@ -125,12 +114,10 @@ class _DiscoveryParser(HTMLParser):
             self._await_dd = False
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"h2", "dt", "dd"}:
+        if tag in {"dt", "dd"}:
             self._capture = None
         elif tag == "li" and self._in_entry:
-            self.entries.append(
-                ("".join(self._heading).strip(), self._updated, self._links)
-            )
+            self.entries.append((self._updated, self._links))
             self._in_entry = False
 
 
@@ -139,7 +126,7 @@ def parse_discovery_page(html_text: str, page_url: str) -> list[DiscoveredReleas
     parser = _DiscoveryParser()
     parser.feed(html_text)
     releases: list[DiscoveredRelease] = []
-    for heading, updated, links in parser.entries:
+    for updated, links in parser.entries:
         for href in links:
             query = parse_qs(urlsplit(href).query)
             if query.get("documentType") != ["Utgift"] or query.get("fileType") != [
@@ -161,7 +148,6 @@ def parse_discovery_page(html_text: str, page_url: str) -> list[DiscoveredReleas
                     status_raw=status_raw,
                     updated=date.fromisoformat(updated) if updated else None,
                     csv_url=urljoin(page_url, href),
-                    heading=heading,
                 )
             )
     releases.sort(key=lambda r: (r.year, r.month, r.is_definitive))
@@ -172,6 +158,11 @@ def select_latest(releases: list[DiscoveredRelease]) -> DiscoveredRelease:
     if not releases:
         raise SchemaChangedError("no Utgifter releases found on the Statskontoret page")
     return releases[-1]
+
+
+def december_is_definitive(releases: list[DiscoveredRelease], year: int) -> bool:
+    """Whether the page lists a definitive December for ``year`` (S38)."""
+    return any(r.year == year and r.month == 12 and r.is_definitive for r in releases)
 
 
 def status_of(status_raw: str) -> DatapointStatus:
@@ -249,8 +240,34 @@ def _decimal(text: str) -> Decimal | None:
         raise SchemaChangedError(f"non-numeric outturn value {text!r}") from err
 
 
-def parse_outturn_csv(payload: bytes, release: SourceRelease) -> ParseResult:
-    """Sum the three metrics per (year, month) from the appropriation rows."""
+def _month_status(
+    year: int,
+    month: int,
+    release_year: int,
+    release_month: int,
+    release_status: DatapointStatus,
+    previous_december_definitive: bool,
+) -> DatapointStatus:
+    if (year, month) == (release_year, release_month):
+        return release_status
+    if (year, month) == (release_year - 1, 12) and not previous_december_definitive:
+        return DatapointStatus.PRELIMINARY
+    return DatapointStatus.ACTUAL
+
+
+def parse_outturn_csv(
+    payload: bytes,
+    release: SourceRelease,
+    *,
+    previous_december_definitive: bool = True,
+) -> ParseResult:
+    """Sum the three metrics per (year, month) from the appropriation rows.
+
+    December of the year before the release stays ``preliminary`` until the
+    source lists a definitive December for it (S38): between the January
+    release (February) and the definitive December release (March) its value
+    is still the preliminary one.
+    """
     release_year, release_month, release_status = _release_period(release)
     reader = csv.reader(io.StringIO(_csv_text(payload)), delimiter=";")
     header = next(reader, None)
@@ -262,8 +279,10 @@ def parse_outturn_csv(payload: bytes, release: SourceRelease) -> ParseResult:
     index = {name: header.index(name) for name in REQUIRED_COLUMNS}
     sums: dict[tuple[str, int, int], Decimal] = {}
     matched_rows = 0
+    short_rows = 0
     for row in reader:
         if len(row) < len(header):
+            short_rows += 1
             continue
         area, anslag = row[index["Utgiftsområde"]], row[index["Anslag"]]
         if area != EXPENDITURE_AREA:
@@ -293,16 +312,26 @@ def parse_outturn_csv(payload: bytes, release: SourceRelease) -> ParseResult:
             reference=ReferencePeriod.month(year, month),
             value=value,
             unit=UNIT,
-            status=release_status
-            if (year, month) == (release_year, release_month)
-            else DatapointStatus.ACTUAL,
+            status=_month_status(
+                year,
+                month,
+                release_year,
+                release_month,
+                release_status,
+                previous_december_definitive,
+            ),
             release_id=release.release_id,
             published_at=release.published_at,
             source_url=release.canonical_url,
         )
         for (metric_id, year, month), value in sorted(sums.items())
     )
-    return ParseResult(datapoints, (), ";".join(header))
+    warnings = (
+        (f"{short_rows} rows shorter than the header were skipped",)
+        if short_rows
+        else ()
+    )
+    return ParseResult(datapoints, warnings, ";".join(header))
 
 
 class StatskontoretProvider:
@@ -311,20 +340,30 @@ class StatskontoretProvider:
     def __init__(self, *, today: Callable[[], date] = date.today) -> None:
         self.spec = source_spec(STATSKONTORET)
         self._today = today
+        self._previous_december_definitive = True
 
     async def async_discover_latest(self, session: ClientSession) -> SourceRelease:
         year = self._today().year
         for candidate in (year, year - 1):
             page_url = f"{DISCOVERY_URL}?year={candidate}"
-            page = await async_fetch_bytes(session, page_url)
-            releases = parse_discovery_page(
-                page.payload.decode("utf-8", "replace"), page_url
-            )
+            releases = await self._async_releases(session, page_url)
             if releases:
-                return release_from(select_latest(releases), page_url)
+                latest = select_latest(releases)
+                previous_url = f"{DISCOVERY_URL}?year={latest.year - 1}"
+                previous = await self._async_releases(session, previous_url)
+                self._previous_december_definitive = december_is_definitive(
+                    previous, latest.year - 1
+                )
+                return release_from(latest, page_url)
         raise SchemaChangedError(
             "Statskontoret lists no Utgifter releases for this or last year"
         )
+
+    async def _async_releases(
+        self, session: ClientSession, page_url: str
+    ) -> list[DiscoveredRelease]:
+        page = await async_fetch_bytes(session, page_url)
+        return parse_discovery_page(page.payload.decode("utf-8", "replace"), page_url)
 
     async def async_fetch_release(
         self, session: ClientSession, release: SourceRelease
@@ -335,4 +374,8 @@ class StatskontoretProvider:
     def parse_release(self, payload: Payload, release: SourceRelease) -> ParseResult:
         if not isinstance(payload, bytes):
             raise SchemaChangedError("Statskontoret expects a single CSV/Zip payload")
-        return parse_outturn_csv(payload, release)
+        return parse_outturn_csv(
+            payload,
+            release,
+            previous_december_definitive=self._previous_december_definitive,
+        )
