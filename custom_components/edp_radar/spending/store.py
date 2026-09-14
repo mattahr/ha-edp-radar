@@ -154,9 +154,9 @@ class SpendingStore:
         existing = {point.key: point for point in current.datapoints}
         # S39: a datapoint whose key differs from a new one only in ``unit``
         # (constant-price base year moved) is replaced, not kept beside it.
-        by_base: dict[tuple[str, ...], DatapointKey] = {
-            key[:5]: key for key in existing
-        }
+        by_base: dict[tuple[str, ...], list[DatapointKey]] = {}
+        for key in existing:
+            by_base.setdefault(key[:5], []).append(key)
         incoming: dict[DatapointKey, SpendingDataPoint] = {}
         duplicates = 0
         for point in datapoints:
@@ -170,28 +170,29 @@ class SpendingStore:
         for key, point in incoming.items():
             previous = existing.get(key)
             if previous is None:
-                old_key = by_base.get(key[:5])
-                old = (
-                    merged.pop(old_key, None)
-                    if old_key is not None and old_key not in incoming
-                    else None
-                )
-                if old is None:
+                old_keys = [
+                    k
+                    for k in by_base.get(key[:5], ())
+                    if k not in incoming and k in merged
+                ]
+                if not old_keys:
                     added += 1
                 else:
-                    superseded += 1
-                    change = (old.unit, point.unit)
-                    unit_changes[change] = unit_changes.get(change, 0) + 1
-                    revisions.append(
-                        Revision(
-                            key=point.key,
-                            previous_value=old.value,
-                            previous_release_id=old.release_id,
-                            new_value=point.value,
-                            release_id=point.release_id,
-                            detected_at=now,
+                    for old_key in old_keys:
+                        old = merged.pop(old_key)
+                        superseded += 1
+                        change = (old.unit, point.unit)
+                        unit_changes[change] = unit_changes.get(change, 0) + 1
+                        revisions.append(
+                            Revision(
+                                key=point.key,
+                                previous_value=old.value,
+                                previous_release_id=old.release_id,
+                                new_value=point.value,
+                                release_id=point.release_id,
+                                detected_at=now,
+                            )
                         )
-                    )
             elif previous.value != point.value:
                 updated += 1
                 revisions.append(

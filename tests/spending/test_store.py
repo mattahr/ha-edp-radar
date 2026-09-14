@@ -510,3 +510,116 @@ async def test_revisions_are_capped(
         )
     revisions = store.get("statskontoret").revisions
     assert [r.release_id for r in revisions] == ["r4", "r5", "r6"]
+
+
+async def test_two_new_units_in_one_release_never_orphan_the_old_series(
+    hass: HomeAssistant,
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    v1 = SourceRelease(
+        "sipri", "v1", date(2026, 4, 27), "d", "c", "xlsx", checksum="v1"
+    )
+    p2024 = SpendingDataPoint(
+        "sipri",
+        "military_expenditure_usd_constant",
+        "SE",
+        ReferencePeriod.year(2024),
+        Decimal("12046"),
+        "USD_MILLION_CONSTANT_2024",
+        DatapointStatus.ACTUAL,
+        "v1",
+        v1.published_at,
+        "u",
+    )
+    store.apply_release("sipri", v1, [p2024], now=NOW)
+
+    v2 = SourceRelease(
+        "sipri", "v2", date(2027, 4, 26), "d", "c", "xlsx", checksum="v2"
+    )
+    p2025 = dataclasses.replace(
+        p2024, value=Decimal("12400"), unit="USD_MILLION_CONSTANT_2025", release_id="v2"
+    )
+    p2026 = dataclasses.replace(
+        p2024, value=Decimal("12500"), unit="USD_MILLION_CONSTANT_2026", release_id="v2"
+    )
+    result_v2 = store.apply_release(
+        "sipri", v2, [p2025, p2026], now=NOW + timedelta(days=365)
+    )
+    assert result_v2.added == 1
+    assert result_v2.superseded == 1
+    assert len(result_v2.revisions) == 1
+    series_v2 = store.get("sipri")
+    assert {p.unit for p in series_v2.datapoints} == {
+        "USD_MILLION_CONSTANT_2025",
+        "USD_MILLION_CONSTANT_2026",
+    }
+    assert series_v2.health.warnings == (
+        "unit changed USD_MILLION_CONSTANT_2024 → USD_MILLION_CONSTANT_2025 "
+        "for 1 datapoints",
+    )
+
+    v3 = SourceRelease(
+        "sipri", "v3", date(2028, 4, 25), "d", "c", "xlsx", checksum="v3"
+    )
+    p2027 = dataclasses.replace(
+        p2024, value=Decimal("12600"), unit="USD_MILLION_CONSTANT_2027", release_id="v3"
+    )
+    result_v3 = store.apply_release("sipri", v3, [p2027], now=NOW + timedelta(days=730))
+    assert result_v3.superseded == 2
+    series_v3 = store.get("sipri")
+    assert {p.unit for p in series_v3.datapoints} == {"USD_MILLION_CONSTANT_2027"}
+    assert len(result_v3.revisions) == 2
+    assert {revision.previous_value for revision in result_v3.revisions} == {
+        Decimal("12400"),
+        Decimal("12500"),
+    }
+    assert series_v3.health.warnings == (
+        "unit changed USD_MILLION_CONSTANT_2025 → USD_MILLION_CONSTANT_2027 "
+        "for 1 datapoints",
+        "unit changed USD_MILLION_CONSTANT_2026 → USD_MILLION_CONSTANT_2027 "
+        "for 1 datapoints",
+    )
+
+
+async def test_old_unit_present_in_the_release_is_not_superseded(
+    hass: HomeAssistant,
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    v1 = SourceRelease(
+        "sipri", "v1", date(2026, 4, 27), "d", "c", "xlsx", checksum="v1"
+    )
+    p2024 = SpendingDataPoint(
+        "sipri",
+        "military_expenditure_usd_constant",
+        "SE",
+        ReferencePeriod.year(2024),
+        Decimal("12046"),
+        "USD_MILLION_CONSTANT_2024",
+        DatapointStatus.ACTUAL,
+        "v1",
+        v1.published_at,
+        "u",
+    )
+    store.apply_release("sipri", v1, [p2024], now=NOW)
+
+    v2 = SourceRelease(
+        "sipri", "v2", date(2027, 4, 26), "d", "c", "xlsx", checksum="v2"
+    )
+    same_2024 = dataclasses.replace(p2024, release_id="v2")
+    new_2025 = dataclasses.replace(
+        p2024, value=Decimal("12400"), unit="USD_MILLION_CONSTANT_2025", release_id="v2"
+    )
+    result = store.apply_release(
+        "sipri", v2, [same_2024, new_2025], now=NOW + timedelta(days=365)
+    )
+    assert result.superseded == 0
+    assert result.unchanged == 1
+    assert result.added == 1
+    series = store.get("sipri")
+    assert {p.unit for p in series.datapoints} == {
+        "USD_MILLION_CONSTANT_2024",
+        "USD_MILLION_CONSTANT_2025",
+    }
+    assert series.health.warnings == ()
