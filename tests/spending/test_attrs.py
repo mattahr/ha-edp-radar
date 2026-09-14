@@ -60,7 +60,7 @@ def test_provenance_attrs_are_the_shared_set() -> None:
         today=TODAY,
     )
     assert attrs == {
-        "source": "SIPRI military expenditure database",
+        "source": "SIPRI",
         "source_id": "sipri",
         "source_url": "https://www.sipri.org/databases/milex",
         "reference_label": "2025",

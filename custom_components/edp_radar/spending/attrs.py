@@ -64,7 +64,7 @@ def provenance_attrs(
     period = reference or point.reference
     complete = reference_period_complete(period.end, today)
     return {
-        "source": spec.display_name,
+        "source": spec.publisher,
         "source_id": point.source_id,
         "source_url": point.source_url,
         "reference_label": period.label,
