@@ -420,6 +420,12 @@ def validation_section(
             if p.country == FOCUS_COUNTRY
             and p.metric_id == "military_expenditure_usd_constant"
         )
+        constant_unit = next(
+            p.unit
+            for p in points
+            if p.metric_id == "military_expenditure_usd_constant"
+            and p.country == FOCUS_COUNTRY
+        )
         out.append(
             "## SIPRI\n\n"
             + "\n".join(
@@ -427,9 +433,7 @@ def validation_section(
                     f"- Sweden available {se_years[0]}–{se_years[-1]} "
                     "(stored from MIN_YEAR; the workbook starts 1949)",
                     _rank_line(
-                        points,
-                        "military_expenditure_usd_constant",
-                        "USD_MILLION_CONSTANT_2024",
+                        points, "military_expenditure_usd_constant", constant_unit
                     ),
                     _rank_line(points, "military_expenditure_pct_gdp", "PCT_GDP"),
                 ]

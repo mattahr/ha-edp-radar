@@ -7,7 +7,7 @@ SIPRI marks estimates with blue font and highly uncertain data with red font;
 status vocabulary maps it to ``budget``. Non-marked figures are stored as
 ``actual`` meaning "SIPRI reported figure", not "official outturn" (plan §44).
 Years before ``MIN_YEAR`` are not stored (storage size; the workbook keeps
-1949 onwards).
+1949 onwards). The constant-price base year is read from the sheet name (S39).
 """
 
 from __future__ import annotations
@@ -30,12 +30,13 @@ from ..models import (
 )
 from ..registry import SIPRI, source_spec
 from ..xlsx import (
+    constant_base_year,
     find_row,
     font_colour_index,
     number,
     open_workbook,
-    require_sheet,
     rows_of,
+    sheet_by_prefix,
     text,
     year_header,
 )
@@ -63,12 +64,12 @@ NOTE_FLAGS: dict[str, str] = {
     "‖": "currency_redenominated",
 }
 BUDGET_MARK = "§"
-# (sheet, metric_id, unit, multiply by 100)
+# (sheet name prefix, metric_id, unit, multiply by 100)
 SHEETS: tuple[tuple[str, str, str, bool], ...] = (
     (
-        "Constant (2024) US$",
+        "Constant (",
         "military_expenditure_usd_constant",
-        "USD_MILLION_CONSTANT_2024",
+        "USD_MILLION_CONSTANT",
         False,
     ),
     ("Current US$", "military_expenditure_usd_current", "USD_MILLION", False),
@@ -171,8 +172,11 @@ def parse_sipri_workbook(payload: bytes, release: SourceRelease) -> ParseResult:
     points: list[SpendingDataPoint] = []
     warnings: list[str] = []
     fingerprints: list[str] = []
-    for sheet, metric_id, unit, pct in SHEETS:
-        rows = rows_of(require_sheet(book, sheet))
+    for prefix, metric_id, unit, pct in SHEETS:
+        sheet = sheet_by_prefix(book, prefix)
+        if unit == "USD_MILLION_CONSTANT":
+            unit = f"{unit}_{constant_base_year(sheet)}"
+        rows = rows_of(book[sheet])
         sheet_points, fingerprint = _parse_sheet(
             rows, sheet, metric_id, unit, pct, release, warnings
         )

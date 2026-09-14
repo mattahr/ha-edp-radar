@@ -101,7 +101,7 @@ def test_parse_sweden_estimates_and_notes() -> None:
                 if p.metric_id == "military_expenditure_usd_current"
             }
         )
-        == 59
+        == 60
     )
     assert "blue" in result.layout_fingerprint.casefold()
 
@@ -182,3 +182,37 @@ async def test_provider_round_trip(
     fetched, payload = await provider.async_fetch_release(session, release)
     assert fetched.etag == '"e13b8-65072a76c0127"'
     assert len(provider.parse_release(payload, fetched).datapoints) > 5000
+
+
+def test_base_year_comes_from_the_sheet_name() -> None:
+    import io
+
+    from openpyxl import load_workbook
+
+    payload = (FIXTURES / "milex-trimmed.xlsx").read_bytes()
+    book = load_workbook(io.BytesIO(payload))
+    book["Constant (2024) US$"].title = "Constant (2025) US$"
+    buffer = io.BytesIO()
+    book.save(buffer)
+    result = parse_sipri_workbook(buffer.getvalue(), _release())
+    units = {
+        p.unit
+        for p in result.datapoints
+        if p.metric_id == "military_expenditure_usd_constant"
+    }
+    assert units == {"USD_MILLION_CONSTANT_2025"}
+
+
+def test_red_font_in_the_real_workbook_is_highly_uncertain() -> None:
+    result = parse_sipri_workbook(
+        (FIXTURES / "milex-trimmed.xlsx").read_bytes(), _release()
+    )
+    points = {
+        (p.metric_id, p.country, p.reference.start.year): p for p in result.datapoints
+    }
+    libya_2023 = points[("military_expenditure_usd_constant", "LY", 2023)]
+    assert "highly_uncertain" in libya_2023.flags
+    assert (
+        "highly_uncertain"
+        not in points[("military_expenditure_usd_constant", "SE", 2023)].flags
+    )

@@ -173,9 +173,11 @@ _METRIC_LIST: tuple[MetricSpec, ...] = (
     _metric(
         NATO,
         "defence_expenditure_usd_constant",
-        "Defence expenditure (USD, constant 2021)",
-        "Table 2, constant 2021 prices and exchange rates, million US dollars.",
-        "USD_MILLION_CONSTANT_2021",
+        "Defence expenditure (USD, constant prices)",
+        "Table 2, constant prices and exchange rates, million US dollars; the "
+        "base year is read from the workbook and appended to the datapoint "
+        "unit (S39).",
+        "USD_MILLION_CONSTANT",
     ),
     _metric(
         NATO,
@@ -255,10 +257,11 @@ _METRIC_LIST: tuple[MetricSpec, ...] = (
     _metric(
         SIPRI,
         "military_expenditure_usd_constant",
-        "Military expenditure (USD, constant 2024)",
-        "Sheet 'Constant (2024) US$', million US dollars at constant 2024 "
-        "prices and exchange rates.",
-        "USD_MILLION_CONSTANT_2024",
+        "Military expenditure (USD, constant prices)",
+        "Sheet 'Constant (YYYY) US$', million US dollars at constant prices "
+        "and exchange rates; the base year is read from the workbook and "
+        "appended to the datapoint unit (S39).",
+        "USD_MILLION_CONSTANT",
     ),
     _metric(
         SIPRI,

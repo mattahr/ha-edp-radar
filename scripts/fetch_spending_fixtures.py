@@ -234,8 +234,14 @@ def trim_sipri_landing(html: str) -> str:
     )
 
 
+KEEP_FROM = "Europe"
+KEEP_ROW = "Libya"  # a red-font (highly uncertain) row outside Europe
+
+
 def trim_sipri_workbook(data: bytes) -> bytes:
-    """Keep three data sheets and only the rows from 'Europe' on (colours survive)."""
+    """Keep three data sheets, the rows from 'Europe' on, and one African row
+    with red-font cells so the highly-uncertain marker is tested against real
+    data (colours survive)."""
     book = openpyxl.load_workbook(io.BytesIO(data))
     for name in list(book.sheetnames):
         if name not in SIPRI_SHEETS:
@@ -245,12 +251,14 @@ def trim_sipri_workbook(data: bytes) -> bytes:
         header = next(
             i for i in range(1, 15) if str(sheet.cell(i, 1).value).strip() == "Country"
         )
-        europe = next(
-            i
+        rows = {
+            str(sheet.cell(i, 1).value).strip(): i
             for i in range(header + 1, sheet.max_row + 1)
-            if str(sheet.cell(i, 1).value).strip() == "Europe"
-        )
-        sheet.delete_rows(header + 2, europe - (header + 2))
+        }
+        europe, keep = rows[KEEP_FROM], rows[KEEP_ROW]
+        # Delete from the bottom up so earlier indexes stay valid.
+        sheet.delete_rows(keep + 1, europe - (keep + 1))
+        sheet.delete_rows(header + 2, keep - (header + 2))
     buffer = io.BytesIO()
     book.save(buffer)
     return buffer.getvalue()

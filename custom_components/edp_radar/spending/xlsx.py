@@ -90,6 +90,26 @@ def year_header(row: tuple[Any, ...]) -> dict[int, tuple[int, bool]]:
     return years
 
 
+_BASE_YEAR = re.compile(r"constant\D{0,3}(\d{4})", re.IGNORECASE)
+
+
+def constant_base_year(label: str) -> int:
+    """``2024`` from ``"Constant (2024) US$"`` or ``"constant 2021 prices"``."""
+    match = _BASE_YEAR.search(label)
+    if match is None:
+        raise SchemaChangedError(f"no constant-price base year in {label!r}")
+    return int(match.group(1))
+
+
+def sheet_by_prefix(book: Workbook, prefix: str) -> str:
+    for name in book.sheetnames:
+        if str(name).startswith(prefix):
+            return str(name)
+    raise SchemaChangedError(
+        f"no sheet starting with {prefix!r}; found {book.sheetnames}"
+    )
+
+
 def font_colour_index(cell: Any) -> int | None:
     font = getattr(cell, "font", None)
     colour = getattr(font, "color", None)

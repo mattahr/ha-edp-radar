@@ -46,3 +46,12 @@ def test_every_metric_belongs_to_its_source_and_group() -> None:
     ).definition.startswith("Derived")
     with pytest.raises(KeyError):
         metric_spec("nato", "nope")
+
+
+def test_constant_price_metrics_carry_no_base_year() -> None:
+    assert metric_spec("nato", "defence_expenditure_usd_constant").unit == (
+        "USD_MILLION_CONSTANT"
+    )
+    assert metric_spec("sipri", "military_expenditure_usd_constant").unit == (
+        "USD_MILLION_CONSTANT"
+    )

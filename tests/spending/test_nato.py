@@ -67,6 +67,10 @@ def test_parse_2026_workbook_sweden_and_status() -> None:
     assert points[("defence_expenditure_usd_constant", "SE", 2026)].value == Decimal(
         "21538"
     )
+    assert (
+        points[("defence_expenditure_usd_constant", "SE", 2026)].unit
+        == "USD_MILLION_CONSTANT_2021"
+    )
     assert points[("defence_expenditure_pct_gdp", "SE", 2026)].value == Decimal("3.22")
     assert points[("equipment_share_pct", "SE", 2026)].value == Decimal("25.41")
     derived = points[("equipment_expenditure_usd_current", "SE", 2026)]

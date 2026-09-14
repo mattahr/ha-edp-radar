@@ -64,3 +64,22 @@ def test_font_colour_index_reads_rgb_and_indexed() -> None:
     rows = rows_of(require_sheet(open_workbook(_workbook()), "Table 1"))
     assert font_colour_index(rows[2][2]) == 12  # blue, mapped from FF0000FF
     assert font_colour_index(rows[2][1]) is None
+
+
+def test_constant_base_year_and_sheet_prefix() -> None:
+    from openpyxl import Workbook
+
+    from custom_components.edp_radar.spending.xlsx import (
+        constant_base_year,
+        sheet_by_prefix,
+    )
+
+    assert constant_base_year("Constant (2024) US$") == 2024
+    assert constant_base_year("constant 2021 prices and exchange rates") == 2021
+    with pytest.raises(SchemaChangedError, match="base year"):
+        constant_base_year("Current US$")
+    book = Workbook()
+    book.active.title = "Constant (2025) US$"
+    assert sheet_by_prefix(book, "Constant (") == "Constant (2025) US$"
+    with pytest.raises(SchemaChangedError, match="Share of"):
+        sheet_by_prefix(book, "Share of")

@@ -27,6 +27,7 @@ from ..models import (
 )
 from ..registry import NATO, source_spec
 from ..xlsx import (
+    constant_base_year,
     find_row,
     number,
     open_workbook,
@@ -72,9 +73,9 @@ TABLES: tuple[TableSpec, ...] = (
     TableSpec(
         "Table 2",
         1,
-        "constant 2021",
+        "constant",
         "defence_expenditure_usd_constant",
-        "USD_MILLION_CONSTANT_2021",
+        "USD_MILLION_CONSTANT",
     ),
     TableSpec(
         "Table 3", 0, "share of real gdp", "defence_expenditure_pct_gdp", "PCT_GDP"
@@ -133,6 +134,9 @@ def _parse_table(
             f"{spec.sheet}: expected subtitle containing {spec.subtitle!r}, "
             f"got {subtitle!r}"
         )
+    unit = spec.unit
+    if unit == "USD_MILLION_CONSTANT":
+        unit = f"{unit}_{constant_base_year(subtitle)}"
     points: list[SpendingDataPoint] = []
     warnings: list[str] = []
     for row in rows[header_index + 1 :]:
@@ -163,7 +167,7 @@ def _parse_table(
                     country=country,
                     reference=ReferencePeriod.year(year),
                     value=value,
-                    unit=spec.unit,
+                    unit=unit,
                     status=DatapointStatus.ESTIMATE
                     if is_estimate
                     else DatapointStatus.ACTUAL,
