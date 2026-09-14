@@ -254,3 +254,20 @@ def test_oversized_zip_member_is_unavailable(monkeypatch: pytest.MonkeyPatch) ->
     )
     with pytest.raises(SourceUnavailableError, match="larger than 10 bytes"):
         parse_outturn_csv(_zip("utfall.csv", b"x" * 11), release)
+
+
+def test_zip_member_that_under_reports_its_size_is_still_capped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from custom_components.edp_radar.spending.providers import base, statskontoret
+    from custom_components.edp_radar.spending.providers.base import (
+        SourceUnavailableError,
+    )
+
+    monkeypatch.setattr(base, "MAX_PAYLOAD_BYTES", 10)
+    monkeypatch.setattr(statskontoret, "_declared_member_size", lambda info: 0)
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    with pytest.raises(SourceUnavailableError, match="larger than 10 bytes"):
+        parse_outturn_csv(_zip("utfall.csv", b"x" * 11), release)

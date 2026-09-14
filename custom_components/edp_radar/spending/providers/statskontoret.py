@@ -210,6 +210,10 @@ def _release_period(release: SourceRelease) -> tuple[int, int, DatapointStatus]:
         ) from err
 
 
+def _declared_member_size(info: zipfile.ZipInfo) -> int:
+    return info.file_size
+
+
 def _csv_text(payload: bytes) -> str:
     if payload[:2] == b"PK":
         archive = zipfile.ZipFile(io.BytesIO(payload))
@@ -217,12 +221,22 @@ def _csv_text(payload: bytes) -> str:
         if not names:
             raise SchemaChangedError("Statskontoret zip contains no CSV")
         info = archive.getinfo(names[0])
-        if info.file_size > base.MAX_PAYLOAD_BYTES:
+        if _declared_member_size(info) > base.MAX_PAYLOAD_BYTES:
             raise SourceUnavailableError(
                 f"{names[0]} is larger than {base.MAX_PAYLOAD_BYTES} bytes "
                 f"({info.file_size})"
             )
-        payload = archive.read(names[0])
+        chunks: list[bytes] = []
+        total = 0
+        with archive.open(names[0]) as member:
+            while chunk := member.read(65536):
+                total += len(chunk)
+                if total > base.MAX_PAYLOAD_BYTES:
+                    raise SourceUnavailableError(
+                        f"{names[0]} is larger than {base.MAX_PAYLOAD_BYTES} bytes"
+                    )
+                chunks.append(chunk)
+        payload = b"".join(chunks)
     return payload.decode("utf-8-sig")
 
 
