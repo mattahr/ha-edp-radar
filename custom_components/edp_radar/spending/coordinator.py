@@ -3,12 +3,12 @@
 Ticks every ``SPENDING_UPDATE_INTERVAL`` and runs only the providers whose
 ``next_check_at`` has passed. Discovery is cheap; a download happens only when
 the release id changed. Failures are recorded per provider and never affect
-the others; ``UpdateFailed`` is raised only when no source has any data.
+the others; a failed source is due again at the next tick; ``UpdateFailed`` is
+raised only when no configured source has any data.
 """
 
 from __future__ import annotations
 
-import dataclasses
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -23,7 +23,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN, SPENDING_RETRY_INTERVAL, SPENDING_UPDATE_INTERVAL
+from ..const import DOMAIN, SPENDING_UPDATE_INTERVAL
 from .models import ProviderHealth, ProviderState, SourceSeries
 from .providers.base import SchemaChangedError, SourceUnavailableError, SpendingProvider
 from .store import SpendingStore
@@ -84,20 +84,25 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
                 continue
             await self._async_refresh_provider(provider, now)
         await self.store.async_save()
-        if self.providers and not any(
-            series.datapoints for series in self.store.series.values()
+        configured = [provider.spec.source_id for provider in self.providers]
+        if configured and not any(
+            self.store.get(source_id).datapoints for source_id in configured
         ):
             errors = {
-                source_id: series.health.last_error
-                for source_id, series in self.store.series.items()
-                if series.health.last_error
+                source_id: self.store.get(source_id).health.last_error
+                for source_id in configured
+                if self.store.get(source_id).health.last_error
             }
             raise UpdateFailed(f"No spending source available: {errors}")
         return self._snapshot(now)
 
     async def async_refresh_source(self, source_id: str) -> None:
         """Run one provider now regardless of its cadence (diagnostics/scripts)."""
-        provider = next(p for p in self.providers if p.spec.source_id == source_id)
+        provider = next(
+            (p for p in self.providers if p.spec.source_id == source_id), None
+        )
+        if provider is None:
+            raise ValueError(f"unknown spending source {source_id!r}")
         now = self._clock()
         await self._async_refresh_provider(provider, now)
         await self.store.async_save()
@@ -132,9 +137,7 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
                 and fetched.checksum is not None
                 and fetched.checksum == series.release.checksum
             ):
-                self.store.series[source_id] = dataclasses.replace(
-                    series, release=fetched
-                )
+                self.store.refresh_release(source_id, fetched, now=now)
                 self._set_health(
                     source_id,
                     now,
@@ -177,7 +180,7 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
                 source_id,
                 now,
                 state=state,
-                next_check_at=now + SPENDING_RETRY_INTERVAL,
+                next_check_at=now,  # S44: due at the next tick
                 error=str(err),
             )
         except SchemaChangedError as err:

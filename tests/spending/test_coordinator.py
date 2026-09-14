@@ -12,10 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.edp_radar.const import (
-    DOMAIN,
-    SPENDING_RETRY_INTERVAL,
-)
+from custom_components.edp_radar.const import DOMAIN
 from custom_components.edp_radar.spending.coordinator import SpendingCoordinator
 from custom_components.edp_radar.spending.models import (
     DatapointStatus,
@@ -45,6 +42,7 @@ class FakeProvider:
         self.spec = source_spec(source_id)
         self.release_id = release_id
         self.value = value
+        self.checksum: str | None = None
         self.discover_error: Exception | None = None
         self.fetch_error: Exception | None = None
         self.parse_error: Exception | None = None
@@ -58,7 +56,7 @@ class FakeProvider:
             "d",
             "c",
             "x",
-            checksum=self.release_id,
+            checksum=self.checksum or self.release_id,
         )
 
     async def async_discover_latest(self, session: ClientSession) -> SourceRelease:
@@ -171,7 +169,7 @@ async def test_not_due_providers_are_skipped_and_unchanged_releases_not_fetched(
     assert len(series.revisions) == 1
 
 
-async def test_failures_are_isolated_and_retry_sooner(hass: HomeAssistant) -> None:
+async def test_failures_are_isolated_and_retry_next_tick(hass: HomeAssistant) -> None:
     clock = Clock(NOW)
     broken = FakeProvider("eurostat")
     broken.discover_error = SourceUnavailableError("HTTP 503 for x")
@@ -182,12 +180,14 @@ async def test_failures_are_isolated_and_retry_sooner(hass: HomeAssistant) -> No
     eurostat = coordinator.data.get("eurostat")
     assert eurostat.health.state is ProviderState.TEMPORARILY_UNAVAILABLE
     assert eurostat.health.last_error == "HTTP 503 for x"
-    assert eurostat.health.next_check_at == NOW + SPENDING_RETRY_INTERVAL
+    # S44: due again at the next 6-hour tick, not on a separate retry clock.
+    assert eurostat.health.next_check_at == NOW
     assert len(coordinator.data.get("statskontoret").datapoints) == 1
     # Recover, then fail again: data stays, state says stale.
     broken.discover_error = None
-    clock.now = NOW + SPENDING_RETRY_INTERVAL + timedelta(minutes=1)
+    clock.now = NOW + timedelta(hours=6)
     await coordinator.async_refresh()
+    assert broken.calls["discover"] == 2
     assert coordinator.data.get("eurostat").health.state is ProviderState.AVAILABLE
     broken.fetch_error = SourceUnavailableError("timeout")
     broken.release_id = "r2"
@@ -263,3 +263,65 @@ async def test_force_refresh_one_source(hass: HomeAssistant) -> None:
     await coordinator.async_refresh_source("nato")
     assert provider.calls["fetch"] == 2
     assert coordinator.data.get("nato").release.release_id == "r2"
+
+
+async def test_update_failed_ignores_sources_without_a_provider(
+    hass: HomeAssistant,
+) -> None:
+    clock = Clock(NOW)
+    # NATO data exists in the store from an earlier configuration…
+    seeded = SpendingStore(hass, "test-entry")
+    await seeded.async_load()
+    release = SourceRelease("nato", "r1", date(2026, 9, 1), "d", "c", "x")
+    seeded.apply_release(
+        "nato",
+        release,
+        [
+            SpendingDataPoint(
+                "nato",
+                "m",
+                "SE",
+                ReferencePeriod.year(2025),
+                Decimal(1),
+                "U",
+                DatapointStatus.ACTUAL,
+                "r1",
+                release.published_at,
+                "c",
+            )
+        ],
+        now=NOW,
+    )
+    await seeded.async_save(immediate=True)
+    # …but only EDA is configured now, and it is down.
+    provider = FakeProvider("eda")
+    provider.discover_error = SourceUnavailableError("down")
+    coordinator = await _coordinator(hass, [provider], clock)
+    assert coordinator.store.get("nato").datapoints  # loaded, yet not configured
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+
+
+async def test_refresh_source_rejects_unknown_ids(hass: HomeAssistant) -> None:
+    coordinator = await _coordinator(hass, [FakeProvider("nato")], Clock(NOW))
+    with pytest.raises(ValueError, match="unknown spending source 'sipri'"):
+        await coordinator.async_refresh_source("sipri")
+
+
+async def test_unchanged_checksum_refreshes_release_metadata(
+    hass: HomeAssistant,
+) -> None:
+    clock = Clock(NOW)
+    provider = FakeProvider("nato")
+    coordinator = await _coordinator(hass, [provider], clock)
+    await coordinator.async_refresh()
+    # New release id, identical payload checksum: no parse, metadata refreshed.
+    provider.release_id = "r2"
+    provider.checksum = "r1"
+    clock.now = NOW + timedelta(days=7, minutes=1)
+    await coordinator.async_refresh()
+    series = coordinator.data.get("nato")
+    assert provider.calls == {"discover": 2, "fetch": 2, "parse": 1}
+    assert series.release is not None and series.release.release_id == "r2"
+    assert series.retrieved_at == clock.now
+    assert series.health.skip_reason == "unchanged_checksum"

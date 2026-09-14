@@ -18,9 +18,9 @@ ECB_90D_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml"
 ECB_HISTORY_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip"
 
 DEFAULT_UPDATE_INTERVAL = timedelta(hours=4)
-# Phase 3 spending layer (S14): coordinator tick and retry after a source error.
+# Phase 3 spending layer (S14, S44): coordinator tick; a failed source
+# retries at the next tick.
 SPENDING_UPDATE_INTERVAL = timedelta(hours=6)
-SPENDING_RETRY_INTERVAL = timedelta(hours=1)
 # 24 months of results (rolling 12 months vs the previous 12) plus publication lag.
 DEFAULT_RETENTION_DAYS = 760
 DEFAULT_BOOTSTRAP_DAYS = 760
