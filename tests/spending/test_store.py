@@ -23,6 +23,7 @@ from custom_components.edp_radar.spending.store import (
     SAVE_DELAY_SECONDS,
     SCHEMA_VERSION,
     SpendingStore,
+    health_storage_key,
     storage_key,
 )
 
@@ -225,11 +226,12 @@ async def test_set_health_and_remove(
     )
     await store.async_save(immediate=True)
     assert (
-        hass_storage[storage_key(ENTRY, "nato")]["data"]["series"]["health"][
-            "last_error"
-        ]
+        hass_storage[health_storage_key(ENTRY)]["data"]["health"]["nato"]["last_error"]
         == "HTTP 503"
     )
+    assert (
+        storage_key(ENTRY, "nato") not in hass_storage
+    )  # a health-only change never writes the series file (S40)
     assert (
         storage_key(ENTRY, "eda") not in hass_storage
     )  # untouched sources are not written
@@ -284,3 +286,116 @@ async def test_immediate_save_flushes_a_pending_delayed_write(
     )
     await hass.async_block_till_done()
     assert hass_storage[storage_key(ENTRY, "statskontoret")]["data"] == stored
+
+
+async def test_health_lives_in_its_own_store(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    release = _release("r1", date(2026, 8, 24))
+    store.apply_release(
+        "statskontoret",
+        release,
+        [_point("materiel_outturn", 2026, 7, "1", release)],
+        now=NOW,
+    )
+    await store.async_save(immediate=True)
+    series_key = storage_key(ENTRY, "statskontoret")
+    health_key = health_storage_key(ENTRY)
+    assert "health" not in hass_storage[series_key]["data"]["series"]
+    stored_health = hass_storage[health_key]["data"]["health"]
+    assert stored_health["statskontoret"]["state"] == "available"
+    assert stored_health["nato"]["state"] == "never_loaded"
+
+    # A health-only change rewrites the health store, never the series file.
+    hass_storage[series_key]["data"]["marker"] = True
+    store.set_health(
+        "statskontoret",
+        ProviderHealth(state=ProviderState.STALE_BUT_CACHED, last_check_at=NOW),
+    )
+    await store.async_save(immediate=True)
+    assert hass_storage[series_key]["data"]["marker"] is True
+    assert (
+        hass_storage[health_key]["data"]["health"]["statskontoret"]["state"]
+        == "stale_but_cached"
+    )
+
+    reloaded = SpendingStore(hass, ENTRY)
+    await reloaded.async_load()
+    assert reloaded.get("statskontoret").health.state is ProviderState.STALE_BUT_CACHED
+    assert len(reloaded.get("statskontoret").datapoints) == 1
+
+
+async def test_health_falls_back_to_the_old_series_file(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    hass_storage[storage_key(ENTRY, "nato")] = {
+        "version": 1,
+        "key": storage_key(ENTRY, "nato"),
+        "data": {
+            "schema_version": SCHEMA_VERSION,
+            "series": {
+                "source_id": "nato",
+                "release": None,
+                "health": {"state": "parser_error", "last_error": "boom"},
+                "datapoints": [],
+                "revisions": [],
+                "retrieved_at": None,
+            },
+        },
+    }
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    assert store.get("nato").health.state is ProviderState.PARSER_ERROR
+    assert store.get("nato").health.last_error == "boom"
+
+
+async def test_corrupt_series_file_is_discarded(
+    hass: HomeAssistant, hass_storage: dict[str, Any], caplog: Any
+) -> None:
+    hass_storage[storage_key(ENTRY, "nato")] = {
+        "version": 1,
+        "key": storage_key(ENTRY, "nato"),
+        "data": ["not", "a", "dict"],
+    }
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    assert store.get("nato").datapoints == ()
+    assert "Discarding nato" in caplog.text
+
+
+async def test_refresh_release_replaces_release_only(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    first = _release("r1", date(2026, 8, 24))
+    store.apply_release(
+        "statskontoret",
+        first,
+        [_point("materiel_outturn", 2026, 7, "1", first)],
+        now=NOW,
+    )
+    await store.async_save(immediate=True)
+    later = NOW + timedelta(hours=6)
+    store.refresh_release("statskontoret", _release("r2", date(2026, 8, 25)), now=later)
+    await store.async_save(immediate=True)
+    series = hass_storage[storage_key(ENTRY, "statskontoret")]["data"]["series"]
+    assert series["release"]["release_id"] == "r2"
+    assert series["retrieved_at"] == later.isoformat()
+    assert len(series["datapoints"]) == 1
+    assert series["datapoints"][0]["release_id"] == "r1"
+
+
+async def test_remove_deletes_the_health_store(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    store.set_health("eda", ProviderHealth(state=ProviderState.AVAILABLE))
+    await store.async_save(immediate=True)
+    assert health_storage_key(ENTRY) in hass_storage
+    await store.async_remove()
+    assert health_storage_key(ENTRY) not in hass_storage
+    assert store.get("eda").health.state is ProviderState.NEVER_LOADED
