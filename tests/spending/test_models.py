@@ -131,3 +131,24 @@ def test_empty_series_default() -> None:
     assert series.datapoints == ()
     assert series.release is None
     assert SourceSeries.from_dict(series.to_dict()) == series
+
+
+def test_release_round_trips_the_layout_fingerprint() -> None:
+    from custom_components.edp_radar.spending.models import SourceRelease
+
+    release = SourceRelease(
+        "nato",
+        "2026:x",
+        date(2026, 7, 10),
+        "d",
+        "c",
+        "xlsx",
+        layout_fingerprint="Table 1 | Table 2",
+    )
+    assert SourceRelease.from_dict(release.to_dict()) == release
+    assert (
+        SourceRelease.from_dict(
+            {**release.to_dict(), "layout_fingerprint": None}
+        ).layout_fingerprint
+        is None
+    )

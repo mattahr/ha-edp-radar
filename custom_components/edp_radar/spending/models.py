@@ -118,6 +118,7 @@ class SourceRelease:
     etag: str | None = None
     last_modified: str | None = None
     checksum: str | None = None
+    layout_fingerprint: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -132,6 +133,7 @@ class SourceRelease:
             "etag": self.etag,
             "last_modified": self.last_modified,
             "checksum": self.checksum,
+            "layout_fingerprint": self.layout_fingerprint,
         }
 
     @classmethod
@@ -146,6 +148,7 @@ class SourceRelease:
             etag=data.get("etag"),
             last_modified=data.get("last_modified"),
             checksum=data.get("checksum"),
+            layout_fingerprint=data.get("layout_fingerprint"),
         )
 
 

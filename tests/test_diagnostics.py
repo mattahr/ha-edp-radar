@@ -138,7 +138,7 @@ async def test_spending_diagnostics(
     assert sk["health"]["state"] == "available"
     assert sk["release"]["release_id"] == "2026-07-definitiv-2026-08-24"
     assert sk["release"]["published_at"] == "2026-08-24"
-    assert sk["datapoints"] == 57
+    assert sk["datapoints_count"] == 57
     assert sk["countries"] == ["SE"]
     assert sk["metrics"] == [
         "materiel_outturn",
@@ -157,8 +157,9 @@ async def test_spending_diagnostics(
         "reference_overdue": False,
         "next_release_expected": "2026-09-30",
     }
-    assert sk["revisions"] == 0
+    assert sk["revision_count"] == 0
     assert sk["schema_version"] == 1
+    assert sk["release"]["layout_fingerprint"].startswith("Utgiftsområde;")
     assert sk["parse_warnings"] == []
     nato = spending["nato"]
     assert nato["latest_reference"]["label"] == "2026"

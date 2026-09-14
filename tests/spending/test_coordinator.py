@@ -140,6 +140,7 @@ async def test_first_refresh_loads_every_provider(hass: HomeAssistant) -> None:
         assert series.health.state is ProviderState.AVAILABLE
         assert series.health.warnings == ("note",)
         assert series.health.next_check_at == NOW + provider.spec.check_interval
+        assert series.release is not None and series.release.layout_fingerprint == "fp"
     assert snapshot.get("eurostat").health.state is ProviderState.NEVER_LOADED
 
 

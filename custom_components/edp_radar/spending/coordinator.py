@@ -9,6 +9,7 @@ raised only when no configured source has any data.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -148,6 +149,9 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
                 return
             result = await self.hass.async_add_executor_job(
                 provider.parse_release, payload, fetched
+            )
+            fetched = dataclasses.replace(
+                fetched, layout_fingerprint=result.layout_fingerprint
             )
             applied = self.store.apply_release(
                 source_id, fetched, result.datapoints, now=now, warnings=result.warnings

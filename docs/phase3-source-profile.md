@@ -1,6 +1,6 @@
 # Phase 3 source profile
 
-Generated 2026-09-13T01:40:56+00:00 by `scripts/spending_profile.py` (report date 2026-09-13). Plan §70 profile per provider, then the plan §71 factual validation. Values are aggregates and Sweden facts with provenance; no raw payloads.
+Generated 2026-09-14T23:25:24+00:00 by `scripts/spending_profile.py` (report date 2026-09-13). Plan §70 profile per provider, then the plan §71 factual validation. Values are aggregates and Sweden facts with provenance; no raw payloads.
 
 ## Statskontoret monthly budget outturn
 
@@ -56,7 +56,7 @@ Generated 2026-09-13T01:40:56+00:00 by `scripts/spending_profile.py` (report dat
 | revision behaviour | Each annual workbook restates 2014 onwards and re-marks the last two years as estimates; revisions detected by the store diff. |
 | missing data | defence_expenditure_nac 2026: 31/31 countries; defence_expenditure_usd_current 2026: 31/31 countries; defence_expenditure_usd_constant 2026: 31/31 countries; defence_expenditure_pct_gdp 2026: 31/31 countries; equipment_share_pct 2026: 31/31 countries; equipment_expenditure_usd_current 2026: 31/31 countries |
 | parser risk | Sheet names, `Table N:` titles, block subtitles, `YYYYe` headers, label spellings; XLSX must share the PDF path. |
-| freshness today | current (publication age 65 d, reference age -109 d) |
+| freshness today | current (publication age 65 d, reference age -109 d (reference period ends 2026-12-31, not yet complete)) |
 | layout fingerprint | `Table 1: Core defence expenditure | Table 2: Core defence expenditure | Table 3: Core defence expenditure as a share of GDP and annual real change | Table 8a: D` |
 
 ## EDA defence data

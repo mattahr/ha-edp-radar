@@ -100,7 +100,7 @@ def _spending_series(series: SourceSeries, today: date) -> dict[str, Any]:
         "health": series.health.to_dict(),
         "release": None if series.release is None else series.release.to_dict(),
         "retrieved_at": _plain(series.retrieved_at),
-        "datapoints": len(series.datapoints),
+        "datapoints_count": len(series.datapoints),
         "countries": sorted({p.country for p in series.datapoints}),
         "metrics": metrics,
         "statuses": dict(Counter(p.status.value for p in series.datapoints)),
@@ -128,7 +128,7 @@ def _spending_series(series: SourceSeries, today: date) -> dict[str, Any]:
             ),
         },
         "parse_warnings": list(series.health.warnings),
-        "revisions": len(series.revisions),
+        "revision_count": len(series.revisions),
         "schema_version": SPENDING_SCHEMA_VERSION,
     }
 

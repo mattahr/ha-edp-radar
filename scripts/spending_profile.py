@@ -117,12 +117,26 @@ def _table(rows: list[tuple[Any, ...]], header: tuple[str, ...]) -> str:
         "| " + " | ".join(header) + " |",
         "| " + " | ".join("---" for _ in header) + " |",
     ]
-    lines += ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
+    lines += [
+        "| " + " | ".join(str(c) if str(c) else "—" for c in row) + " |" for row in rows
+    ]
     return "\n".join(lines)
 
 
 def _fmt(value: Decimal | None, digits: int = 1) -> str:
     return "n/a" if value is None else f"{value:,.{digits}f}"
+
+
+def _reference_age_text(latest_end: date | None, today: date) -> str:
+    if latest_end is None:
+        return "reference age n/a"
+    age = reference_age_days(latest_end, today)
+    if age < 0:
+        return (
+            f"reference age {age} d (reference period ends {latest_end}, "
+            "not yet complete)"
+        )
+    return f"reference age {age} d"
 
 
 def _slug(text: str) -> str:
@@ -268,8 +282,7 @@ def profile_section(
             "freshness today",
             freshness_state(spec, latest_end, release.published_at, today).value
             + f" (publication age {publication_age_days(release.published_at, today)}"
-            f" d, reference age "
-            f"{reference_age_days(latest_end, today) if latest_end else 'n/a'} d)",
+            f" d, {_reference_age_text(latest_end, today)})",
         ),
         ("layout fingerprint", f"`{result.layout_fingerprint[:160]}`"),
     ]
