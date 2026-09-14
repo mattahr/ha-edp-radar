@@ -1,4 +1,4 @@
-"""HTTP helper: conditional requests, 304, errors, checksums (S12, plan §87)."""
+"""HTTP helper: payload cap, errors, checksums, HEAD metadata (S12, S41)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.edp_radar.spending.models import SourceRelease
 from custom_components.edp_radar.spending.providers.base import (
     SourceUnavailableError,
     async_fetch_bytes,
@@ -22,21 +21,6 @@ from custom_components.edp_radar.spending.providers.base import (
 )
 
 URL = "https://example.org/data.xlsx"
-
-
-def _release(**overrides: object) -> SourceRelease:
-    base: dict[str, object] = {
-        "source_id": "nato",
-        "release_id": "2026",
-        "published_at": None,
-        "download_url": URL,
-        "canonical_url": "https://example.org/",
-        "format": "xlsx",
-        "etag": '"abc"',
-        "last_modified": "Fri, 10 Jul 2026 09:55:14 GMT",
-    }
-    base.update(overrides)
-    return SourceRelease(**base)  # type: ignore[arg-type]
 
 
 async def test_fetch_returns_payload_headers_and_checksum(
@@ -52,33 +36,6 @@ async def test_fetch_returns_payload_headers_and_checksum(
     assert result.etag == '"xyz"'
     assert result.last_modified == "Mon, 27 Apr 2026 15:20:25 GMT"
     assert result.checksum == sha256_hex(b"hello")
-    assert result.not_modified is False
-    assert "If-None-Match" not in aioclient_mock.mock_calls[0][3]
-
-
-async def test_fetch_sends_conditional_headers_and_handles_304(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
-) -> None:
-    aioclient_mock.get(URL, status=304)
-    result = await async_fetch_bytes(
-        async_get_clientsession(hass), URL, previous=_release()
-    )
-    assert result.not_modified is True
-    assert result.payload == b""
-    headers = aioclient_mock.mock_calls[0][3]
-    assert headers["If-None-Match"] == '"abc"'
-    assert headers["If-Modified-Since"] == "Fri, 10 Jul 2026 09:55:14 GMT"
-
-
-async def test_conditional_headers_only_for_the_same_url(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
-) -> None:
-    aioclient_mock.get(URL, content=b"x")
-    await async_fetch_bytes(
-        async_get_clientsession(hass),
-        URL,
-        previous=_release(download_url="https://example.org/other.xlsx"),
-    )
     assert "If-None-Match" not in aioclient_mock.mock_calls[0][3]
 
 
@@ -94,6 +51,23 @@ async def test_fetch_errors_are_wrapped(
         await async_fetch_bytes(async_get_clientsession(hass), URL)
 
 
+async def test_oversized_payload_is_unavailable(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from custom_components.edp_radar.spending.providers import base
+
+    monkeypatch.setattr(base, "MAX_PAYLOAD_BYTES", 4)
+    aioclient_mock.get(URL, content=b"12345")
+    with pytest.raises(SourceUnavailableError, match="larger than 4 bytes"):
+        await async_fetch_bytes(async_get_clientsession(hass), URL)
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(URL, content=b"123", headers={"Content-Length": "999"})
+    with pytest.raises(SourceUnavailableError, match="larger than 4 bytes"):
+        await async_fetch_bytes(async_get_clientsession(hass), URL)
+
+
 async def test_head_metadata_tolerates_failures(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
@@ -101,6 +75,13 @@ async def test_head_metadata_tolerates_failures(
     assert await async_head_metadata(async_get_clientsession(hass), URL) == ('"e"', "x")
     aioclient_mock.clear_requests()
     aioclient_mock.head(URL, status=405)
+    assert await async_head_metadata(async_get_clientsession(hass), URL) == (None, None)
+
+
+async def test_head_metadata_client_error_returns_nothing(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    aioclient_mock.head(URL, exc=ClientError("boom"))
     assert await async_head_metadata(async_get_clientsession(hass), URL) == (None, None)
 
 

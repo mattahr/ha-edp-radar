@@ -2,6 +2,8 @@
 
 Parsing is synchronous and pure so it can run in an executor and in scripts
 without Home Assistant; discovery and fetching take the aiohttp session.
+Discovery decides whether a download is needed; the fetch helper only caps
+size and wraps errors.
 """
 
 from __future__ import annotations
@@ -23,6 +25,10 @@ type Payload = bytes | Mapping[str, bytes]
 
 USER_AGENT = "ha-edp-radar (Home Assistant integration; +https://github.com/mattahr/ha-edp-radar)"
 DEFAULT_TIMEOUT = 120.0
+
+# Largest response (and zip member) a provider accepts; the biggest real
+# source is the 10 MB Statskontoret CSV.
+MAX_PAYLOAD_BYTES = 50 * 1024 * 1024
 
 
 class SpendingProviderError(Exception):
@@ -50,7 +56,6 @@ class FetchResult:
     etag: str | None
     last_modified: str | None
     checksum: str
-    not_modified: bool = False
 
 
 class SpendingProvider(Protocol):
@@ -83,41 +88,38 @@ def http_date_to_date(value: str | None) -> date | None:
         return None
 
 
-def _conditional_headers(url: str, previous: SourceRelease | None) -> dict[str, str]:
-    headers = {"User-Agent": USER_AGENT}
-    if previous is None or previous.download_url != url:
-        return headers
-    if previous.etag:
-        headers["If-None-Match"] = previous.etag
-    if previous.last_modified:
-        headers["If-Modified-Since"] = previous.last_modified
-    return headers
+def _declared_length(header: str | None) -> int | None:
+    try:
+        return None if header is None else int(header)
+    except ValueError:
+        return None
 
 
 async def async_fetch_bytes(
     session: ClientSession,
     url: str,
     *,
-    previous: SourceRelease | None = None,
     request_timeout: float = DEFAULT_TIMEOUT,
 ) -> FetchResult:
-    """GET ``url``; conditional when ``previous`` has validators for the same URL."""
+    """GET ``url``; re-download avoidance lives in discovery (S14, S41)."""
     try:
         async with asyncio.timeout(request_timeout):
             async with session.get(
-                url, headers=_conditional_headers(url, previous), allow_redirects=True
+                url, headers={"User-Agent": USER_AGENT}, allow_redirects=True
             ) as response:
-                if response.status == 304:
-                    return FetchResult(
-                        payload=b"",
-                        etag=previous.etag if previous else None,
-                        last_modified=previous.last_modified if previous else None,
-                        checksum=(previous.checksum or "") if previous else "",
-                        not_modified=True,
-                    )
                 if response.status != 200:
                     raise SourceUnavailableError(f"HTTP {response.status} for {url}")
+                declared = _declared_length(response.headers.get("Content-Length"))
+                if declared is not None and declared > MAX_PAYLOAD_BYTES:
+                    raise SourceUnavailableError(
+                        f"{url} is larger than {MAX_PAYLOAD_BYTES} bytes ({declared})"
+                    )
                 payload = await response.read()
+                if len(payload) > MAX_PAYLOAD_BYTES:
+                    raise SourceUnavailableError(
+                        f"{url} is larger than {MAX_PAYLOAD_BYTES} bytes "
+                        f"({len(payload)})"
+                    )
                 return FetchResult(
                     payload=payload,
                     etag=response.headers.get("ETag"),

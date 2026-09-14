@@ -240,3 +240,17 @@ def test_future_month_is_not_emitted_as_a_datapoint() -> None:
     assert ("materiel_outturn", 2026, 8) not in points
     assert points[("materiel_outturn", 2026, 7)].value == Decimal("3753.54717975")
     assert len(result.datapoints) == 57
+
+
+def test_oversized_zip_member_is_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    from custom_components.edp_radar.spending.providers import base
+    from custom_components.edp_radar.spending.providers.base import (
+        SourceUnavailableError,
+    )
+
+    monkeypatch.setattr(base, "MAX_PAYLOAD_BYTES", 10)
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    with pytest.raises(SourceUnavailableError, match="larger than 10 bytes"):
+        parse_outturn_csv(_zip("utfall.csv", b"x" * 11), release)

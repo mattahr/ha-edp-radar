@@ -29,10 +29,12 @@ from ..models import (
     SpendingDataPoint,
 )
 from ..registry import FOCUS_COUNTRY, STATSKONTORET, source_spec
+from . import base
 from .base import (
     ParseResult,
     Payload,
     SchemaChangedError,
+    SourceUnavailableError,
     async_fetch_bytes,
     with_fetch_metadata,
 )
@@ -214,6 +216,12 @@ def _csv_text(payload: bytes) -> str:
         names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
         if not names:
             raise SchemaChangedError("Statskontoret zip contains no CSV")
+        info = archive.getinfo(names[0])
+        if info.file_size > base.MAX_PAYLOAD_BYTES:
+            raise SourceUnavailableError(
+                f"{names[0]} is larger than {base.MAX_PAYLOAD_BYTES} bytes "
+                f"({info.file_size})"
+            )
         payload = archive.read(names[0])
     return payload.decode("utf-8-sig")
 
