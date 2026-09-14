@@ -96,11 +96,24 @@ class SpendingStore:
                 self.series[source_id] = SourceSeries.from_dict(data["series"])
             except (KeyError, ValueError, TypeError) as err:
                 _LOGGER.warning("Discarding stored %s series: %s", source_id, err)
-        health = await self._health_store.async_load()
+        # Typed as ``object``: like the series files, whatever is actually on
+        # disk is not guaranteed to match the ``Store``'s declared type.
+        health: object = await self._health_store.async_load()
         if not isinstance(health, dict):
+            if health:
+                _LOGGER.warning(
+                    "Discarding health store: unexpected %s", type(health).__name__
+                )
             return
         for source_id, raw in (health.get("health") or {}).items():
-            if source_id not in self.series or not isinstance(raw, dict):
+            if source_id not in self.series:
+                continue  # an unknown source id is not corruption
+            if not isinstance(raw, dict):
+                _LOGGER.warning(
+                    "Discarding stored %s health: unexpected %s",
+                    source_id,
+                    type(raw).__name__,
+                )
                 continue
             try:
                 self.series[source_id] = dataclasses.replace(

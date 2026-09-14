@@ -365,6 +365,37 @@ async def test_corrupt_series_file_is_discarded(
     assert "Discarding nato" in caplog.text
 
 
+async def test_corrupt_health_store_is_discarded(
+    hass: HomeAssistant, hass_storage: dict[str, Any], caplog: Any
+) -> None:
+    hass_storage[health_storage_key(ENTRY)] = {
+        "version": 1,
+        "key": health_storage_key(ENTRY),
+        "data": ["not", "a", "dict"],
+    }
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    assert all(
+        series.health.state is ProviderState.NEVER_LOADED
+        for series in store.series.values()
+    )
+    assert "Discarding health store" in caplog.text
+
+
+async def test_malformed_per_source_health_is_discarded(
+    hass: HomeAssistant, hass_storage: dict[str, Any], caplog: Any
+) -> None:
+    hass_storage[health_storage_key(ENTRY)] = {
+        "version": 1,
+        "key": health_storage_key(ENTRY),
+        "data": {"health": {"nato": "garbage"}},
+    }
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    assert store.get("nato").health.state is ProviderState.NEVER_LOADED
+    assert "Discarding stored nato health" in caplog.text
+
+
 async def test_refresh_release_replaces_release_only(
     hass: HomeAssistant, hass_storage: dict[str, Any]
 ) -> None:
