@@ -222,8 +222,14 @@ def normalise_label(label: str) -> str:
     return _DECORATION.sub("", label).strip()
 
 
+def is_skipped_label(label: str) -> bool:
+    """Aggregates and dissolved states that are deliberately not countries."""
+    return normalise_label(label) in SKIP_LABELS
+
+
 def resolve_country(label: str) -> str | None:
-    """Alpha-2 code for a source label, ``None`` when unknown or skipped."""
+    """Alpha-2 code for a source label; ``None`` when unknown or skipped (see
+    ``is_skipped_label`` to tell the two apart)."""
     plain = normalise_label(label)
     if plain in SKIP_LABELS:
         return None

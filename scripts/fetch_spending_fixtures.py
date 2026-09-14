@@ -205,7 +205,7 @@ def fetch_eda(cache: Path) -> None:
     portal = download(EDA_PORTAL, cache, "eda-portal.html").decode("utf-8", "replace")
     write(folder / "portal.html", trim_eda_portal(portal).encode("utf-8"))
     links = {int(year): url for _, url, year in _EDA_LINK.findall(portal)}
-    for year in (2025, 2022):
+    for year in (2025, 2024, 2023, 2022):
         write(
             folder / f"defence-data-{year}.xlsx",
             download(links[year], cache, f"eda-{year}.xlsx"),

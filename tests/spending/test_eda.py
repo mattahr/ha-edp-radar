@@ -178,7 +178,19 @@ async def test_provider_discovers_and_fetches_every_recent_workbook(
     ]
     assert fetched.checksum
     result = provider.parse_release(payload, fetched)
-    assert any(p.reference.start.year == 2025 for p in result.datapoints)
+    by_year = {
+        year: {
+            p.country: p.value
+            for p in result.datapoints
+            if p.reference.start.year == year
+            and p.metric_id == "defence_expenditure"
+            and "sheet:billions" not in p.flags
+        }
+        for year in (2022, 2023, 2024, 2025)
+    }
+    assert all(len(by_year[year]) >= 26 for year in by_year)
+    sweden = [by_year[year]["SE"] for year in (2022, 2023, 2024, 2025)]
+    assert len(set(sweden)) == 4  # four workbooks, four different figures
 
 
 async def test_fetch_release_on_fresh_instance_uses_rediscovered_release(
@@ -213,3 +225,52 @@ async def test_fetch_release_on_fresh_instance_uses_rediscovered_release(
     assert fetched.download_url == URL_2025
     result = provider.parse_release(payload, fetched)
     assert any(p.reference.start.year == 2025 for p in result.datapoints)
+
+
+def test_skip_labels_and_dash_cells_are_silent() -> None:
+    import io
+
+    from openpyxl import Workbook
+
+    book = Workbook()
+    sheet = book.active
+    sheet.title = "Member States 2025"
+    sheet.append(
+        [
+            "Member State",
+            "Year",
+            "Total Defence Expenditure",
+            "Defence Investment",
+            "Total Defence Expenditure as % of GDP",
+            "Total Defence Expenditure as % of Government Expenditure",
+            "Total Defence Expenditure per capita",
+        ]
+    )
+    sheet.append(["Sweden", 2025, 14788, "-", 0.0248, 0.057, 1386])
+    sheet.append(["European Union", 2025, 343000, 106000, 0.019, 0.04, 760])
+    billions = book.create_sheet("Billions")
+    billions.append(
+        [
+            "Member State",
+            "Year",
+            "Total Defence Expenditure",
+            "Defence Equipment Procurement Expenditure",
+            "Defence R&D Expenditure",
+            "Defence Investment",
+            "Total Defence Expenditure as % of GDP",
+        ]
+    )
+    # Investment is "-" here too: MEMBER_STATE_COLUMNS and BILLIONS_COLUMNS
+    # share the same _INVESTMENT column, and the assertion below checks
+    # defence_investment/SE is absent across *all* datapoints, not just the
+    # Member States sheet's dash cell.
+    billions.append(["Sweden", 2021, 7000, 1500, 88.2, "-", 0.013])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    release = SourceRelease("eda", "2025:x", date(2026, 9, 4), "d", "c", "xlsx")
+    result = parse_eda_workbooks({"2025": buffer.getvalue()}, release)
+    assert result.warnings == ()
+    metrics = {(p.metric_id, p.country) for p in result.datapoints}
+    assert ("defence_investment", "SE") not in metrics
+    assert ("defence_expenditure", "SE") in metrics
+    assert not any(p.country == "EU" for p in result.datapoints)

@@ -19,7 +19,7 @@ from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 
-from ..countries import resolve_country
+from ..countries import is_skipped_label, resolve_country
 from ..models import (
     DatapointStatus,
     ReferencePeriod,
@@ -47,16 +47,24 @@ _LINK = re.compile(
 _STARS = re.compile(r"\*+")
 PERCENT = Decimal(100)
 
-# (normalised header, metric_id, unit, multiply by 100)
-MEMBER_STATE_COLUMNS: tuple[tuple[str, str, str, bool], ...] = (
-    ("total defence expenditure", "defence_expenditure", "EUR_MILLION", False),
-    ("defence investment", "defence_investment", "EUR_MILLION", False),
-    (
-        "total defence expenditure as % of gdp",
-        "defence_expenditure_pct_gdp",
-        "PCT_GDP",
-        True,
-    ),
+Column = tuple[str, str, str, bool]  # (normalised header, metric_id, unit, ×100)
+_EXPENDITURE: Column = (
+    "total defence expenditure",
+    "defence_expenditure",
+    "EUR_MILLION",
+    False,
+)
+_INVESTMENT: Column = ("defence investment", "defence_investment", "EUR_MILLION", False)
+_PCT_GDP: Column = (
+    "total defence expenditure as % of gdp",
+    "defence_expenditure_pct_gdp",
+    "PCT_GDP",
+    True,
+)
+MEMBER_STATE_COLUMNS: tuple[Column, ...] = (
+    _EXPENDITURE,
+    _INVESTMENT,
+    _PCT_GDP,
     (
         "total defence expenditure as % of government expenditure",
         "defence_expenditure_pct_government",
@@ -70,8 +78,8 @@ MEMBER_STATE_COLUMNS: tuple[tuple[str, str, str, bool], ...] = (
         False,
     ),
 )
-BILLIONS_COLUMNS: tuple[tuple[str, str, str, bool], ...] = (
-    ("total defence expenditure", "defence_expenditure", "EUR_MILLION", False),
+BILLIONS_COLUMNS: tuple[Column, ...] = (
+    _EXPENDITURE,
     (
         "defence equipment procurement expenditure",
         "equipment_procurement",
@@ -79,13 +87,8 @@ BILLIONS_COLUMNS: tuple[tuple[str, str, str, bool], ...] = (
         False,
     ),
     ("defence r&d expenditure", "defence_rnd", "EUR_MILLION", False),
-    ("defence investment", "defence_investment", "EUR_MILLION", False),
-    (
-        "total defence expenditure as % of gdp",
-        "defence_expenditure_pct_gdp",
-        "PCT_GDP",
-        True,
-    ),
+    _INVESTMENT,
+    _PCT_GDP,
 )
 
 
@@ -108,14 +111,12 @@ def _columns(
     sheet: str,
 ) -> dict[str, int]:
     names = [_normalise(text(cell)) for cell in header_row]
-    columns: dict[str, int] = {}
-    for label in ("year",):
-        if label not in names:
-            raise SchemaChangedError(f"{sheet}: column {label!r} missing")
-        columns[label] = names.index(label)
+    if "year" not in names:
+        raise SchemaChangedError(f"{sheet}: column 'Year' missing")
+    columns: dict[str, int] = {"year": names.index("year")}
     for header, metric_id, _unit, _pct in wanted:
         if header not in names:
-            pretty = header.title().replace("Gdp", "GDP").replace("R&D", "R&D")
+            pretty = header.title().replace("Gdp", "GDP")
             raise SchemaChangedError(f"{sheet}: column {pretty!r} missing")
         columns[metric_id] = names.index(header)
     return columns
@@ -143,6 +144,8 @@ def _emit(
     for row in rows[1:]:
         label = text(row[0]) if row else ""
         if not label or label.startswith("*"):
+            continue
+        if is_skipped_label(label):
             continue
         country = resolve_country(label)
         if country is None:

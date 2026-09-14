@@ -68,7 +68,7 @@ def mock_spending_sources(
         aioclient_mock.head(
             url, headers={"Last-Modified": "Fri, 04 Sep 2026 10:13:18 GMT"}
         )
-        name = "defence-data-2025.xlsx" if year >= 2025 else "defence-data-2022.xlsx"
+        name = f"defence-data-{min(max(year, 2022), 2025)}.xlsx"
         aioclient_mock.get(url, content=(FIXTURES / "eda" / name).read_bytes())
 
     landing = (FIXTURES / "sipri" / "landing.html").read_text(encoding="utf-8")

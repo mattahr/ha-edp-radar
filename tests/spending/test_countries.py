@@ -40,3 +40,16 @@ def test_eurostat_helpers() -> None:
     assert EUROSTAT_GEO_FIXES == {"EL": "GR", "UK": "GB"}
     assert "EU27_2020" in EUROSTAT_AGGREGATES
     assert NORDIC == ("SE", "FI", "DK", "NO", "IS")
+
+
+def test_skipped_labels_are_distinguishable_from_unknown_ones() -> None:
+    from custom_components.edp_radar.spending.countries import (
+        is_skipped_label,
+        resolve_country,
+    )
+
+    assert is_skipped_label("European Union")
+    assert is_skipped_label("NATO Total*")
+    assert not is_skipped_label("Atlantis")
+    assert resolve_country("European Union") is None
+    assert resolve_country("Atlantis") is None
