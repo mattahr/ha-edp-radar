@@ -1464,7 +1464,7 @@ def test_red_font_in_the_real_workbook_is_highly_uncertain() -> None:
     assert "highly_uncertain" not in points[("military_expenditure_usd_constant", "SE", 2023)].flags
 ```
 
-(`_release()` is the module-level helper `tests/spending/test_sipri.py` already defines; use `_release()` wherever `RELEASE` appears above.) In `test_parse_sweden_estimates_and_notes`, change the country count assertion from `== 59` to `== 60` and the constant unit assertion (if any) to `"USD_MILLION_CONSTANT_2024"` (unchanged value; it is derived now).
+(`_release()` is the module-level helper `tests/spending/test_sipri.py` already defines.) In `test_parse_sweden_estimates_and_notes`, change the country count assertion from `== 59` to `== 60`; its `USD_MILLION_CONSTANT_2024` unit assertion keeps its value (the year is derived now).
 
 In `tests/spending/test_registry.py` add:
 
