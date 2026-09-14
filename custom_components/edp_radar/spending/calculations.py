@@ -88,6 +88,7 @@ class Ranking:
     top: RankEntry
     median: Decimal
     statuses: tuple[str, ...]
+    excluded_zero: tuple[str, ...] = ()
 
 
 def rank(
@@ -99,7 +100,11 @@ def rank(
     focus: str = FOCUS_COUNTRY,
     statuses: set[DatapointStatus] | None = None,
 ) -> Ranking | None:
-    """Descending ranking of one source/metric/reference/unit (plan §48, §50)."""
+    """Descending ranking of one source/metric/reference/unit (plan §48, §50).
+
+    Values of exactly zero are listed in ``excluded_zero`` instead of ranked
+    (S35).
+    """
     selected: dict[str, SpendingDataPoint] = {}
     sources: set[str] = set()
     for point in points:
@@ -116,6 +121,9 @@ def rank(
         selected[point.country] = point
     if len(sources) > 1:
         raise ValueError(f"ranking must use one source, got {sorted(sources)}")
+    excluded_zero = tuple(sorted(c for c, p in selected.items() if p.value == 0))
+    for country in excluded_zero:
+        del selected[country]
     if focus not in selected:
         return None
     ordered = sorted(selected.values(), key=lambda p: (-p.value, p.country))
@@ -136,6 +144,7 @@ def rank(
         top=entries[0],
         median=Decimal(_median(e.value for e in entries)),
         statuses=tuple(sorted({e.status.value for e in entries})),
+        excluded_zero=excluded_zero,
     )
 
 
@@ -161,3 +170,180 @@ def latest_reference(
 def nordic_subset(ranking: Ranking) -> tuple[RankEntry, ...]:
     """Nordic entries in ranking order; Iceland only when present (plan §51)."""
     return tuple(e for e in ranking.entries if e.country in NORDIC)
+
+
+@dataclass(frozen=True, slots=True)
+class YtdChange:
+    """January..month of one year against the same months a year earlier."""
+
+    current: Decimal
+    previous: Decimal | None
+    change: Decimal | None
+    pct: Decimal | None
+    months: int
+
+
+@dataclass(frozen=True, slots=True)
+class MonthChange:
+    current: SpendingDataPoint
+    previous: SpendingDataPoint | None
+    pct: Decimal | None
+
+
+@dataclass(frozen=True, slots=True)
+class Coverage:
+    """Which countries a reference period covers for one metric, against every
+    country the source reports at all (S37): Eurostat's 22 of 27 (S24b)."""
+
+    present: tuple[str, ...]
+    ever_seen: tuple[str, ...]
+    missing: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class NordicSummary:
+    entries: tuple[RankEntry, ...]
+    median: Decimal | None
+
+
+def _is_year(reference: ReferencePeriod) -> bool:
+    start, end = reference.start, reference.end
+    return (start.month, start.day, end.month, end.day) == (1, 1, 12, 31) and (
+        start.year == end.year
+    )
+
+
+def annual_series(
+    points: Iterable[SpendingDataPoint],
+    metric_id: str,
+    country: str,
+    *,
+    unit: str | None = None,
+) -> dict[int, SpendingDataPoint]:
+    """``{year: point}`` for calendar-year references of one metric/country."""
+    series: dict[int, SpendingDataPoint] = {}
+    for point in points:
+        if point.metric_id != metric_id or point.country != country:
+            continue
+        if unit is not None and point.unit != unit:
+            continue
+        if _is_year(point.reference):
+            series[point.reference.start.year] = point
+    return series
+
+
+def latest_year(
+    points: Iterable[SpendingDataPoint],
+    metric_id: str,
+    country: str,
+    *,
+    unit: str | None = None,
+) -> SpendingDataPoint | None:
+    series = annual_series(points, metric_id, country, unit=unit)
+    return series[max(series)] if series else None
+
+
+def ytd_change(
+    points: Iterable[SpendingDataPoint],
+    metric_id: str,
+    country: str,
+    year: int,
+    through_month: int,
+) -> YtdChange | None:
+    """YTD of ``year`` and the same months of ``year - 1`` (plan §52, §54)."""
+    snapshot = list(points)
+    current = ytd(snapshot, metric_id, country, year, through_month)
+    if current is None:
+        return None
+    previous = ytd(snapshot, metric_id, country, year - 1, through_month)
+    change = None if previous is None else current - previous
+    return YtdChange(
+        current, previous, change, nominal_change_pct(current, previous), through_month
+    )
+
+
+def month_change(
+    points: Iterable[SpendingDataPoint],
+    metric_id: str,
+    country: str,
+    year: int,
+    month: int,
+) -> MonthChange | None:
+    series = monthly_series(points, metric_id, country)
+    current = series.get((year, month))
+    if current is None:
+        return None
+    previous = series.get((year - 1, month))
+    return MonthChange(
+        current,
+        previous,
+        nominal_change_pct(current.value, previous.value if previous else None),
+    )
+
+
+def value_at(
+    points: Iterable[SpendingDataPoint],
+    metric_id: str,
+    country: str,
+    reference: ReferencePeriod,
+    *,
+    unit: str | None = None,
+) -> Decimal | None:
+    """The value of one metric for one country and reference period."""
+    for point in points:
+        if (
+            point.metric_id == metric_id
+            and point.country == country
+            and (point.reference.start, point.reference.end)
+            == (reference.start, reference.end)
+            and (unit is None or point.unit == unit)
+        ):
+            return point.value
+    return None
+
+
+def coverage(
+    points: Iterable[SpendingDataPoint],
+    metric_id: str,
+    reference: ReferencePeriod,
+    *,
+    unit: str,
+) -> Coverage:
+    present: set[str] = set()
+    ever_seen: set[str] = set()
+    for point in points:
+        ever_seen.add(point.country)
+        if point.metric_id != metric_id or point.unit != unit:
+            continue
+        if (point.reference.start, point.reference.end) == (
+            reference.start,
+            reference.end,
+        ):
+            present.add(point.country)
+    return Coverage(
+        tuple(sorted(present)),
+        tuple(sorted(ever_seen)),
+        tuple(sorted(ever_seen - present)),
+    )
+
+
+def change_over_years(
+    series: dict[int, SpendingDataPoint], year: int, years_back: int
+) -> tuple[Decimal, Decimal | None] | None:
+    """``(value years_back ago, change %)`` or ``None`` when that year is absent."""
+    then = series.get(year - years_back)
+    now = series.get(year)
+    if then is None or now is None:
+        return None
+    return then.value, nominal_change_pct(now.value, then.value)
+
+
+def nordic_summary(ranking: Ranking) -> NordicSummary:
+    """Nordic entries of a ranking and their median (plan §51).
+
+    Only countries in the ranking count, so a true zero excluded by ``rank``
+    (Iceland, S24d) never enters the median.
+    """
+    entries = nordic_subset(ranking)
+    median = Decimal(_median(e.value for e in entries)) if entries else None
+    return NordicSummary(entries, median)
