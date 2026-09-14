@@ -73,13 +73,12 @@ def expected_reference_end(spec: SourceSpec, today: date) -> date:
     """
     lag = timedelta(days=spec.expected_lag_days)
     if spec.cadence is Cadence.MONTHLY:
-        year, month = _add_months(today, -1)
-        candidate = _month_end(year, month)
+        candidate = _month_end(today.year, today.month)
         while candidate + lag > today:
             year, month = _add_months(candidate, -1)
             candidate = _month_end(year, month)
         return candidate
-    candidate = date(today.year - 1, 12, 31)
+    candidate = date(today.year, 12, 31)
     while candidate + lag > today:
         candidate = date(candidate.year - 1, 12, 31)
     return candidate

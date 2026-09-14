@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 
 from custom_components.edp_radar.spending.freshness import (
@@ -116,6 +117,15 @@ def test_expected_reference_end_follows_the_lag() -> None:
     assert expected_reference_end(nato, date(2026, 7, 20)) == date(2025, 12, 31)
 
 
+def test_expected_reference_end_with_zero_lag_is_the_period_end() -> None:
+    statskontoret = replace(source_spec("statskontoret"), expected_lag_days=0)
+    assert expected_reference_end(statskontoret, date(2026, 9, 30)) == date(2026, 9, 30)
+    assert expected_reference_end(statskontoret, date(2026, 9, 29)) == date(2026, 8, 31)
+    nato = replace(source_spec("nato"), expected_lag_days=0)
+    assert expected_reference_end(nato, date(2026, 12, 31)) == date(2026, 12, 31)
+    assert expected_reference_end(nato, date(2026, 12, 30)) == date(2025, 12, 31)
+
+
 def test_reference_overdue_and_period_complete() -> None:
     statskontoret = source_spec("statskontoret")
     assert not reference_overdue(statskontoret, date(2026, 7, 31), date(2026, 9, 14))
@@ -143,7 +153,7 @@ def test_reference_overdue_makes_the_state_late() -> None:
         )
         is FreshnessState.LATE
     )
-    # Inside the grace period the overdue reference is still only "expected".
+    # Inside the grace period the overdue reference does not yet make the state late.
     assert (
         freshness_state(
             eurostat, date(2025, 12, 31), date(2027, 4, 20), date(2027, 5, 3)
