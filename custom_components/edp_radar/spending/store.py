@@ -3,7 +3,8 @@
 Every release replaces the series: datapoints present in the new release are
 added or updated (a changed value records a ``Revision``), datapoints absent
 from it are carried over with their original provenance so history survives
-sources that drop old years.
+sources that drop old years. A datapoint whose key differs from a new one
+only in ``unit`` is superseded (S39).
 """
 
 from __future__ import annotations
@@ -36,6 +37,10 @@ STORAGE_VERSION = 1
 SCHEMA_VERSION = 1
 SAVE_DELAY_SECONDS = 30
 
+# Newest revisions kept per source; older ones are dropped (plan §62 keeps the
+# previous value of a change, not an unbounded audit log).
+MAX_REVISIONS = 1000
+
 
 def storage_key(entry_id: str, source_id: str) -> str:
     return f"{DOMAIN}.{entry_id}.spending.{source_id}"
@@ -53,6 +58,7 @@ class ApplyResult:
     unchanged: int
     carried_over: int
     revisions: tuple[Revision, ...]
+    superseded: int = 0
 
 
 class SpendingStore:
@@ -146,16 +152,46 @@ class SpendingStore:
     ) -> ApplyResult:
         current = self.series[source_id]
         existing = {point.key: point for point in current.datapoints}
+        # S39: a datapoint whose key differs from a new one only in ``unit``
+        # (constant-price base year moved) is replaced, not kept beside it.
+        by_base: dict[tuple[str, ...], DatapointKey] = {
+            key[:5]: key for key in existing
+        }
         incoming: dict[DatapointKey, SpendingDataPoint] = {}
+        duplicates = 0
         for point in datapoints:
+            if point.key in incoming:
+                duplicates += 1
             incoming[point.key] = point
         merged = dict(existing)
-        added = updated = unchanged = 0
+        added = updated = unchanged = superseded = 0
         revisions: list[Revision] = []
+        unit_changes: dict[tuple[str, str], int] = {}
         for key, point in incoming.items():
             previous = existing.get(key)
             if previous is None:
-                added += 1
+                old_key = by_base.get(key[:5])
+                old = (
+                    merged.pop(old_key, None)
+                    if old_key is not None and old_key not in incoming
+                    else None
+                )
+                if old is None:
+                    added += 1
+                else:
+                    superseded += 1
+                    change = (old.unit, point.unit)
+                    unit_changes[change] = unit_changes.get(change, 0) + 1
+                    revisions.append(
+                        Revision(
+                            key=point.key,
+                            previous_value=old.value,
+                            previous_release_id=old.release_id,
+                            new_value=point.value,
+                            release_id=point.release_id,
+                            detected_at=now,
+                        )
+                    )
             elif previous.value != point.value:
                 updated += 1
                 revisions.append(
@@ -171,14 +207,22 @@ class SpendingStore:
             else:
                 unchanged += 1
             merged[key] = point
-        carried_over = len(existing.keys() - incoming.keys())
+        carried_over = len(merged) - len(incoming)
+        notes = list(warnings)
+        if duplicates:
+            notes.append(
+                f"{duplicates} duplicate keys within release {release.release_id} "
+                "(last value kept)"
+            )
+        for (old_unit, new_unit), count in sorted(unit_changes.items()):
+            notes.append(f"unit changed {old_unit} → {new_unit} for {count} datapoints")
         health = dataclasses.replace(
             current.health,
             state=ProviderState.AVAILABLE,
             last_check_at=now,
             last_success_at=now,
             last_error=None,
-            warnings=warnings,
+            warnings=tuple(notes),
             skip_reason=None,
         )
         self.series[source_id] = SourceSeries(
@@ -186,12 +230,14 @@ class SpendingStore:
             release=release,
             health=health,
             datapoints=tuple(merged[key] for key in sorted(merged)),
-            revisions=(*current.revisions, *revisions),
+            revisions=(*current.revisions, *revisions)[-MAX_REVISIONS:],
             retrieved_at=now,
         )
         self._dirty.add(source_id)
         self._health_dirty = True
-        return ApplyResult(added, updated, unchanged, carried_over, tuple(revisions))
+        return ApplyResult(
+            added, updated, unchanged, carried_over, tuple(revisions), superseded
+        )
 
     def set_health(self, source_id: str, health: ProviderHealth) -> None:
         self.series[source_id] = dataclasses.replace(

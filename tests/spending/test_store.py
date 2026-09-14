@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
+import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.edp_radar.const import DOMAIN
+from custom_components.edp_radar.spending import store as store_module
 from custom_components.edp_radar.spending.models import (
     DatapointStatus,
     ProviderHealth,
@@ -430,3 +433,80 @@ async def test_remove_deletes_the_health_store(
     await store.async_remove()
     assert health_storage_key(ENTRY) not in hass_storage
     assert store.get("eda").health.state is ProviderState.NEVER_LOADED
+
+
+async def test_unit_change_supersedes_the_old_series(hass: HomeAssistant) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    v1 = SourceRelease(
+        "sipri", "v1", date(2026, 4, 27), "d", "c", "xlsx", checksum="v1"
+    )
+    old = SpendingDataPoint(
+        "sipri",
+        "military_expenditure_usd_constant",
+        "SE",
+        ReferencePeriod.year(2024),
+        Decimal("12046"),
+        "USD_MILLION_CONSTANT_2024",
+        DatapointStatus.ACTUAL,
+        "v1",
+        v1.published_at,
+        "u",
+    )
+    store.apply_release("sipri", v1, [old], now=NOW)
+    v2 = SourceRelease(
+        "sipri", "v2", date(2027, 4, 26), "d", "c", "xlsx", checksum="v2"
+    )
+    new = dataclasses.replace(
+        old, value=Decimal("12400"), unit="USD_MILLION_CONSTANT_2025", release_id="v2"
+    )
+    result = store.apply_release("sipri", v2, [new], now=NOW + timedelta(days=365))
+    assert (result.added, result.updated, result.superseded, result.carried_over) == (
+        0,
+        0,
+        1,
+        0,
+    )
+    series = store.get("sipri")
+    assert [p.unit for p in series.datapoints] == ["USD_MILLION_CONSTANT_2025"]
+    revision = series.revisions[-1]
+    assert revision.key == new.key
+    assert revision.previous_value == Decimal("12046")
+    assert revision.previous_release_id == "v1"
+    assert series.health.warnings == (
+        "unit changed USD_MILLION_CONSTANT_2024 → USD_MILLION_CONSTANT_2025 "
+        "for 1 datapoints",
+    )
+
+
+async def test_duplicate_keys_within_a_release_are_counted(hass: HomeAssistant) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    release = _release("r1", date(2026, 8, 24))
+    first = _point("materiel_outturn", 2026, 7, "1", release)
+    second = _point("materiel_outturn", 2026, 7, "2", release)
+    result = store.apply_release("statskontoret", release, [first, second], now=NOW)
+    assert result.added == 1
+    series = store.get("statskontoret")
+    assert series.datapoints[0].value == Decimal("2")
+    assert series.health.warnings == (
+        "1 duplicate keys within release r1 (last value kept)",
+    )
+
+
+async def test_revisions_are_capped(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(store_module, "MAX_REVISIONS", 3)
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    for number in range(1, 7):
+        release = _release(f"r{number}", date(2026, 8, number))
+        store.apply_release(
+            "statskontoret",
+            release,
+            [_point("materiel_outturn", 2026, 7, str(number), release)],
+            now=NOW + timedelta(days=number),
+        )
+    revisions = store.get("statskontoret").revisions
+    assert [r.release_id for r in revisions] == ["r4", "r5", "r6"]
