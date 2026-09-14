@@ -104,6 +104,10 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
     for required in ("expend", "na_item", "unit", "geo", "time"):
         if required not in ids:
             raise SchemaChangedError(f"Eurostat dimension {required!r} missing")
+    if "freq" in ids and set(_index(data, "freq")) != {"A"}:
+        raise SchemaChangedError(
+            f"Eurostat freq dimension is {sorted(_index(data, 'freq'))}, expected ['A']"
+        )
     indexes = {dim: _index(data, dim) for dim in ids}
     if EXPEND not in indexes["expend"]:
         raise SchemaChangedError("Eurostat expend code DEF missing")
@@ -128,7 +132,7 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
     }
     fixed_offset = 0
     for dim, index in fixed.items():
-        code = EXPEND if dim == "expend" else next(iter(index))
+        code = {"expend": EXPEND, "freq": "A"}.get(dim) or next(iter(index))
         fixed_offset += index[code] * strides[dim]
     warnings: list[str] = []
     # A ``geo`` code survives only as an exact two-letter country code; an

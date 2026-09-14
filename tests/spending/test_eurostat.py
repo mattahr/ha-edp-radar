@@ -230,3 +230,12 @@ def test_unknown_geo_code_is_skipped_with_warning() -> None:
     assert not any(p.country == "EA21" for p in result.datapoints)
     assert len({p.country for p in result.datapoints}) == 27
     assert sum(1 for w in result.warnings if "EA21" in w) == 1
+
+
+def test_non_annual_frequency_is_a_schema_change() -> None:
+    data = json.loads(_payload())
+    data["dimension"]["freq"]["category"]["index"] = {"Q": 0}
+    data["dimension"]["freq"]["category"]["label"] = {"Q": "Quarterly"}
+    quarterly = json.dumps(data).encode()
+    with pytest.raises(SchemaChangedError, match="freq"):
+        parse_jsonstat(quarterly, release_from_payload(_payload()))
