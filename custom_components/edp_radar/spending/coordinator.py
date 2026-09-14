@@ -138,6 +138,9 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
                 and fetched.checksum is not None
                 and fetched.checksum == series.release.checksum
             ):
+                fetched = dataclasses.replace(
+                    fetched, layout_fingerprint=series.release.layout_fingerprint
+                )
                 self.store.refresh_release(source_id, fetched, now=now)
                 self._set_health(
                     source_id,

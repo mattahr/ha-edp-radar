@@ -326,3 +326,4 @@ async def test_unchanged_checksum_refreshes_release_metadata(
     assert series.release is not None and series.release.release_id == "r2"
     assert series.retrieved_at == clock.now
     assert series.health.skip_reason == "unchanged_checksum"
+    assert series.release.layout_fingerprint == "fp"
