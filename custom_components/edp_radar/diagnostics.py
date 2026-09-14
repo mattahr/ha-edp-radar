@@ -23,8 +23,10 @@ from .purchasing_attrs import europe_attrs, period_attrs, summary_attrs
 from .spending.calculations import latest_reference
 from .spending.freshness import (
     freshness_state,
+    next_release_deadline,
     publication_age_days,
     reference_age_days,
+    reference_overdue,
 )
 from .spending.models import SourceSeries
 from .spending.registry import source_spec
@@ -114,6 +116,16 @@ def _spending_series(series: SourceSeries, today: date) -> dict[str, Any]:
             "reference_age_days": None
             if latest is None
             else reference_age_days(latest.end, today),
+            "reference_overdue": reference_overdue(
+                source_spec(series.source_id), latest.end if latest else None, today
+            ),
+            "next_release_expected": _plain(
+                next_release_deadline(
+                    source_spec(series.source_id),
+                    latest.end if latest else None,
+                    published,
+                )
+            ),
         },
         "parse_warnings": list(series.health.warnings),
         "revisions": len(series.revisions),

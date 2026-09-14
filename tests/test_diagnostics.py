@@ -154,6 +154,8 @@ async def test_spending_diagnostics(
         "state": "current",
         "publication_age_days": 19,
         "reference_age_days": 43,
+        "reference_overdue": False,
+        "next_release_expected": "2026-09-30",
     }
     assert sk["revisions"] == 0
     assert sk["schema_version"] == 1

@@ -10,6 +10,10 @@ utfallsmånad" (plan §14): the month after the latest reference month is due
 on the last business day of the month after that. Business days ignore
 Swedish public holidays (a documented simplification). Annual sources are due
 365 days after their last publication, twice-yearly sources after 183 days.
+
+``late`` also covers a reference period that should have been published
+(``expected_lag_days`` after its end) but is missing, so a source that keeps
+re-publishing old data is not reported as current.
 """
 
 from __future__ import annotations
@@ -56,6 +60,46 @@ def _add_months(day: date, months: int) -> tuple[int, int]:
     return index // 12, index % 12 + 1
 
 
+def _month_end(year: int, month: int) -> date:
+    return date(year, month, calendar.monthrange(year, month)[1])
+
+
+def expected_reference_end(spec: SourceSpec, today: date) -> date:
+    """Newest period end whose figures should already be published (S42).
+
+    Monthly sources: the newest month end at least ``expected_lag_days`` ago.
+    Annual data (also Eurostat's twice-yearly dissemination): the newest
+    31 December at least ``expected_lag_days`` ago.
+    """
+    lag = timedelta(days=spec.expected_lag_days)
+    if spec.cadence is Cadence.MONTHLY:
+        year, month = _add_months(today, -1)
+        candidate = _month_end(year, month)
+        while candidate + lag > today:
+            year, month = _add_months(candidate, -1)
+            candidate = _month_end(year, month)
+        return candidate
+    candidate = date(today.year - 1, 12, 31)
+    while candidate + lag > today:
+        candidate = date(candidate.year - 1, 12, 31)
+    return candidate
+
+
+def reference_overdue(
+    spec: SourceSpec, latest_reference_end: date | None, today: date
+) -> bool:
+    """True when a period that should be published is not in the data."""
+    return (
+        latest_reference_end is None
+        or latest_reference_end < expected_reference_end(spec, today)
+    )
+
+
+def reference_period_complete(reference_end: date, today: date) -> bool:
+    """False for a reference year still running (NATO estimates, S24c)."""
+    return reference_end <= today
+
+
 def next_release_deadline(
     spec: SourceSpec, latest_reference_end: date | None, published_at: date | None
 ) -> date | None:
@@ -83,8 +127,11 @@ def freshness_state(
     deadline = next_release_deadline(spec, latest_reference_end, published_at)
     if deadline is None or latest_reference_end is None:
         return FreshnessState.UNKNOWN
+    grace = timedelta(days=grace_days)
+    if reference_overdue(spec, latest_reference_end, today - grace):
+        return FreshnessState.LATE
     if today <= deadline:
         return FreshnessState.CURRENT
-    if today <= deadline + timedelta(days=grace_days):
+    if today <= deadline + grace:
         return FreshnessState.EXPECTED
     return FreshnessState.LATE
