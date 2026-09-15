@@ -196,6 +196,7 @@ async def test_optional_devices_absent_by_default(
         "European Defence Market",
         "European Purchasing",
         "External Radar",
+        "Statskontoret",
         "Supplier Landscape",
     ]
     market = registry.async_get_device_by_identifier((DOMAIN, f"{ENTRY}_market"), ENTRY)
@@ -486,6 +487,7 @@ async def test_country_purchasing_sensors(
         "External Radar",
         "My Country: Slovenia",
         "Peer Comparison",
+        "Statskontoret",
         "Supplier Landscape",
     ]
 

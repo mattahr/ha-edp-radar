@@ -84,6 +84,7 @@ from .purchasing_attrs import (
 from .purchasing_attrs import (
     summary_attrs as _summary_attrs,
 )
+from .spending.sensors import async_setup_spending_sensors
 
 type SensorValue = StateType | datetime
 type ValueFn = Callable[[RadarSnapshot], SensorValue]
@@ -1215,6 +1216,7 @@ async def async_setup_entry(
             for description in RAW_SENSORS
         )
     async_add_entities(entities)
+    async_setup_spending_sensors(entry, async_add_entities)
 
 
 class EdpRadarSensor(EdpRadarEntity, SensorEntity):

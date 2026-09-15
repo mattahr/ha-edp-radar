@@ -11,6 +11,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EdpRadarCoordinator
 from .metrics import RadarSnapshot
+from .spending.registry import source_spec
 
 CONFIGURATION_URL = "https://ted.europa.eu/"
 
@@ -70,6 +71,29 @@ def device_info(
         model=MODEL,
         entry_type=DeviceEntryType.SERVICE,
         configuration_url=CONFIGURATION_URL,
+    )
+
+
+SPENDING_DEVICE_NAMES: dict[str, str] = {
+    "statskontoret": "Statskontoret",
+    "eurostat": "Eurostat",
+    "nato": "NATO",
+    "eda": "EDA",
+    "sipri": "SIPRI",
+}
+
+
+def spending_device_info(entry_id: str, source_id: str) -> DeviceInfo:
+    """One service device per spending source (S30); the source's own page is
+    the configuration URL."""
+    spec = source_spec(source_id)
+    return DeviceInfo(
+        identifiers={(DOMAIN, f"{entry_id}_spending_{source_id}")},
+        name=SPENDING_DEVICE_NAMES[source_id],
+        manufacturer=spec.publisher,
+        model=spec.display_name,
+        entry_type=DeviceEntryType.SERVICE,
+        configuration_url=spec.canonical_url,
     )
 
 
