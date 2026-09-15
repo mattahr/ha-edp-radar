@@ -91,8 +91,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: EdpRadarConfigEntry) -> 
     )
     await spending.async_setup()
     entry.runtime_data = RuntimeData(radar=coordinator, spending=spending)
-    # No entities listen yet (Plan 2): a no-op listener keeps the 6 h cycle armed,
-    # and the first refresh runs in the background so a slow source never delays setup.
+    # Spending entities can all be disabled (the data-age diagnostics are, by
+    # default); a no-op listener keeps the 6 h cycle armed even then, and the
+    # first refresh runs in the background so a slow source never delays setup.
     entry.async_on_unload(spending.async_add_listener(lambda: None))
     entry.async_create_background_task(
         hass, spending.async_refresh(), name=f"{DOMAIN} spending initial refresh"

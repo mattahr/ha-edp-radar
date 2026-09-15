@@ -342,4 +342,4 @@ def test_short_rows_are_counted_as_a_warning() -> None:
     lines = text.splitlines()
     lines.insert(2, "06;Försvar;0601003;kort rad")
     result = parse_outturn_csv("\n".join(lines).encode("utf-8"), release)
-    assert result.warnings == ("1 rows shorter than the header were skipped",)
+    assert result.warnings == ("1 row shorter than the header was skipped",)

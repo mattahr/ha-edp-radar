@@ -303,6 +303,45 @@ async def test_update_failed_ignores_sources_without_a_provider(
         await coordinator._async_update_data()
 
 
+async def test_setup_seeds_data_from_the_loaded_store(hass: HomeAssistant) -> None:
+    # NATO data exists in the store from before a restart…
+    seeded = SpendingStore(hass, "test-entry")
+    await seeded.async_load()
+    release = SourceRelease("nato", "r1", date(2026, 9, 1), "d", "c", "x")
+    seeded.apply_release(
+        "nato",
+        release,
+        [
+            SpendingDataPoint(
+                "nato",
+                "m",
+                "SE",
+                ReferencePeriod.year(2025),
+                Decimal(1),
+                "U",
+                DatapointStatus.ACTUAL,
+                "r1",
+                release.published_at,
+                "c",
+            )
+        ],
+        now=NOW,
+    )
+    await seeded.async_save(immediate=True)
+    # …so entities must see it immediately after setup, before any refresh.
+    coordinator = await _coordinator(hass, [FakeProvider("nato")], Clock(NOW))
+    assert coordinator.data is not None
+    assert coordinator.data.get("nato").datapoints
+
+
+async def test_setup_seeds_empty_series_from_an_empty_store(
+    hass: HomeAssistant,
+) -> None:
+    coordinator = await _coordinator(hass, [FakeProvider("nato")], Clock(NOW))
+    assert coordinator.data is not None
+    assert coordinator.data.get("nato").datapoints == ()
+
+
 async def test_refresh_source_rejects_unknown_ids(hass: HomeAssistant) -> None:
     coordinator = await _coordinator(hass, [FakeProvider("nato")], Clock(NOW))
     with pytest.raises(ValueError, match="unknown spending source 'sipri'"):

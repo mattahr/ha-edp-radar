@@ -322,3 +322,19 @@ def test_rank_excludes_true_zeros_and_nordic_summary_ignores_them() -> None:
     )
     assert germany_only is not None
     assert nordic_summary(germany_only) == NordicSummary((), None)
+
+
+def test_rank_is_none_when_the_focus_country_itself_is_zero() -> None:
+    points = [
+        _annual("eurostat", "defence_expenditure", "SE", 2025, "0"),
+        _annual("eurostat", "defence_expenditure", "DE", 2025, "1000"),
+    ]
+    assert (
+        rank(
+            points,
+            metric_id="defence_expenditure",
+            unit="EUR_MILLION",
+            reference=ReferencePeriod.year(2025),
+        )
+        is None
+    )

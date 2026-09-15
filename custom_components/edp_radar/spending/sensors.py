@@ -61,6 +61,7 @@ from .freshness import (
     publication_age_days,
     reference_age_days,
     reference_overdue,
+    reference_period_complete,
 )
 from .models import DatapointStatus, ReferencePeriod, SourceSeries, SpendingDataPoint
 from .registry import (
@@ -224,7 +225,10 @@ def _sk_ytd(
 
 def _ytd_reference(latest: SpendingDataPoint) -> ReferencePeriod:
     end = latest.reference.end
-    return ReferencePeriod(date(end.year, 1, 1), end, f"Jan–{latest.reference.label}")
+    label = (
+        latest.reference.label if end.month == 1 else f"Jan–{latest.reference.label}"
+    )
+    return ReferencePeriod(date(end.year, 1, 1), end, label)
 
 
 def _sk_ytd_value(metric_id: str) -> ValueFn:
@@ -899,6 +903,9 @@ def _age_attrs(source_id: str) -> AttributesFn:
                 next_release_deadline(spec, latest, published)
             ),
             "latest_reference_end": iso(latest),
+            "reference_period_complete": None
+            if latest is None
+            else reference_period_complete(latest, today),
             "reference_age_days": None
             if latest is None
             else reference_age_days(latest, today),

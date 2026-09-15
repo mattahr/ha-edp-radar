@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -16,6 +18,12 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.edp_radar.const import DOMAIN
+from custom_components.edp_radar.spending.models import (
+    DatapointStatus,
+    ReferencePeriod,
+    SpendingDataPoint,
+)
+from custom_components.edp_radar.spending.sensors import _ytd_reference
 
 from .spending.mocks import mock_spending_sources
 from .test_coordinator import NOW
@@ -492,6 +500,32 @@ def test_catalogue_has_27_sensors() -> None:
     assert len({d.key for d in SPENDING_SENSORS}) == 27
 
 
+def test_every_source_has_a_device_name() -> None:
+    from custom_components.edp_radar.entity import SPENDING_DEVICE_NAMES
+    from custom_components.edp_radar.spending.registry import SOURCE_ORDER
+
+    assert set(SPENDING_DEVICE_NAMES) == set(SOURCE_ORDER)
+
+
+def test_ytd_reference_label_in_january() -> None:
+    latest = SpendingDataPoint(
+        "statskontoret",
+        "materiel_outturn",
+        "SE",
+        ReferencePeriod.month(2027, 1),
+        Decimal("100"),
+        "SEK_MILLION",
+        DatapointStatus.ACTUAL,
+        "r",
+        date(2027, 2, 24),
+        "u",
+    )
+    reference = _ytd_reference(latest)
+    assert reference.label == "Jan 2027"
+    assert reference.start == date(2027, 1, 1)
+    assert reference.end == date(2027, 1, 31)
+
+
 @pytest.mark.spending_live
 async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
     hass: HomeAssistant,
@@ -514,6 +548,7 @@ async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
     assert age.attributes["reference_overdue"] is False
     assert age.attributes["next_release_expected"] == "2026-09-30"
     assert age.attributes["latest_reference_end"] == "2026-07-31"
+    assert age.attributes["reference_period_complete"] is True
     assert age.attributes["reference_age_days"] == 43
     assert age.attributes["published_at"] == "2026-08-24"
     assert age.attributes["release_id"] == "2026-07-definitiv-2026-08-24"
@@ -525,6 +560,7 @@ async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
     nato = get_state(hass, "nato_data_age")
     assert nato.state == "64"
     assert nato.attributes["latest_reference_end"] == "2026-12-31"
+    assert nato.attributes["reference_period_complete"] is False
     assert nato.attributes["reference_age_days"] == -110  # 2026-09-12 → 2026-12-31
 
     # A source that fails on the next tick keeps its values; the age sensor says why.

@@ -327,7 +327,11 @@ def parse_outturn_csv(
         for (metric_id, year, month), value in sorted(sums.items())
     )
     warnings = (
-        (f"{short_rows} rows shorter than the header were skipped",)
+        (
+            f"{short_rows} row shorter than the header was skipped"
+            if short_rows == 1
+            else f"{short_rows} rows shorter than the header were skipped",
+        )
         if short_rows
         else ()
     )

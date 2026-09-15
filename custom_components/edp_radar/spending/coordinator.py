@@ -69,6 +69,7 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
 
     async def async_setup(self) -> None:
         await self.store.async_load()
+        self.data = self._snapshot(self._clock())
 
     async def async_shutdown(self) -> None:
         await self.store.async_save(immediate=True)
