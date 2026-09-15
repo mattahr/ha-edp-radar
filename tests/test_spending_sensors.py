@@ -299,3 +299,71 @@ async def test_eurostat_sensors(
     assert inv_rank.attributes["missing"] == []
     assert inv_rank.attributes["top"]["country"] == "PL"
     assert set(inv_rank.attributes["ranking"][0]) == {"rank", "country", "eur"}
+
+
+@pytest.mark.spending_live
+async def test_nato_sensors(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_spending(hass, mock_backend)
+
+    value = get_state(hass, "nato_defence_expenditure")
+    assert float(value.state) == pytest.approx(24186 * MILLION)
+    assert value.attributes["unit_of_measurement"] == "USD"
+    assert value.attributes["reference_year"] == 2026
+    assert value.attributes["nac_million"] == pytest.approx(217902)
+    assert value.attributes["usd_constant"] == pytest.approx(21538 * MILLION)
+    assert value.attributes["price_base_year"] == 2021
+    assert value.attributes["pct_gdp"] == pytest.approx(3.22)
+    assert value.attributes["latest_actual"] == {
+        "year": 2024,
+        "usd": pytest.approx(13300 * MILLION),
+    }
+    assert value.attributes["previous_year_usd"] == pytest.approx(19122 * MILLION)
+    assert value.attributes["change_pct"] == pytest.approx(26.5, abs=0.05)
+    assert value.attributes["rank"] == 11
+    assert value.attributes["population"] == 31
+    prov = provenance(value.attributes)
+    assert prov["status"] == "estimate"
+    assert prov["reference_period_complete"] is False
+    assert prov["reference_age_days"] is None
+    assert prov["published_at"] == "2026-07-10"
+
+    share = get_state(hass, "nato_defence_expenditure_pct_gdp")
+    assert float(share.state) == pytest.approx(3.22)
+    assert share.attributes["rank"] == 7
+    assert share.attributes["population"] == 31
+    assert share.attributes["alliance_median_pct_gdp"] == pytest.approx(2.22)
+
+    ranking = get_state(hass, "nato_defence_expenditure_pct_gdp_rank")
+    assert ranking.state == "7"
+    assert ranking.attributes["top"] == {
+        "country": "LT",
+        "pct_gdp": pytest.approx(5.33),
+    }
+    assert ranking.attributes["ranking"][6] == {
+        "rank": 7,
+        "country": "SE",
+        "pct_gdp": pytest.approx(3.22),
+        "usd": pytest.approx(24186 * MILLION),
+    }
+    assert [row["country"] for row in ranking.attributes["nordic"]] == [
+        "DK",
+        "SE",
+        "NO",
+        "FI",
+    ]
+    assert ranking.attributes["statuses"] == ["estimate"]
+    assert ranking.attributes["population_total"] == 31
+
+    equipment = get_state(hass, "nato_equipment_share_pct")
+    assert float(equipment.state) == pytest.approx(25.41)
+    assert equipment.attributes["equipment_usd"] == pytest.approx(6145.6626 * MILLION)
+    assert equipment.attributes["rank"] == 25
+
+    text = get_state(hass, "nato_position_text")
+    assert text.state == "SE #7 of 31 · USD 24.2bn · 3.2% GDP · NATO 2026 estimate"
+    assert provenance(text.attributes)["status"] == "estimate"

@@ -31,6 +31,7 @@ from .attrs import (
     MILLION,
     Companion,
     monthly_series_attrs,
+    price_base_year,
     provenance_attrs,
     ranking_attrs,
     scaled,
@@ -52,8 +53,15 @@ from .calculations import (
 )
 from .coordinator import SpendingCoordinator
 from .models import DatapointStatus, ReferencePeriod, SourceSeries, SpendingDataPoint
-from .registry import EUROSTAT, FOCUS_COUNTRY, STATSKONTORET, metric_spec, source_spec
-from .text import statskontoret_snapshot_text
+from .registry import (
+    EUROSTAT,
+    FOCUS_COUNTRY,
+    NATO,
+    STATSKONTORET,
+    metric_spec,
+    source_spec,
+)
+from .text import nato_position_text, statskontoret_snapshot_text
 
 if TYPE_CHECKING:
     from ..coordinator import EdpRadarConfigEntry
@@ -556,11 +564,157 @@ EUROSTAT_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
 )
 
 
+# -------------------------------------------------------------------- NATO
+
+NATO_USD = "defence_expenditure_usd_current"
+NATO_NAC = "defence_expenditure_nac"
+NATO_USD_CONSTANT = "defence_expenditure_usd_constant"
+NATO_PCT_GDP = "defence_expenditure_pct_gdp"
+NATO_EQUIPMENT_SHARE = "equipment_share_pct"
+NATO_EQUIPMENT_USD = "equipment_expenditure_usd_current"
+
+
+def _latest_actual(series: SourceSeries, metric_id: str) -> SpendingDataPoint | None:
+    annual = annual_series(series.datapoints, metric_id, FOCUS_COUNTRY)
+    actual = [p for p in annual.values() if p.status is DatapointStatus.ACTUAL]
+    return max(actual, key=lambda p: p.reference.start) if actual else None
+
+
+def _nato_value_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    point = _latest(series, NATO_USD)
+    if point is None:
+        return {}
+    reference = point.reference
+    previous, change = _year_over_year(series, point)
+    ranking = _ranking(series, point)
+    constant = latest_year(series.datapoints, NATO_USD_CONSTANT, FOCUS_COUNTRY)
+    constant_value = (
+        constant.value
+        if constant is not None and constant.reference == reference
+        else None
+    )
+    actual = _latest_actual(series, NATO_USD)
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": reference.start.year,
+            "nac_million": scaled(_focus_value(series, NATO_NAC, reference)),
+            "usd_constant": scaled(constant_value, MILLION),
+            "price_base_year": price_base_year(constant.unit) if constant else None,
+            "pct_gdp": _pct_value(_focus_value(series, NATO_PCT_GDP, reference)),
+            "latest_actual": None
+            if actual is None
+            else {
+                "year": actual.reference.start.year,
+                "usd": scaled(actual.value, MILLION),
+            },
+            "previous_year_usd": scaled(previous, MILLION),
+            "change_pct": _pct_value(change),
+            "rank": None if ranking is None else ranking.focus_rank,
+            "population": None if ranking is None else ranking.population,
+        }
+    )
+    return out
+
+
+def _nato_pct_attrs(series: SourceSeries, today: date, now: datetime) -> dict[str, Any]:
+    point = _latest(series, NATO_PCT_GDP)
+    ranking = _ranking(series, point) if point else None
+    if point is None or ranking is None:
+        return {}
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": point.reference.start.year,
+            "rank": ranking.focus_rank,
+            "population": ranking.population,
+            "alliance_median_pct_gdp": _pct_value(ranking.median),
+        }
+    )
+    return out
+
+
+def _nato_equipment_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    point = _latest(series, NATO_EQUIPMENT_SHARE)
+    ranking = _ranking(series, point) if point else None
+    if point is None or ranking is None:
+        return {}
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": point.reference.start.year,
+            "equipment_usd": scaled(
+                _focus_value(series, NATO_EQUIPMENT_USD, point.reference), MILLION
+            ),
+            "rank": ranking.focus_rank,
+            "population": ranking.population,
+        }
+    )
+    return out
+
+
+def _nato_position(series: SourceSeries, today: date) -> StateType:
+    pct = _latest(series, NATO_PCT_GDP)
+    ranking = _ranking(series, pct) if pct else None
+    if pct is None or ranking is None:
+        return None
+    usd = _focus_value(series, NATO_USD, pct.reference)
+    return nato_position_text(
+        ranking,
+        None if usd is None else usd * MILLION,
+        pct.value,
+        pct.reference.start.year,
+        pct.status,
+    )
+
+
+def _nato_position_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    point = _latest(series, NATO_PCT_GDP)
+    return {} if point is None else _provenance(point, series, today)
+
+
+NATO_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
+    _money(
+        "nato_defence_expenditure",
+        NATO,
+        "USD",
+        _annual_value(NATO_USD),
+        _nato_value_attrs,
+    ),
+    _pct(
+        "nato_defence_expenditure_pct_gdp",
+        NATO,
+        _annual_value(NATO_PCT_GDP, 1),
+        _nato_pct_attrs,
+    ),
+    _rank(
+        "nato_defence_expenditure_pct_gdp_rank",
+        NATO,
+        _rank_value(NATO_PCT_GDP),
+        _rank_attrs(NATO_PCT_GDP, "pct_gdp", 1, {"usd": (NATO_USD, MILLION)}),
+    ),
+    _pct(
+        "nato_equipment_share_pct",
+        NATO,
+        _annual_value(NATO_EQUIPMENT_SHARE, 1),
+        _nato_equipment_attrs,
+    ),
+    _text("nato_position_text", NATO, _nato_position, _nato_position_attrs),
+)
+
+
 # ------------------------------------------------------------------ catalogue
 
 SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
     *STATSKONTORET_SENSORS,
     *EUROSTAT_SENSORS,
+    *NATO_SENSORS,
 )
 
 
