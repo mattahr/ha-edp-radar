@@ -27,18 +27,32 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from ..entity import spending_device_info
-from .attrs import MILLION, monthly_series_attrs, provenance_attrs, scaled
+from .attrs import (
+    MILLION,
+    Companion,
+    monthly_series_attrs,
+    provenance_attrs,
+    ranking_attrs,
+    scaled,
+)
 from .calculations import (
     MonthChange,
+    Ranking,
     YtdChange,
+    annual_series,
+    coverage,
     latest_month,
+    latest_year,
     month_change,
     monthly_series,
+    nominal_change_pct,
+    rank,
+    value_at,
     ytd_change,
 )
 from .coordinator import SpendingCoordinator
 from .models import DatapointStatus, ReferencePeriod, SourceSeries, SpendingDataPoint
-from .registry import FOCUS_COUNTRY, STATSKONTORET, metric_spec, source_spec
+from .registry import EUROSTAT, FOCUS_COUNTRY, STATSKONTORET, metric_spec, source_spec
 from .text import statskontoret_snapshot_text
 
 if TYPE_CHECKING:
@@ -366,10 +380,187 @@ STATSKONTORET_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
 )
 
 
+# ------------------------------------------------------- annual sources
+
+
+def _latest(
+    series: SourceSeries, metric_id: str, unit: str | None = None
+) -> SpendingDataPoint | None:
+    return latest_year(series.datapoints, metric_id, FOCUS_COUNTRY, unit=unit)
+
+
+def _ranking(series: SourceSeries, point: SpendingDataPoint) -> Ranking | None:
+    """Rank Sweden's datapoint within its own metric, reference and unit."""
+    return rank(
+        series.datapoints,
+        metric_id=point.metric_id,
+        unit=point.unit,
+        reference=point.reference,
+    )
+
+
+def _companion(
+    series: SourceSeries, metric_id: str, reference: ReferencePeriod, scale: int
+) -> Companion:
+    return (
+        lambda country: value_at(series.datapoints, metric_id, country, reference),
+        scale,
+    )
+
+
+def _focus_value(
+    series: SourceSeries, metric_id: str, reference: ReferencePeriod
+) -> Decimal | None:
+    return value_at(series.datapoints, metric_id, FOCUS_COUNTRY, reference)
+
+
+def _focus_rank(
+    series: SourceSeries, metric_id: str, unit: str, reference: ReferencePeriod
+) -> int | None:
+    ranking = rank(
+        series.datapoints, metric_id=metric_id, unit=unit, reference=reference
+    )
+    return None if ranking is None else ranking.focus_rank
+
+
+def _year_over_year(
+    series: SourceSeries, point: SpendingDataPoint
+) -> tuple[Decimal | None, Decimal | None]:
+    """``(previous year's value, change %)`` for the focus country."""
+    annual = annual_series(
+        series.datapoints, point.metric_id, FOCUS_COUNTRY, unit=point.unit
+    )
+    previous = annual.get(point.reference.start.year - 1)
+    if previous is None:
+        return None, None
+    return previous.value, nominal_change_pct(point.value, previous.value)
+
+
+def _annual_value(metric_id: str, scale: int = MILLION) -> ValueFn:
+    return lambda series, today: (
+        scaled(p.value, scale) if (p := _latest(series, metric_id)) else None
+    )
+
+
+def _rank_value(metric_id: str) -> ValueFn:
+    def value(series: SourceSeries, today: date) -> StateType:
+        point = _latest(series, metric_id)
+        ranking = _ranking(series, point) if point else None
+        return None if ranking is None else ranking.focus_rank
+
+    return value
+
+
+def _rank_attrs(
+    metric_id: str,
+    value_key: str,
+    scale: int,
+    companions: dict[str, tuple[str, int]] | None = None,
+) -> AttributesFn:
+    """Ranking attributes; ``companions`` maps attribute name → (metric id, scale)."""
+
+    def attrs(series: SourceSeries, today: date, now: datetime) -> dict[str, Any]:
+        point = _latest(series, metric_id)
+        ranking = _ranking(series, point) if point else None
+        if point is None or ranking is None:
+            return {}
+        cov = coverage(series.datapoints, metric_id, point.reference, unit=point.unit)
+        out = _provenance(point, series, today)
+        out.update(
+            ranking_attrs(
+                ranking,
+                cov,
+                value_key=value_key,
+                scale=scale,
+                companions={
+                    name: _companion(series, other, point.reference, other_scale)
+                    for name, (other, other_scale) in (companions or {}).items()
+                },
+            )
+        )
+        return out
+
+    return attrs
+
+
+# ---------------------------------------------------------------- Eurostat
+
+EU_EXPENDITURE = "defence_expenditure"
+EU_INVESTMENT = "defence_investment"
+
+
+def _eurostat_value_attrs(metric_id: str) -> AttributesFn:
+    def attrs(series: SourceSeries, today: date, now: datetime) -> dict[str, Any]:
+        point = _latest(series, metric_id)
+        if point is None:
+            return {}
+        reference = point.reference
+        previous, change = _year_over_year(series, point)
+        ranking = _ranking(series, point)
+        out = _provenance(point, series, today)
+        out.update(
+            {
+                "reference_year": reference.start.year,
+                "pct_gdp": _pct_value(
+                    _focus_value(series, f"{metric_id}_pct_gdp", reference)
+                ),
+                "nac_million": scaled(
+                    _focus_value(series, f"{metric_id}_nac", reference)
+                ),
+                "previous_year_eur": scaled(previous, MILLION),
+                "change_pct": _pct_value(change),
+                "rank": None if ranking is None else ranking.focus_rank,
+                "pct_gdp_rank": _focus_rank(
+                    series, f"{metric_id}_pct_gdp", "PCT_GDP", reference
+                ),
+                "population": None if ranking is None else ranking.population,
+            }
+        )
+        return out
+
+    return attrs
+
+
+EUROSTAT_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
+    _money(
+        "eurostat_defence_expenditure",
+        EUROSTAT,
+        "EUR",
+        _annual_value(EU_EXPENDITURE),
+        _eurostat_value_attrs(EU_EXPENDITURE),
+    ),
+    _rank(
+        "eurostat_defence_expenditure_rank",
+        EUROSTAT,
+        _rank_value(EU_EXPENDITURE),
+        _rank_attrs(
+            EU_EXPENDITURE,
+            "eur",
+            MILLION,
+            {"pct_gdp": (f"{EU_EXPENDITURE}_pct_gdp", 1)},
+        ),
+    ),
+    _money(
+        "eurostat_defence_investment",
+        EUROSTAT,
+        "EUR",
+        _annual_value(EU_INVESTMENT),
+        _eurostat_value_attrs(EU_INVESTMENT),
+    ),
+    _rank(
+        "eurostat_defence_investment_rank",
+        EUROSTAT,
+        _rank_value(EU_INVESTMENT),
+        _rank_attrs(EU_INVESTMENT, "eur", MILLION),
+    ),
+)
+
+
 # ------------------------------------------------------------------ catalogue
 
 SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
     *STATSKONTORET_SENSORS,
+    *EUROSTAT_SENSORS,
 )
 
 

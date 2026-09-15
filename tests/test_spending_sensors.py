@@ -240,3 +240,62 @@ async def test_sensors_are_unknown_before_the_first_refresh(
     await hass.async_block_till_done(wait_background_tasks=True)
     assert get_state(hass, "statskontoret_materiel_ytd").state == STATE_UNKNOWN
     assert get_state(hass, "statskontoret_snapshot_text").state == STATE_UNKNOWN
+
+
+@pytest.mark.spending_live
+async def test_eurostat_sensors(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_spending(hass, mock_backend)
+
+    value = get_state(hass, "eurostat_defence_expenditure")
+    assert float(value.state) == pytest.approx(17196.9 * MILLION)
+    assert value.attributes["unit_of_measurement"] == "EUR"
+    assert value.attributes["reference_year"] == 2025
+    assert value.attributes["pct_gdp"] == pytest.approx(2.9)
+    assert value.attributes["nac_million"] == pytest.approx(190306.0)
+    assert value.attributes["previous_year_eur"] == pytest.approx(11093.8 * MILLION)
+    assert value.attributes["change_pct"] == pytest.approx(55.0, abs=0.05)
+    assert value.attributes["rank"] == 4
+    assert value.attributes["pct_gdp_rank"] == 4
+    assert value.attributes["population"] == 22
+    prov = provenance(value.attributes)
+    assert prov["source"] == "Eurostat"
+    assert prov["reference_label"] == "2025"
+    assert prov["status"] == "actual"
+    assert prov["published_at"] == "2026-04-27"
+
+    ranking = get_state(hass, "eurostat_defence_expenditure_rank")
+    assert ranking.state == "4"
+    attrs = ranking.attributes
+    assert attrs["population"] == 22
+    assert attrs["population_total"] == 27
+    assert attrs["missing"] == ["CY", "ES", "IE", "IT", "NL"]
+    assert attrs["excluded_zero"] == []
+    assert attrs["top"] == {"country": "DE", "eur": pytest.approx(68824.0 * MILLION)}
+    assert attrs["ranking"][0]["country"] == "DE"
+    assert attrs["ranking"][3] == {
+        "rank": 4,
+        "country": "SE",
+        "eur": pytest.approx(17196.9 * MILLION),
+        "pct_gdp": pytest.approx(2.9),
+    }
+    assert len(attrs["ranking"]) == 22
+    assert [row["country"] for row in attrs["nordic"]] == ["SE", "DK", "FI"]
+    assert attrs["sweden"] == {"rank": 4, "eur": pytest.approx(17196.9 * MILLION)}
+    assert attrs["statuses"] == ["actual"]
+    assert attrs["median_eur"] == pytest.approx(3808.3 * MILLION)
+    assert provenance(attrs)["reference_label"] == "2025"
+
+    investment = get_state(hass, "eurostat_defence_investment")
+    assert float(investment.state) == pytest.approx(4864.3 * MILLION)
+    assert investment.attributes["rank"] == 5
+    inv_rank = get_state(hass, "eurostat_defence_investment_rank")
+    assert inv_rank.state == "5"
+    assert inv_rank.attributes["population"] == 27
+    assert inv_rank.attributes["missing"] == []
+    assert inv_rank.attributes["top"]["country"] == "PL"
+    assert set(inv_rank.attributes["ranking"][0]) == {"rank", "country", "eur"}
