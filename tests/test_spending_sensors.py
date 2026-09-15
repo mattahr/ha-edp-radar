@@ -225,6 +225,7 @@ async def test_statskontoret_sensors(
         text.state
         == "Materiel YTD SEK 25.9bn · +30.0% YoY · Statskontoret · through Jul 2026"
     )
+    assert provenance(text.attributes)["reference_label"] == "Jan–Jul 2026"
 
 
 async def test_sensors_are_unknown_before_the_first_refresh(

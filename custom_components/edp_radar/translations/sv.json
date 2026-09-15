@@ -373,33 +373,87 @@
       "ted_data_last_updated": {
         "name": "TED-data senast uppdaterad"
       },
-      "statskontoret_materiel_ytd": { "name": "Materielanskaffning hittills i år" },
-      "statskontoret_materiel_latest_month": { "name": "Materielanskaffning senaste månad" },
-      "statskontoret_materiel_ytd_change_pct": { "name": "Materielanskaffning förändring hittills i år" },
-      "statskontoret_defence_ytd": { "name": "Försvarsanslag hittills i år" },
-      "statskontoret_defence_latest_month": { "name": "Försvarsanslag senaste månad" },
-      "statskontoret_defence_ytd_change_pct": { "name": "Försvarsanslag förändring hittills i år" },
-      "statskontoret_snapshot_text": { "name": "Utgiftsöversikt" },
-      "statskontoret_data_age": { "name": "Statskontoret dataålder" },
-      "eurostat_defence_expenditure": { "name": "Försvarsutgifter" },
-      "eurostat_defence_expenditure_rank": { "name": "Rangordning försvarsutgifter" },
-      "eurostat_defence_investment": { "name": "Försvarsinvesteringar" },
-      "eurostat_defence_investment_rank": { "name": "Rangordning försvarsinvesteringar" },
-      "eurostat_data_age": { "name": "Eurostat dataålder" },
-      "nato_defence_expenditure": { "name": "Försvarsutgifter" },
-      "nato_defence_expenditure_pct_gdp": { "name": "Försvarsutgifter andel av BNP" },
-      "nato_defence_expenditure_pct_gdp_rank": { "name": "Rangordning försvarsutgifter andel av BNP" },
-      "nato_equipment_share_pct": { "name": "Materielandel av försvarsutgifter" },
-      "nato_position_text": { "name": "NATO-position" },
-      "nato_data_age": { "name": "NATO dataålder" },
-      "eda_defence_expenditure": { "name": "Försvarsutgifter" },
-      "eda_defence_expenditure_rank": { "name": "Rangordning försvarsutgifter" },
-      "eda_defence_investment_rank": { "name": "Rangordning försvarsinvesteringar" },
-      "eda_data_age": { "name": "EDA dataålder" },
-      "sipri_military_expenditure": { "name": "Militärutgifter" },
-      "sipri_military_expenditure_rank": { "name": "Rangordning militärutgifter" },
-      "sipri_military_expenditure_pct_gdp": { "name": "Militärutgifter andel av BNP" },
-      "sipri_data_age": { "name": "SIPRI dataålder" },
+      "statskontoret_materiel_ytd": {
+        "name": "Materielanskaffning hittills i år"
+      },
+      "statskontoret_materiel_latest_month": {
+        "name": "Materielanskaffning senaste månad"
+      },
+      "statskontoret_materiel_ytd_change_pct": {
+        "name": "Materielanskaffning förändring hittills i år"
+      },
+      "statskontoret_defence_ytd": {
+        "name": "Försvarsanslag hittills i år"
+      },
+      "statskontoret_defence_latest_month": {
+        "name": "Försvarsanslag senaste månad"
+      },
+      "statskontoret_defence_ytd_change_pct": {
+        "name": "Försvarsanslag förändring hittills i år"
+      },
+      "statskontoret_snapshot_text": {
+        "name": "Utgiftsöversikt"
+      },
+      "statskontoret_data_age": {
+        "name": "Dataålder"
+      },
+      "eurostat_defence_expenditure": {
+        "name": "Försvarsutgifter"
+      },
+      "eurostat_defence_expenditure_rank": {
+        "name": "Rangordning försvarsutgifter"
+      },
+      "eurostat_defence_investment": {
+        "name": "Försvarsinvesteringar"
+      },
+      "eurostat_defence_investment_rank": {
+        "name": "Rangordning försvarsinvesteringar"
+      },
+      "eurostat_data_age": {
+        "name": "Dataålder"
+      },
+      "nato_defence_expenditure": {
+        "name": "Försvarsutgifter"
+      },
+      "nato_defence_expenditure_pct_gdp": {
+        "name": "Försvarsutgifter andel av BNP"
+      },
+      "nato_defence_expenditure_pct_gdp_rank": {
+        "name": "Rangordning försvarsutgifter andel av BNP"
+      },
+      "nato_equipment_share_pct": {
+        "name": "Materielandel av försvarsutgifter"
+      },
+      "nato_position_text": {
+        "name": "NATO-position"
+      },
+      "nato_data_age": {
+        "name": "Dataålder"
+      },
+      "eda_defence_expenditure": {
+        "name": "Försvarsutgifter"
+      },
+      "eda_defence_expenditure_rank": {
+        "name": "Rangordning försvarsutgifter"
+      },
+      "eda_defence_investment_rank": {
+        "name": "Rangordning försvarsinvesteringar"
+      },
+      "eda_data_age": {
+        "name": "Dataålder"
+      },
+      "sipri_military_expenditure": {
+        "name": "Militärutgifter"
+      },
+      "sipri_military_expenditure_rank": {
+        "name": "Rangordning militärutgifter"
+      },
+      "sipri_military_expenditure_pct_gdp": {
+        "name": "Militärutgifter andel av BNP"
+      },
+      "sipri_data_age": {
+        "name": "Dataålder"
+      },
       "external_new_competitions_7d": {
         "name": "Nya upphandlingar 7 d"
       },

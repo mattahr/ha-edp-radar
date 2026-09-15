@@ -112,10 +112,17 @@ def _rank(
 
 
 def _text(
-    key: str, source_id: str, value_fn: ValueFn
+    key: str,
+    source_id: str,
+    value_fn: ValueFn,
+    attributes_fn: AttributesFn | None = None,
 ) -> SpendingSensorEntityDescription:
     return SpendingSensorEntityDescription(
-        key=key, translation_key=key, source_id=source_id, value_fn=value_fn
+        key=key,
+        translation_key=key,
+        source_id=source_id,
+        value_fn=value_fn,
+        attributes_fn=attributes_fn,
     )
 
 
@@ -299,6 +306,16 @@ def _sk_snapshot(series: SourceSeries, today: date) -> StateType:
     return statskontoret_snapshot_text(pair[1], pair[0].reference.label)
 
 
+def _sk_snapshot_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    pair = _sk_ytd(series, MATERIEL)
+    if pair is None:
+        return {}
+    latest, _change = pair
+    return _provenance(latest, series, today, reference=_ytd_reference(latest))
+
+
 STATSKONTORET_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
     _money(
         "statskontoret_materiel_ytd",
@@ -340,7 +357,12 @@ STATSKONTORET_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
         _sk_change_value(DEFENCE),
         _sk_change_attrs(DEFENCE),
     ),
-    _text("statskontoret_snapshot_text", STATSKONTORET, _sk_snapshot),
+    _text(
+        "statskontoret_snapshot_text",
+        STATSKONTORET,
+        _sk_snapshot,
+        _sk_snapshot_attrs,
+    ),
 )
 
 

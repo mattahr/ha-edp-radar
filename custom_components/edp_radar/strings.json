@@ -373,33 +373,87 @@
       "ted_data_last_updated": {
         "name": "TED data last updated"
       },
-      "statskontoret_materiel_ytd": { "name": "Materiel acquisition YTD" },
-      "statskontoret_materiel_latest_month": { "name": "Materiel acquisition latest month" },
-      "statskontoret_materiel_ytd_change_pct": { "name": "Materiel acquisition YTD change" },
-      "statskontoret_defence_ytd": { "name": "Defence appropriations YTD" },
-      "statskontoret_defence_latest_month": { "name": "Defence appropriations latest month" },
-      "statskontoret_defence_ytd_change_pct": { "name": "Defence appropriations YTD change" },
-      "statskontoret_snapshot_text": { "name": "Spending snapshot" },
-      "statskontoret_data_age": { "name": "Statskontoret data age" },
-      "eurostat_defence_expenditure": { "name": "Defence expenditure" },
-      "eurostat_defence_expenditure_rank": { "name": "Defence expenditure rank" },
-      "eurostat_defence_investment": { "name": "Defence investment" },
-      "eurostat_defence_investment_rank": { "name": "Defence investment rank" },
-      "eurostat_data_age": { "name": "Eurostat data age" },
-      "nato_defence_expenditure": { "name": "Defence expenditure" },
-      "nato_defence_expenditure_pct_gdp": { "name": "Defence expenditure share of GDP" },
-      "nato_defence_expenditure_pct_gdp_rank": { "name": "Defence expenditure share of GDP rank" },
-      "nato_equipment_share_pct": { "name": "Equipment share of defence expenditure" },
-      "nato_position_text": { "name": "NATO position" },
-      "nato_data_age": { "name": "NATO data age" },
-      "eda_defence_expenditure": { "name": "Defence expenditure" },
-      "eda_defence_expenditure_rank": { "name": "Defence expenditure rank" },
-      "eda_defence_investment_rank": { "name": "Defence investment rank" },
-      "eda_data_age": { "name": "EDA data age" },
-      "sipri_military_expenditure": { "name": "Military expenditure" },
-      "sipri_military_expenditure_rank": { "name": "Military expenditure rank" },
-      "sipri_military_expenditure_pct_gdp": { "name": "Military expenditure share of GDP" },
-      "sipri_data_age": { "name": "SIPRI data age" },
+      "statskontoret_materiel_ytd": {
+        "name": "Materiel acquisition YTD"
+      },
+      "statskontoret_materiel_latest_month": {
+        "name": "Materiel acquisition latest month"
+      },
+      "statskontoret_materiel_ytd_change_pct": {
+        "name": "Materiel acquisition YTD change"
+      },
+      "statskontoret_defence_ytd": {
+        "name": "Defence appropriations YTD"
+      },
+      "statskontoret_defence_latest_month": {
+        "name": "Defence appropriations latest month"
+      },
+      "statskontoret_defence_ytd_change_pct": {
+        "name": "Defence appropriations YTD change"
+      },
+      "statskontoret_snapshot_text": {
+        "name": "Spending snapshot"
+      },
+      "statskontoret_data_age": {
+        "name": "Data age"
+      },
+      "eurostat_defence_expenditure": {
+        "name": "Defence expenditure"
+      },
+      "eurostat_defence_expenditure_rank": {
+        "name": "Defence expenditure rank"
+      },
+      "eurostat_defence_investment": {
+        "name": "Defence investment"
+      },
+      "eurostat_defence_investment_rank": {
+        "name": "Defence investment rank"
+      },
+      "eurostat_data_age": {
+        "name": "Data age"
+      },
+      "nato_defence_expenditure": {
+        "name": "Defence expenditure"
+      },
+      "nato_defence_expenditure_pct_gdp": {
+        "name": "Defence expenditure share of GDP"
+      },
+      "nato_defence_expenditure_pct_gdp_rank": {
+        "name": "Defence expenditure share of GDP rank"
+      },
+      "nato_equipment_share_pct": {
+        "name": "Equipment share of defence expenditure"
+      },
+      "nato_position_text": {
+        "name": "NATO position"
+      },
+      "nato_data_age": {
+        "name": "Data age"
+      },
+      "eda_defence_expenditure": {
+        "name": "Defence expenditure"
+      },
+      "eda_defence_expenditure_rank": {
+        "name": "Defence expenditure rank"
+      },
+      "eda_defence_investment_rank": {
+        "name": "Defence investment rank"
+      },
+      "eda_data_age": {
+        "name": "Data age"
+      },
+      "sipri_military_expenditure": {
+        "name": "Military expenditure"
+      },
+      "sipri_military_expenditure_rank": {
+        "name": "Military expenditure rank"
+      },
+      "sipri_military_expenditure_pct_gdp": {
+        "name": "Military expenditure share of GDP"
+      },
+      "sipri_data_age": {
+        "name": "Data age"
+      },
       "external_new_competitions_7d": {
         "name": "New competitions 7 d"
       },
