@@ -535,7 +535,7 @@ ranked value and at most two companion values (`pct_gdp`, `usd`,
 the largest ranking.
 
 **S37 — Coverage.** Every ranking exposes `population` (countries ranked),
-`population_total` (countries ever seen for that metric in the source) and
+`population_total` (countries the source reports at all) and
 `missing` (the difference), because Eurostat's latest year has fewer
 reporters than the year before (`S24b`).
 

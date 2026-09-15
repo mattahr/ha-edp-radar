@@ -80,7 +80,7 @@ ranked value and at most two companion values (`pct_gdp`, `usd`,
 the largest ranking.
 
 **S37 — Coverage.** Every ranking exposes `population` (countries ranked),
-`population_total` (countries ever seen for that metric in the source) and
+`population_total` (countries the source reports at all) and
 `missing` (the difference), because Eurostat's latest year has fewer
 reporters than the year before (`S24b`).
 
@@ -276,10 +276,11 @@ stay in diagnostics.
 State `publication_age_days` (`d`, `SensorStateClass.MEASUREMENT`).
 Attributes: `freshness_state` (`current | expected | late | unknown`),
 `reference_overdue`, `next_release_expected`, `latest_reference_end`,
-`reference_age_days`, `published_at`, `retrieved_at`, `release_id`,
-`health_state`, `last_check_at`, `last_success_at`, `last_error`,
-`datapoints`, `revisions`. Available whenever the coordinator has run,
-including while the source is `temporarily_unavailable`.
+`reference_period_complete`, `reference_age_days`, `published_at`,
+`retrieved_at`, `release_id`, `health_state`, `last_check_at`,
+`last_success_at`, `last_error`, `datapoints`, `revisions`. Available
+whenever the coordinator has run, including while the source is
+`temporarily_unavailable`.
 
 ## 7. Calculations and freshness additions
 

@@ -298,7 +298,7 @@ views:
         content: >-
           {{ states('sensor.statskontoret_spending_snapshot') }}
 
-          {{ states('sensor.nato_nato_position') }}
+          {{ states('sensor.nato_position') }}
       - type: history-graph
         title: Materiel acquisition, latest month
         hours_to_show: 8760

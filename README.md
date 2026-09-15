@@ -456,9 +456,10 @@ than the year before; the rank sensors say how many (`population` of
 ### NATO
 
 Defence expenditure at current prices (USD), share of GDP and the equipment
-share, for all 31 allies; the newest year is an estimate and the sensors say
+share, for the 31 allies in NATO's tables (Iceland has no armed forces); the
+newest year is an estimate and the sensors say
 so (`status: estimate`, `reference_period_complete: false`,
-`latest_actual`). `NATO position` is a one-line text.
+`latest_actual`). `Position` is a one-line text.
 
 ### EDA
 
@@ -478,7 +479,7 @@ with a world ranking (top 40 plus Sweden) and a ten-year change.
 Each device has a default-disabled diagnostic `… data age` sensor: days
 since the source's publication, with `freshness_state` (`current`,
 `expected`, `late`, `unknown`), `reference_overdue`, `next_release_expected`,
-the provider's health and its last error.
+`reference_period_complete`, the provider's health and its last error.
 
 ## Dashboard examples
 

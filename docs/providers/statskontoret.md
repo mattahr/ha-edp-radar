@@ -21,7 +21,7 @@
 
 ## Status semantics
 
-`status=Definitiv` → `actual`; `status=Preliminär 1` → `preliminary` **for the release month only** (earlier months in a preliminary file equal the earlier definitive releases). December appears twice: preliminary (late January) and definitive (late March). The definitive release replaces the preliminary datapoints (same key) and records a revision when the value differs — December 2025 materiel: 19 729.43 → 23 327.02.
+`status=Definitiv` → `actual`; `status=Preliminär 1` → `preliminary` **for the release month only** (earlier months in a preliminary file equal the earlier definitive releases). December appears twice: preliminary (late January) and definitive (late March). The definitive release replaces the preliminary datapoints (same key) and records a revision when the value differs — December 2025 materiel: 19 729.43 → 23 327.02. The definitive-December flag is read at discovery and only takes effect at the next parse, so if the definitive December file appears on the site before that next monthly release runs, the stored December datapoint keeps its preliminary value and status until that release (at most about a month).
 
 ## Parser assumptions
 
