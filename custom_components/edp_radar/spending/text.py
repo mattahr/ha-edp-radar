@@ -18,8 +18,17 @@ def _round(value: Decimal, decimals: int) -> str:
     return str(value.quantize(quantum, rounding=ROUND_HALF_UP))
 
 
+def _pct_text(value: Decimal, *, signed: bool) -> str:
+    """One decimal, half-up; ``signed`` renders an explicit sign (``+0.0%`` at zero)."""
+    if not signed:
+        return f"{_round(value, 1)}%"
+    sign = "-" if value < 0 else "+"
+    return f"{sign}{_round(abs(value), 1)}%"
+
+
 def format_amount(currency: str, amount: Decimal | None) -> str:
-    """``"SEK 48.2bn"`` — the thresholds of ``periods.format_eur``, any currency."""
+    """``"SEK 48.2bn"`` — the magnitude thresholds of ``periods.format_eur``,
+    rounded half-up in ``Decimal`` for any currency."""
     if amount is None:
         return f"{currency} n/a"
     if amount >= Decimal("1e9"):
@@ -34,7 +43,7 @@ def format_amount(currency: str, amount: Decimal | None) -> str:
 
 
 def _yoy(pct: Decimal | None) -> str:
-    return "YoY n/a" if pct is None else f"{float(pct):+.1f}% YoY"
+    return "YoY n/a" if pct is None else f"{_pct_text(pct, signed=True)} YoY"
 
 
 def statskontoret_snapshot_text(
@@ -60,7 +69,7 @@ def nato_position_text(
     """``SE #7 of 31 · USD 24.2bn · 3.2% GDP · NATO 2026 estimate``."""
     if ranking is None or reference_year is None or status is None:
         return None
-    share = "n/a" if pct_gdp is None else f"{float(pct_gdp):.1f}%"
+    share = "n/a" if pct_gdp is None else _pct_text(pct_gdp, signed=False)
     return (
         f"SE #{ranking.focus_rank} of {ranking.population} · "
         f"{format_amount('USD', usd)} · {share} GDP · "

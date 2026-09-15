@@ -44,6 +44,10 @@ def test_statskontoret_snapshot_text() -> None:
         == "Materiel YTD SEK 100m · YoY n/a · Statskontoret · through Jan 2027"
     )
     assert statskontoret_snapshot_text(None, None) is None
+    tie = YtdChange(Decimal("100"), Decimal("50"), Decimal("50"), Decimal("30.15"), 7)
+    tie_text = statskontoret_snapshot_text(tie, "Jul 2026")
+    assert tie_text is not None
+    assert "+30.2% YoY" in tie_text
 
 
 def test_nato_position_text() -> None:
@@ -79,3 +83,8 @@ def test_nato_position_text() -> None:
         == "SE #2 of 3 · USD 24.2bn · 3.2% GDP · NATO 2026 estimate"
     )
     assert nato_position_text(None, None, None, None, None) is None
+    tie_pct = nato_position_text(
+        ranking, Decimal("24186000000"), Decimal("3.25"), 2026, DatapointStatus.ESTIMATE
+    )
+    assert tie_pct is not None
+    assert "3.3% GDP" in tie_pct
