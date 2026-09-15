@@ -128,7 +128,9 @@ async def test_source_devices_and_every_sensor_exist(
     devices = dr.async_get(hass)
     registry = er.async_get(hass)
     for source_id, keys in SPENDING_KEYS.items():
-        device = devices.async_get_device({(DOMAIN, f"{ENTRY}_spending_{source_id}")})
+        device = devices.async_get_device_by_identifier(
+            (DOMAIN, f"{ENTRY}_spending_{source_id}"), ENTRY
+        )
         assert device is not None, source_id
         assert device.name in {"Statskontoret", "Eurostat", "NATO", "EDA", "SIPRI"}
         assert device.configuration_url
@@ -481,3 +483,65 @@ async def test_sipri_sensors(
     assert float(pct.state) == pytest.approx(2.471, abs=0.001)
     assert pct.attributes["rank"] == 21
     assert pct.attributes["population"] == 54
+
+
+def test_catalogue_has_27_sensors() -> None:
+    from custom_components.edp_radar.spending.sensors import SPENDING_SENSORS
+
+    assert len(SPENDING_SENSORS) == 27
+    assert len({d.key for d in SPENDING_SENSORS}) == 27
+
+
+@pytest.mark.spending_live
+async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    registry = er.async_get(hass)
+    # Enable the five diagnostics before setup so they get states.
+    await setup_spending(hass, mock_backend)
+    for key in DATA_AGE_KEYS:
+        registry.async_update_entity(entity_id(hass, key), disabled_by=None)
+    await hass.config_entries.async_reload(ENTRY)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    age = get_state(hass, "statskontoret_data_age")
+    assert age.state == "19"
+    assert age.attributes["unit_of_measurement"] == "d"
+    assert age.attributes["freshness_state"] == "current"
+    assert age.attributes["reference_overdue"] is False
+    assert age.attributes["next_release_expected"] == "2026-09-30"
+    assert age.attributes["latest_reference_end"] == "2026-07-31"
+    assert age.attributes["reference_age_days"] == 43
+    assert age.attributes["published_at"] == "2026-08-24"
+    assert age.attributes["release_id"] == "2026-07-definitiv-2026-08-24"
+    assert age.attributes["health_state"] == "available"
+    assert age.attributes["last_error"] is None
+    assert age.attributes["datapoints"] == 57
+    assert age.attributes["revisions"] == 0
+
+    nato = get_state(hass, "nato_data_age")
+    assert nato.state == "64"
+    assert nato.attributes["latest_reference_end"] == "2026-12-31"
+    assert nato.attributes["reference_age_days"] == -110  # 2026-09-12 → 2026-12-31
+
+    # A source that fails on the next tick keeps its values; the age sensor says why.
+    # The mocker answers with the first registration per URL, so clear and
+    # register the failure before the healthy sources.
+    from custom_components.edp_radar.spending.providers.eurostat import API_URL
+
+    mock_backend.clear_requests()
+    mock_backend.get(API_URL, status=503)
+    mock_spending_sources(mock_backend)
+    entry = hass.config_entries.async_get_entry(ENTRY)
+    assert entry is not None
+    await entry.runtime_data.spending.async_refresh_source("eurostat")
+    await hass.async_block_till_done()
+    assert float(
+        get_state(hass, "eurostat_defence_expenditure").state
+    ) == pytest.approx(17196.9 * MILLION)
+    failed = get_state(hass, "eurostat_data_age")
+    assert failed.attributes["health_state"] == "stale_but_cached"
+    assert "HTTP 503" in failed.attributes["last_error"]

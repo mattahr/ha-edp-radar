@@ -31,6 +31,7 @@ from .attrs import (
     MILLION,
     Companion,
     annual_series_attrs,
+    iso,
     monthly_series_attrs,
     price_base_year,
     provenance_attrs,
@@ -54,6 +55,13 @@ from .calculations import (
     ytd_change,
 )
 from .coordinator import SpendingCoordinator
+from .freshness import (
+    freshness_state,
+    next_release_deadline,
+    publication_age_days,
+    reference_age_days,
+    reference_overdue,
+)
 from .models import DatapointStatus, ReferencePeriod, SourceSeries, SpendingDataPoint
 from .registry import (
     EDA,
@@ -861,6 +869,59 @@ SIPRI_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
 )
 
 
+# ---------------------------------------------------------------- data age
+
+
+def _latest_reference_end(series: SourceSeries) -> date | None:
+    ends = [p.reference.end for p in series.datapoints]
+    return max(ends) if ends else None
+
+
+def _published(series: SourceSeries) -> date | None:
+    return series.release.published_at if series.release else None
+
+
+def _age_value(series: SourceSeries, today: date) -> StateType:
+    return publication_age_days(_published(series), today)
+
+
+def _age_attrs(source_id: str) -> AttributesFn:
+    spec = source_spec(source_id)
+
+    def attrs(series: SourceSeries, today: date, now: datetime) -> dict[str, Any]:
+        latest = _latest_reference_end(series)
+        published = _published(series)
+        health = series.health
+        return {
+            "freshness_state": freshness_state(spec, latest, published, today).value,
+            "reference_overdue": reference_overdue(spec, latest, today),
+            "next_release_expected": iso(
+                next_release_deadline(spec, latest, published)
+            ),
+            "latest_reference_end": iso(latest),
+            "reference_age_days": None
+            if latest is None
+            else reference_age_days(latest, today),
+            "published_at": iso(published),
+            "retrieved_at": iso(series.retrieved_at),
+            "release_id": series.release.release_id if series.release else None,
+            "health_state": health.state.value,
+            "last_check_at": iso(health.last_check_at),
+            "last_success_at": iso(health.last_success_at),
+            "last_error": health.last_error,
+            "datapoints": len(series.datapoints),
+            "revisions": len(series.revisions),
+        }
+
+    return attrs
+
+
+DATA_AGE_SENSORS: tuple[SpendingSensorEntityDescription, ...] = tuple(
+    _age(f"{source_id}_data_age", source_id, _age_value, _age_attrs(source_id))
+    for source_id in (STATSKONTORET, EUROSTAT, NATO, EDA, SIPRI)
+)
+
+
 # ------------------------------------------------------------------ catalogue
 
 SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
@@ -869,6 +930,7 @@ SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
     *NATO_SENSORS,
     *EDA_SENSORS,
     *SIPRI_SENSORS,
+    *DATA_AGE_SENSORS,
 )
 
 
