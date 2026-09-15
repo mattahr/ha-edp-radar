@@ -36,6 +36,7 @@ rates are public.
 | **Supplier Landscape** | Top supplier group by award value and top-5 share (disabled by default) |
 | **Pinned Category: …** *(optional, one per category)* | Competitions and values for a strategic category you pin |
 | **Raw Data: …** *(optional, one per country)* | The latest notices of each kind for one buyer country, unaggregated, plus breakdowns of everything stored for it |
+| **Statskontoret**, **Eurostat**, **NATO**, **EDA**, **SIPRI** | Defence spending – 27 sensors across five devices reading official statistics for Sweden: value, change, rank and share per source, two one-line text summaries, and a disabled-by-default data-age diagnostic per device (see *Defence spending* below) |
 
 ## Data sources and update cadence
 
@@ -407,9 +408,77 @@ The 24-month data profile behind these rules, with every anomaly found, is in
 - Multi-buyer notices are flattened by TED, so the defence buyer inside a
   central purchasing list cannot be singled out.
 
-## Defence spending data layer (Phase 3, data only)
+## Defence spending
 
-Version 0.2.x ingests five spending sources into per-source stores — Statskontoret monthly budget outturn (SEK, appropriations 6:1:x incl. 1:3 materiel), Eurostat `gov_ev` (defence expenditure and investment, EU27), NATO defence expenditure tables, EDA defence data (member-state level) and the SIPRI Military Expenditure Database. Every value keeps its source, reference period, status (`actual`, `preliminary`, `provisional`, `estimate`, `projection`, `budget`), publication date and release; sources are never merged or ranked against each other. The requirement `openpyxl` reads the XLSX sources. Entities for this layer arrive in the next release; until then the data is visible in the integration diagnostics (`spending`) and in `docs/phase3-source-profile.md`. Provider details: `docs/providers/`.
+Version 0.3.0 adds five devices that read official spending statistics —
+one device per source, because the sources define "defence expenditure"
+differently and are never ranked against each other. Sweden is the focus
+country of every sensor. Every value sensor carries the same provenance
+attributes: `source` (the publisher's short name, for example
+`Statskontoret` or `European Defence Agency`), `source_id`, `source_url`,
+`reference_label`, `reference_start`, `reference_end`,
+`reference_period_complete`, `status` (`actual`, `preliminary`,
+`provisional`, `estimate`, `projection`, `budget`), `published_at`,
+`publication_age_days`, `reference_age_days` (empty while the reference
+year is still running), `retrieved_at`, `release_id` and
+`unit_definition`. Money is exposed in whole currency units of the source
+(`SEK`, `EUR`, `USD`); nothing is converted.
+
+Ranking sensors show Sweden's rank as the state and expose `ranking` (at most
+40 rows, Sweden always included), `population` (countries ranked),
+`population_total` (countries the source reports at all), `missing`,
+`excluded_zero` (a true zero such as Iceland's is not a rank), `top`,
+`median_*`, `nordic` with `nordic_median_*`, `sweden` and `statuses`.
+
+Sources refresh on their own cadence — Statskontoret and Eurostat daily,
+NATO, EDA and SIPRI weekly — inside a 6-hour tick; a source that fails is
+retried at the next tick and its sensors keep the last stored values.
+
+### Statskontoret
+
+Monthly Swedish budget outturn (SEK) from the open-data page: appropriation
+6:1:3 *Anskaffning av materiel och anläggningar* and all defence
+appropriations 6:1:1–6:1:14. `Materiel acquisition YTD` and
+`Defence appropriations YTD` sum January to the latest month and carry
+`monthly_current_year` / `monthly_previous_year` for a month-by-month
+chart; `… latest month` and `… YTD change` give the newest month and the
+year-on-year change. December of the previous year stays `preliminary`
+until Statskontoret publishes the definitive December file (late March).
+`Spending snapshot` is a one-line text.
+
+### Eurostat
+
+`gov_ev` general government defence expenditure and investment (EUR,
+ESA 2010) for EU member states. The latest year usually has fewer reporters
+than the year before; the rank sensors say how many (`population` of
+`population_total`, with `missing`).
+
+### NATO
+
+Defence expenditure at current prices (USD), share of GDP and the equipment
+share, for all 31 allies; the newest year is an estimate and the sensors say
+so (`status: estimate`, `reference_period_complete: false`,
+`latest_actual`). `NATO position` is a one-line text.
+
+### EDA
+
+Total defence expenditure and defence investment (EUR) at member-state
+level from the annual Defence Data workbooks (2022 onwards); equipment
+procurement is not exposed because EDA stopped publishing it per country
+after 2021.
+
+### SIPRI
+
+Military expenditure at constant prices (USD, base year in
+`price_base_year`) and share of GDP, stored from 1990 (`annual_series`),
+with a world ranking (top 40 plus Sweden) and a ten-year change.
+
+### Data age
+
+Each device has a default-disabled diagnostic `… data age` sensor: days
+since the source's publication, with `freshness_state` (`current`,
+`expected`, `late`, `unknown`), `reference_overdue`, `next_release_expected`,
+the provider's health and its last error.
 
 ## Dashboard examples
 

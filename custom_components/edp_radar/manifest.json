@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/mattahr/ha-edp-radar/issues",
   "requirements": ["openpyxl==3.1.5"],
   "single_config_entry": true,
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

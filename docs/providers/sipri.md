@@ -47,7 +47,10 @@ absent ones).
 
 - Full re-import on every new release; revisions to any year are detected by the store diff.
 - Sweden's 1960–1979 values are SIPRI estimates (blue; 1955–1959 have no values); below `MIN_YEAR` anyway.
-- Constant-price sheet and unit year are hard-coded (S27): `Constant (2024) US$` / `USD_MILLION_CONSTANT_2024`. The next edition's base-year change will raise `schema_changed`, and because `unit` is part of the datapoint key the old series would be carried over next to the new one.
+- The constant-price base year is read from the sheet name (e.g.
+  `Constant (2024) US$`) rather than hard-coded; the datapoint unit is
+  `USD_MILLION_CONSTANT_<year>`. A new base year supersedes the stored
+  series instead of duplicating it (S39).
 
 ## Fixtures
 

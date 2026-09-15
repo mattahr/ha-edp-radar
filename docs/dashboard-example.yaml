@@ -267,3 +267,40 @@ views:
           - sensor.peer_comparison_selected_country_value_rank_90_d
           - sensor.peer_comparison_selected_country_activity_rank_90_d
           - sensor.peer_comparison_selected_country_value_percentile_90_d
+
+  # Phase 3: Sweden's defence spending, one line per source (plan §77).
+  - title: Spending
+    path: spending
+    cards:
+      - type: entities
+        title: Sweden — defence spending
+        entities:
+          - entity: sensor.statskontoret_materiel_acquisition_ytd
+            name: Materiel outturn YTD (Statskontoret, actual)
+          - entity: sensor.statskontoret_materiel_acquisition_ytd_change
+            name: … change vs previous year
+          - entity: sensor.my_country_sweden_awarded_value_12_m
+            name: Awarded contract value 12 m (TED)
+          - entity: sensor.eurostat_defence_expenditure
+            name: Defence expenditure (Eurostat)
+          - entity: sensor.eurostat_defence_expenditure_rank
+            name: … rank among reporting EU states
+          - entity: sensor.eda_defence_expenditure
+            name: Defence expenditure (EDA)
+          - entity: sensor.nato_defence_expenditure_share_of_gdp
+            name: Share of GDP (NATO, estimate)
+          - entity: sensor.nato_defence_expenditure_share_of_gdp_rank
+            name: … rank among allies
+          - entity: sensor.sipri_military_expenditure
+            name: Military expenditure (SIPRI, constant prices)
+      - type: markdown
+        title: Snapshot
+        content: >-
+          {{ states('sensor.statskontoret_spending_snapshot') }}
+
+          {{ states('sensor.nato_nato_position') }}
+      - type: history-graph
+        title: Materiel acquisition, latest month
+        hours_to_show: 8760
+        entities:
+          - sensor.statskontoret_materiel_acquisition_latest_month

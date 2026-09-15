@@ -217,9 +217,8 @@ Config entry version 2 derives My country from the Home Assistant country.
 Designed per `docs/ha-edp-radar_PHASE3_SWEDEN_DEFENCE_SPENDING.md` (the plan;
 section numbers below refer to it). This section covers the **data layer
 only** (plan steps 1–7): providers, storage, coordinator, diagnostics and the
-source profile. Devices and sensors (plan §72–79) are a separate spec round
-once `docs/phase3-source-profile.md` exists. Code comments reference these
-decisions as `S1` …
+source profile. Devices and sensors (plan §72–79) are specified in §7.4.
+Code comments reference these decisions as `S1` …
 
 ### 7.1 Verified source facts (2026-09-12)
 
@@ -472,3 +471,121 @@ S14's "no background bootstrap" still holds — one full fetch, not a trickle �
 but the *first* refresh after setup runs as an entry background task
 (`entry.async_create_background_task`, `custom_components/edp_radar/__init__.py`)
 so a slow source never delays setup.
+
+### 7.4 Phase 3 Plan 2 — sensors (2026-09-14)
+
+Designed per
+`docs/superpowers/specs/2026-09-14-edp-radar-spending-sensors-design.md`
+(the sensors spec; section numbers below refer to it). This section covers
+plan steps §72–§79: the five spending devices, their 27 sensors, and the
+data-layer prerequisites carried over from §7.3 (`S26`–`S29`, implemented
+here as `S38`–`S41`). Code comments reference these decisions as `S30` …
+
+**S30 — One device per source.** Devices `Statskontoret`, `Eurostat`,
+`NATO`, `EDA`, `SIPRI` (`DeviceKind.SPENDING_STATSKONTORET` …; implemented
+as `spending_device_info(entry_id, source_id)`, no `DeviceKind` members
+added), identifiers `(DOMAIN, f"{entry_id}_spending_{source_id}")`, `model`
+= `SourceSpec.display_name`, `configuration_url` = `SourceSpec.canonical_url`.
+Rankings never cross sources (`S8`) and freshness is per source (`S15`), so
+the source is the grouping; the combined Sweden view (§77) is a dashboard
+card, not a device. The plan's question-oriented groups (§72) are not used.
+
+**S31 — Phase 2 granularity.** Value, change-%, rank and share are separate
+sensors so each number can be graphed or gauged directly, exactly as the
+Phase 2 `my_country_*` sensors. Rankings expose Sweden's rank as the state
+and the full population as attributes. Two text sensors (§76) and five
+default-disabled data-age diagnostics (§79). 27 sensors in total (§5).
+
+**S32 — Units.** Money is exposed in whole currency units with
+`SensorDeviceClass.MONETARY`, as Phase 2's `_money` does for EUR:
+Statskontoret `SEK` (MSEK × 10⁶), Eurostat and EDA `EUR` (MIO × 10⁶), NATO
+`USD` at current prices, SIPRI `USD` at constant prices with
+`price_base_year` as an attribute. Percentages use `%`, ranks are unitless
+integers, data age is `d`. Source units (`SEK_MILLION` …) stay in the data
+layer and are named in `unit_definition`.
+
+**S33 — Availability and unknown.** A spending sensor is a
+`CoordinatorEntity[SpendingCoordinator]`; `available` follows
+`last_update_success`, which the coordinator only clears when *no* source
+has data (`S14`). A source that fails but has cached data keeps its values
+and its provenance attributes say how old they are. A sensor whose input is
+missing (source never loaded, Sweden absent from the latest reference,
+month missing from the YTD run) reports `unknown` (`None`), matching the
+"entities show unknown until bootstrap finishes" rule of the TED layer.
+
+**S34 — Latest reference.** For annual sources a sensor uses the newest
+reference year in which Sweden has a value for that metric and unit
+(rankings require the focus country, `S8`). For NATO that is the 2026
+estimate: the value sensor labels it `status: estimate`,
+`reference_period_complete: false`, and adds `latest_actual`
+(`{year, value}`) so a dashboard can show either (`S24c`). For
+Statskontoret it is the newest month present.
+
+**S35 — Zero is not a rank.** `rank()` excludes datapoints whose value is
+`0` and lists them in `Ranking.excluded_zero`; a ranking attribute shows
+them as `excluded_zero: ["IS"]` (`S24d`). The Nordic summary is computed
+from the ranking's entries, so Iceland never enters a Nordic median.
+
+**S36 — Ranking rows.** The `ranking` attribute holds at most
+`RANKING_ROWS = 40` rows; Sweden is appended when it lies outside (§49).
+Eurostat (≤ 27), NATO (31) and EDA (27) are therefore complete; SIPRI
+(~170) shows the top 40 plus Sweden. Rows carry `rank`, `country`, the
+ranked value and at most two companion values (`pct_gdp`, `usd`,
+`per_capita_eur`). The Phase 2 recorder test (`< 16 kB`) is repeated for
+the largest ranking.
+
+**S37 — Coverage.** Every ranking exposes `population` (countries ranked),
+`population_total` (countries ever seen for that metric in the source) and
+`missing` (the difference), because Eurostat's latest year has fewer
+reporters than the year before (`S24b`).
+
+**S38 — `S26` implemented.** Statskontoret discovery also reads
+`?year=<Y-1>` and records whether a `Definitiv` December entry exists.
+`parse_release` labels December Y-1 `preliminary` until it does. The flag
+lives on the provider instance between discovery and parse of the same
+refresh (the pattern of `S22`), never in `SourceRelease`.
+
+**S39 — `S27` implemented: base year from the sheet, unit supersedes.**
+SIPRI reads the base year from the sheet name (`Constant (2024) US$`), NATO
+from the table subtitle (`constant 2021 prices`); the unit becomes
+`USD_MILLION_CONSTANT_<year>` and the registry's `MetricSpec.unit` for
+these metrics is the prefix `USD_MILLION_CONSTANT` (display names drop the
+year). `unit` stays in the datapoint key (`S5`), but `SpendingStore.apply_release`
+removes an existing datapoint whose key differs from a new one *only* in
+`unit`, records a `Revision` under the new key with the old value, and adds
+one health warning per release (`unit changed USD_MILLION_CONSTANT_2024 →
+…_2025 for N datapoints`). Sensors read the unit from Sweden's datapoint and
+rank with that unit, so a base-year change replaces the series instead of
+duplicating it.
+
+**S40 — `S28` implemented: separate health store.** Provider health moves
+to `edp_radar.<entry_id>.spending.health` (`{source_id: health}`), written
+on every tick; a series store is written only when its release or
+datapoints changed. On load, a missing health store falls back to the
+`health` key still present in old series files; that key is ignored
+otherwise and disappears on the next series write. No schema-version bump.
+
+**S41 — `S29` implemented: conditional GET removed.** `async_fetch_bytes`
+loses its `previous=` parameter, the `If-None-Match`/`If-Modified-Since`
+headers and the 304 branch, together with their tests. Re-download
+avoidance stays where it is exercised: discovery (`S14`, HEAD validators in
+the release id).
+
+**S42 — Freshness gets a second signal.** `next_release_deadline` keeps
+`published_at + period` for annual/twice-yearly sources (Eurostat publishes
+twice a year without moving the reference year, so a reference-based
+deadline would show `late` for six months). `expected_lag_days` is used for
+`reference_overdue`: the newest period end `E` with
+`E + expected_lag_days <= today` should be present; when
+`latest_reference_end < E` the state is `late` even if the release deadline
+has not passed. `reference_period_complete` = `reference_end <= today`.
+
+**S43 — Sensor code lives in `spending/`** (`S1`: `sensor.py` and
+`metrics.py` do not grow). `sensor.py`'s `async_setup_entry` gains one call
+into `spending.sensors`.
+
+**S44 — Retry interval removed.** `SPENDING_RETRY_INTERVAL` has no effect
+under the 6-hour tick and is deleted; a failed source is retried at the
+next tick, which the README states.
+
+S26 → S38, S27 → S39, S28 → S40, S29 → S41 (implemented).

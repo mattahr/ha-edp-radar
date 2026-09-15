@@ -41,7 +41,7 @@ async def test_diagnostics_shape(
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
     json.dumps(diagnostics)  # must be serialisable as-is
 
-    assert diagnostics["integration_version"] == "0.2.0"
+    assert diagnostics["integration_version"] == "0.3.0"
     assert diagnostics["options"] == FULL_OPTIONS
     config = diagnostics["config"]
     assert config["relevance_mode"] == "strict"
