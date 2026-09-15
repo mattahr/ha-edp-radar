@@ -54,6 +54,7 @@ from .calculations import (
 from .coordinator import SpendingCoordinator
 from .models import DatapointStatus, ReferencePeriod, SourceSeries, SpendingDataPoint
 from .registry import (
+    EDA,
     EUROSTAT,
     FOCUS_COUNTRY,
     NATO,
@@ -709,12 +710,80 @@ NATO_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
 )
 
 
+# --------------------------------------------------------------------- EDA
+
+EDA_EXPENDITURE = "defence_expenditure"
+EDA_INVESTMENT = "defence_investment"
+EDA_PCT_GDP = "defence_expenditure_pct_gdp"
+EDA_PCT_GOVERNMENT = "defence_expenditure_pct_government"
+EDA_PER_CAPITA = "defence_expenditure_per_capita"
+
+
+def _eda_value_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    point = _latest(series, EDA_EXPENDITURE)
+    if point is None:
+        return {}
+    reference = point.reference
+    previous, change = _year_over_year(series, point)
+    ranking = _ranking(series, point)
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": reference.start.year,
+            "pct_gdp": _pct_value(_focus_value(series, EDA_PCT_GDP, reference)),
+            "pct_government": _pct_value(
+                _focus_value(series, EDA_PCT_GOVERNMENT, reference)
+            ),
+            "per_capita_eur": scaled(_focus_value(series, EDA_PER_CAPITA, reference)),
+            "investment_eur": scaled(
+                _focus_value(series, EDA_INVESTMENT, reference), MILLION
+            ),
+            "previous_year_eur": scaled(previous, MILLION),
+            "change_pct": _pct_value(change),
+            "rank": None if ranking is None else ranking.focus_rank,
+            "population": None if ranking is None else ranking.population,
+        }
+    )
+    return out
+
+
+EDA_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
+    _money(
+        "eda_defence_expenditure",
+        EDA,
+        "EUR",
+        _annual_value(EDA_EXPENDITURE),
+        _eda_value_attrs,
+    ),
+    _rank(
+        "eda_defence_expenditure_rank",
+        EDA,
+        _rank_value(EDA_EXPENDITURE),
+        _rank_attrs(
+            EDA_EXPENDITURE,
+            "eur",
+            MILLION,
+            {"pct_gdp": (EDA_PCT_GDP, 1), "per_capita_eur": (EDA_PER_CAPITA, 1)},
+        ),
+    ),
+    _rank(
+        "eda_defence_investment_rank",
+        EDA,
+        _rank_value(EDA_INVESTMENT),
+        _rank_attrs(EDA_INVESTMENT, "eur", MILLION),
+    ),
+)
+
+
 # ------------------------------------------------------------------ catalogue
 
 SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
     *STATSKONTORET_SENSORS,
     *EUROSTAT_SENSORS,
     *NATO_SENSORS,
+    *EDA_SENSORS,
 )
 
 

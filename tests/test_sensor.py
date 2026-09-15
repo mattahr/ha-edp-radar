@@ -193,6 +193,7 @@ async def test_optional_devices_absent_by_default(
     )
     assert names == [
         "Country Ranking",
+        "EDA",
         "European Defence Market",
         "European Purchasing",
         "Eurostat",
@@ -484,6 +485,7 @@ async def test_country_purchasing_sensors(
     )
     assert names == [
         "Country Ranking",
+        "EDA",
         "European Defence Market",
         "European Purchasing",
         "Eurostat",

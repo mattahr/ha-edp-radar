@@ -367,3 +367,54 @@ async def test_nato_sensors(
     text = get_state(hass, "nato_position_text")
     assert text.state == "SE #7 of 31 · USD 24.2bn · 3.2% GDP · NATO 2026 estimate"
     assert provenance(text.attributes)["status"] == "estimate"
+
+
+@pytest.mark.spending_live
+async def test_eda_sensors(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_spending(hass, mock_backend)
+
+    value = get_state(hass, "eda_defence_expenditure")
+    assert float(value.state) == pytest.approx(14788.962566848055 * MILLION)
+    assert value.attributes["reference_year"] == 2025
+    assert value.attributes["pct_gdp"] == pytest.approx(2.488, abs=0.001)
+    assert value.attributes["pct_government"] == pytest.approx(5.697, abs=0.001)
+    assert value.attributes["per_capita_eur"] == pytest.approx(1386.96, abs=0.01)
+    assert value.attributes["investment_eur"] == pytest.approx(
+        4227.901618627983 * MILLION
+    )
+    assert value.attributes["previous_year_eur"] is not None  # 2024 workbook (Task 9)
+    assert value.attributes["rank"] == 7
+    assert value.attributes["population"] == 27
+    assert provenance(value.attributes)["published_at"] == "2026-09-04"
+
+    ranking = get_state(hass, "eda_defence_expenditure_rank")
+    assert ranking.state == "7"
+    assert ranking.attributes["top"]["country"] == "DE"
+    assert set(ranking.attributes["ranking"][6]) == {
+        "rank",
+        "country",
+        "eur",
+        "pct_gdp",
+        "per_capita_eur",
+    }
+    assert ranking.attributes["ranking"][6]["country"] == "SE"
+    assert [row["country"] for row in ranking.attributes["nordic"]] == [
+        "SE",
+        "DK",
+        "FI",
+    ]
+    assert ranking.attributes["statuses"] == ["actual", "estimate"]
+    assert ranking.attributes["population_total"] == 27
+
+    investment = get_state(hass, "eda_defence_investment_rank")
+    assert investment.state == "7"
+    assert investment.attributes["sweden"] == {
+        "rank": 7,
+        "eur": pytest.approx(4227.901618627983 * MILLION),
+    }
+    assert set(investment.attributes["ranking"][0]) == {"rank", "country", "eur"}
