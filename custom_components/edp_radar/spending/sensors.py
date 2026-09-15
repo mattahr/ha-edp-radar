@@ -30,6 +30,7 @@ from ..entity import spending_device_info
 from .attrs import (
     MILLION,
     Companion,
+    annual_series_attrs,
     monthly_series_attrs,
     price_base_year,
     provenance_attrs,
@@ -41,6 +42,7 @@ from .calculations import (
     Ranking,
     YtdChange,
     annual_series,
+    change_over_years,
     coverage,
     latest_month,
     latest_year,
@@ -58,6 +60,7 @@ from .registry import (
     EUROSTAT,
     FOCUS_COUNTRY,
     NATO,
+    SIPRI,
     STATSKONTORET,
     metric_spec,
     source_spec,
@@ -777,6 +780,87 @@ EDA_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
 )
 
 
+# ------------------------------------------------------------------- SIPRI
+
+SIPRI_CONSTANT = "military_expenditure_usd_constant"
+SIPRI_PCT_GDP = "military_expenditure_pct_gdp"
+TEN_YEARS = 10
+
+
+def _sipri_value_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    point = _latest(series, SIPRI_CONSTANT)
+    if point is None:
+        return {}
+    reference = point.reference
+    year = reference.start.year
+    annual = annual_series(
+        series.datapoints, SIPRI_CONSTANT, FOCUS_COUNTRY, unit=point.unit
+    )
+    previous, change = _year_over_year(series, point)
+    decade = change_over_years(annual, year, TEN_YEARS)
+    ranking = _ranking(series, point)
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": year,
+            "price_base_year": price_base_year(point.unit),
+            "flags": list(point.flags),
+            "pct_gdp": _pct_value(_focus_value(series, SIPRI_PCT_GDP, reference)),
+            "previous_year_usd": scaled(previous, MILLION),
+            "change_pct": _pct_value(change),
+            "value_10y_ago_usd": None if decade is None else scaled(decade[0], MILLION),
+            "change_10y_pct": None if decade is None else _pct_value(decade[1]),
+            "annual_series": annual_series_attrs(annual, "usd", MILLION),
+            "rank": None if ranking is None else ranking.focus_rank,
+            "population": None if ranking is None else ranking.population,
+        }
+    )
+    return out
+
+
+def _sipri_pct_attrs(
+    series: SourceSeries, today: date, now: datetime
+) -> dict[str, Any]:
+    point = _latest(series, SIPRI_PCT_GDP)
+    ranking = _ranking(series, point) if point else None
+    if point is None or ranking is None:
+        return {}
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": point.reference.start.year,
+            "rank": ranking.focus_rank,
+            "population": ranking.population,
+        }
+    )
+    return out
+
+
+SIPRI_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
+    _money(
+        "sipri_military_expenditure",
+        SIPRI,
+        "USD",
+        _annual_value(SIPRI_CONSTANT),
+        _sipri_value_attrs,
+    ),
+    _rank(
+        "sipri_military_expenditure_rank",
+        SIPRI,
+        _rank_value(SIPRI_CONSTANT),
+        _rank_attrs(SIPRI_CONSTANT, "usd", MILLION, {"pct_gdp": (SIPRI_PCT_GDP, 1)}),
+    ),
+    _pct(
+        "sipri_military_expenditure_pct_gdp",
+        SIPRI,
+        _annual_value(SIPRI_PCT_GDP, 1),
+        _sipri_pct_attrs,
+    ),
+)
+
+
 # ------------------------------------------------------------------ catalogue
 
 SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
@@ -784,6 +868,7 @@ SPENDING_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
     *EUROSTAT_SENSORS,
     *NATO_SENSORS,
     *EDA_SENSORS,
+    *SIPRI_SENSORS,
 )
 
 

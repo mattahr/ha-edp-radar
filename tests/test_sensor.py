@@ -199,6 +199,7 @@ async def test_optional_devices_absent_by_default(
         "Eurostat",
         "External Radar",
         "NATO",
+        "SIPRI",
         "Statskontoret",
         "Supplier Landscape",
     ]
@@ -493,6 +494,7 @@ async def test_country_purchasing_sensors(
         "My Country: Slovenia",
         "NATO",
         "Peer Comparison",
+        "SIPRI",
         "Statskontoret",
         "Supplier Landscape",
     ]

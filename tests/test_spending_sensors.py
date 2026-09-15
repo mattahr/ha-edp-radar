@@ -418,3 +418,66 @@ async def test_eda_sensors(
         "eur": pytest.approx(4227.901618627983 * MILLION),
     }
     assert set(investment.attributes["ranking"][0]) == {"rank", "country", "eur"}
+
+
+@pytest.mark.spending_live
+async def test_sipri_sensors(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    await setup_spending(hass, mock_backend)
+
+    value = get_state(hass, "sipri_military_expenditure")
+    assert float(value.state) == pytest.approx(14954.07135864315 * MILLION)
+    assert value.attributes["unit_of_measurement"] == "USD"
+    assert value.attributes["reference_year"] == 2025
+    assert value.attributes["price_base_year"] == 2024
+    assert value.attributes["flags"] == []
+    assert value.attributes["pct_gdp"] == pytest.approx(2.471, abs=0.001)
+    assert value.attributes["previous_year_usd"] == pytest.approx(
+        12046.97008544414 * MILLION
+    )
+    assert value.attributes["change_pct"] == pytest.approx(24.1, abs=0.05)
+    assert value.attributes["value_10y_ago_usd"] == pytest.approx(
+        5696.73409992092 * MILLION
+    )
+    assert value.attributes["change_10y_pct"] == pytest.approx(162.5, abs=0.1)
+    series = value.attributes["annual_series"]
+    assert series[0] == {
+        "year": 1990,
+        "usd": pytest.approx(6900.298751312625 * MILLION),
+        "status": "actual",
+    }
+    assert series[-1]["year"] == 2025 and len(series) == 36
+    assert value.attributes["rank"] == 14
+    assert (
+        value.attributes["population"] == 54
+    )  # 55 countries report 2025, minus Iceland's zero
+    assert provenance(value.attributes)["published_at"] == "2026-04-27"
+
+    ranking = get_state(hass, "sipri_military_expenditure_rank")
+    assert ranking.state == "14"
+    assert ranking.attributes["excluded_zero"] == ["IS"]
+    assert ranking.attributes["top"]["country"] == "RU"
+    assert len(ranking.attributes["ranking"]) == 40
+    assert [row["country"] for row in ranking.attributes["nordic"]] == [
+        "NO",
+        "SE",
+        "DK",
+        "FI",
+    ]
+    assert ranking.attributes["ranking"][13] == {
+        "rank": 14,
+        "country": "SE",
+        "usd": pytest.approx(14954.07135864315 * MILLION),
+        "pct_gdp": pytest.approx(2.471, abs=0.001),
+    }
+    assert set(ranking.attributes["statuses"]) == {"actual", "budget", "estimate"}
+    assert len(str(ranking.attributes)) < 16_000
+
+    pct = get_state(hass, "sipri_military_expenditure_pct_gdp")
+    assert float(pct.state) == pytest.approx(2.471, abs=0.001)
+    assert pct.attributes["rank"] == 21
+    assert pct.attributes["population"] == 54
