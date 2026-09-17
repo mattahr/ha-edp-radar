@@ -11,7 +11,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, MANUFACTURER, MODEL
 from .coordinator import EdpRadarCoordinator
 from .metrics import RadarSnapshot
-from .spending.registry import source_spec
+from .spending.registry import EDA, EUROSTAT, NATO, SIPRI, STATSKONTORET, source_spec
 
 CONFIGURATION_URL = "https://ted.europa.eu/"
 
@@ -75,11 +75,11 @@ def device_info(
 
 
 SPENDING_DEVICE_NAMES: dict[str, str] = {
-    "statskontoret": "Statskontoret",
-    "eurostat": "Eurostat",
-    "nato": "NATO",
-    "eda": "EDA",
-    "sipri": "SIPRI",
+    STATSKONTORET: "Statskontoret",
+    EUROSTAT: "Eurostat",
+    NATO: "NATO",
+    EDA: "EDA",
+    SIPRI: "SIPRI",
 }
 
 

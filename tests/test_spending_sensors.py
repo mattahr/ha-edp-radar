@@ -8,22 +8,30 @@ from typing import Any
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
-from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
 from custom_components.edp_radar.const import DOMAIN
+from custom_components.edp_radar.spending.coordinator import SpendingCoordinator
 from custom_components.edp_radar.spending.models import (
     DatapointStatus,
     ReferencePeriod,
     SpendingDataPoint,
 )
-from custom_components.edp_radar.spending.sensors import _ytd_reference
+from custom_components.edp_radar.spending.providers.eurostat import API_URL
+from custom_components.edp_radar.spending.sensors import (
+    SPENDING_SENSORS,
+    SpendingSensor,
+    _ytd_reference,
+)
+from custom_components.edp_radar.spending.store import SpendingStore
 
 from .spending.mocks import mock_spending_sources
 from .test_coordinator import NOW
@@ -397,7 +405,9 @@ async def test_eda_sensors(
     assert value.attributes["investment_eur"] == pytest.approx(
         4227.901618627983 * MILLION
     )
-    assert value.attributes["previous_year_eur"] is not None  # 2024 workbook (Task 9)
+    # SE 2025 14 788.96 MEUR vs 2024 11 414.1 MEUR (2024 workbook, Task 9)
+    assert value.attributes["change_pct"] == pytest.approx(29.57, abs=0.05)
+    assert value.attributes["previous_year_eur"] == pytest.approx(11414.1 * MILLION)
     assert value.attributes["rank"] == 7
     assert value.attributes["population"] == 27
     assert provenance(value.attributes)["published_at"] == "2026-09-04"
@@ -484,7 +494,7 @@ async def test_sipri_sensors(
         "usd": pytest.approx(14954.07135864315 * MILLION),
         "pct_gdp": pytest.approx(2.471, abs=0.001),
     }
-    assert set(ranking.attributes["statuses"]) == {"actual", "budget", "estimate"}
+    assert ranking.attributes["statuses"] == ["actual", "budget", "estimate"]
     assert len(str(ranking.attributes)) < 16_000
 
     pct = get_state(hass, "sipri_military_expenditure_pct_gdp")
@@ -541,9 +551,14 @@ async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
     await hass.config_entries.async_reload(ENTRY)
     await hass.async_block_till_done(wait_background_tasks=True)
 
+    assert (
+        registry.async_get(entity_id(hass, "statskontoret_data_age")).entity_category
+        is EntityCategory.DIAGNOSTIC
+    )
     age = get_state(hass, "statskontoret_data_age")
     assert age.state == "19"
     assert age.attributes["unit_of_measurement"] == "d"
+    assert age.attributes["state_class"] == "measurement"
     assert age.attributes["freshness_state"] == "current"
     assert age.attributes["reference_overdue"] is False
     assert age.attributes["next_release_expected"] == "2026-09-30"
@@ -566,8 +581,6 @@ async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
     # A source that fails on the next tick keeps its values; the age sensor says why.
     # The mocker answers with the first registration per URL, so clear and
     # register the failure before the healthy sources.
-    from custom_components.edp_radar.spending.providers.eurostat import API_URL
-
     mock_backend.clear_requests()
     mock_backend.get(API_URL, status=503)
     mock_spending_sources(mock_backend)
@@ -581,3 +594,77 @@ async def test_data_age_sensors_are_diagnostic_and_survive_source_failures(
     failed = get_state(hass, "eurostat_data_age")
     assert failed.attributes["health_state"] == "stale_but_cached"
     assert "HTTP 503" in failed.attributes["last_error"]
+
+
+@pytest.mark.spending_live
+async def test_value_sensor_is_unknown_before_setup_and_unavailable_after_failure(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    # (a) Before async_setup(), the coordinator's `data` is still None: every
+    # sensor must handle that without touching a snapshot that doesn't exist.
+    unset_entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id="unset-entry",
+        unique_id=DOMAIN,
+        data={},
+        options={},
+        version=2,
+    )
+    unset_entry.add_to_hass(hass)
+    store = SpendingStore(hass, unset_entry.entry_id)
+    coordinator = SpendingCoordinator(
+        hass,
+        unset_entry,
+        session=async_get_clientsession(hass),
+        store=store,
+        providers=(),
+    )
+    sensor = SpendingSensor(coordinator, SPENDING_SENSORS[0])
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes is None
+
+    # (b) A coordinator that has loaded data but whose latest refresh failed
+    # must mark its sensors unavailable, not merely unknown (S33).
+    await setup_spending(hass, mock_backend)
+    entry = hass.config_entries.async_get_entry(ENTRY)
+    assert entry is not None
+    entry.runtime_data.spending.last_update_success = False
+    entry.runtime_data.spending.async_update_listeners()
+    await hass.async_block_till_done()
+    assert get_state(hass, "eurostat_defence_expenditure").state == STATE_UNAVAILABLE
+
+
+@pytest.mark.spending_live
+async def test_source_that_never_loaded_is_temporarily_unavailable(
+    hass: HomeAssistant,
+    mock_backend: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    freezer.move_to(NOW)
+    registry = er.async_get(hass)
+    # The mocker answers with the first registration per URL, so register the
+    # Eurostat failure before the healthy sources are registered.
+    mock_backend.get(API_URL, status=503)
+    mock_spending_sources(mock_backend)
+    entry = MockConfigEntry(
+        domain=DOMAIN, entry_id=ENTRY, unique_id=DOMAIN, data={}, options={}, version=2
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    registry.async_update_entity(entity_id(hass, "eurostat_data_age"), disabled_by=None)
+    await hass.config_entries.async_reload(ENTRY)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert get_state(hass, "eurostat_defence_expenditure").state == STATE_UNKNOWN
+    age = get_state(hass, "eurostat_data_age")
+    assert age.attributes["health_state"] == "temporarily_unavailable"
+    assert "HTTP 503" in age.attributes["last_error"]
+    assert float(get_state(hass, "nato_defence_expenditure").state) > 0
+    assert float(get_state(hass, "eda_defence_expenditure").state) > 0
+    assert float(get_state(hass, "sipri_military_expenditure").state) > 0
+    assert float(get_state(hass, "statskontoret_materiel_ytd").state) > 0

@@ -196,10 +196,6 @@ def _provenance(
     )
 
 
-def _pct_value(value: Decimal | None) -> float | None:
-    return scaled(value, 1)
-
-
 # ------------------------------------------------------------ Statskontoret
 
 MATERIEL = "materiel_outturn"
@@ -252,7 +248,7 @@ def _sk_ytd_attrs(metric_id: str) -> AttributesFn:
             {
                 "months_included": change.months,
                 "previous_year_ytd_sek": scaled(change.previous, MILLION),
-                "change_pct": _pct_value(change.pct),
+                "change_pct": scaled(change.pct),
                 "monthly_current_year": monthly_series_attrs(
                     months, year, "sek", MILLION
                 ),
@@ -304,7 +300,7 @@ def _sk_month_attrs(metric_id: str) -> AttributesFn:
                 "same_month_previous_year_sek": scaled(
                     change.previous.value if change.previous else None, MILLION
                 ),
-                "change_pct": _pct_value(change.pct),
+                "change_pct": scaled(change.pct),
             }
         )
         return out
@@ -314,7 +310,7 @@ def _sk_month_attrs(metric_id: str) -> AttributesFn:
 
 def _sk_change_value(metric_id: str) -> ValueFn:
     return lambda series, today: (
-        _pct_value(pair[1].pct) if (pair := _sk_ytd(series, metric_id)) else None
+        scaled(pair[1].pct) if (pair := _sk_ytd(series, metric_id)) else None
     )
 
 
@@ -448,16 +444,48 @@ def _focus_rank(
 
 
 def _year_over_year(
-    series: SourceSeries, point: SpendingDataPoint
+    series: SourceSeries,
+    point: SpendingDataPoint,
+    annual: dict[int, SpendingDataPoint] | None = None,
 ) -> tuple[Decimal | None, Decimal | None]:
-    """``(previous year's value, change %)`` for the focus country."""
-    annual = annual_series(
-        series.datapoints, point.metric_id, FOCUS_COUNTRY, unit=point.unit
-    )
+    """``(previous year's value, change %)`` for the focus country.
+
+    Pass a precomputed ``annual`` series when the caller already has one
+    (e.g. to also derive ``latest_actual`` or a 10-year change) so it is not
+    scanned twice.
+    """
+    if annual is None:
+        annual = annual_series(
+            series.datapoints, point.metric_id, FOCUS_COUNTRY, unit=point.unit
+        )
     previous = annual.get(point.reference.start.year - 1)
     if previous is None:
         return None, None
     return previous.value, nominal_change_pct(point.value, previous.value)
+
+
+def _annual_core_attrs(
+    series: SourceSeries,
+    point: SpendingDataPoint,
+    today: date,
+    value_key: str,
+    annual: dict[int, SpendingDataPoint] | None = None,
+) -> dict[str, Any]:
+    """Provenance, ``reference_year``, YoY change and rank shared by the
+    annual value sensors (Eurostat, EDA and NATO)."""
+    previous, change = _year_over_year(series, point, annual)
+    ranking = _ranking(series, point)
+    out = _provenance(point, series, today)
+    out.update(
+        {
+            "reference_year": point.reference.start.year,
+            f"previous_year_{value_key}": scaled(previous, MILLION),
+            "change_pct": scaled(change),
+            "rank": None if ranking is None else ranking.focus_rank,
+            "population": None if ranking is None else ranking.population,
+        }
+    )
+    return out
 
 
 def _annual_value(metric_id: str, scale: int = MILLION) -> ValueFn:
@@ -507,6 +535,35 @@ def _rank_attrs(
     return attrs
 
 
+def _pct_rank_attrs(
+    metric_id: str,
+    extra: Callable[[SourceSeries, SpendingDataPoint, Ranking], dict[str, Any]]
+    | None = None,
+) -> AttributesFn:
+    """Provenance, ``reference_year``, rank and population for a lone
+    percentage sensor (NATO's %GDP and equipment share, SIPRI's %GDP);
+    ``extra`` adds source-specific attributes from the same point/ranking."""
+
+    def attrs(series: SourceSeries, today: date, now: datetime) -> dict[str, Any]:
+        point = _latest(series, metric_id)
+        ranking = _ranking(series, point) if point else None
+        if point is None or ranking is None:
+            return {}
+        out = _provenance(point, series, today)
+        out.update(
+            {
+                "reference_year": point.reference.start.year,
+                "rank": ranking.focus_rank,
+                "population": ranking.population,
+            }
+        )
+        if extra is not None:
+            out.update(extra(series, point, ranking))
+        return out
+
+    return attrs
+
+
 # ---------------------------------------------------------------- Eurostat
 
 EU_EXPENDITURE = "defence_expenditure"
@@ -519,25 +576,18 @@ def _eurostat_value_attrs(metric_id: str) -> AttributesFn:
         if point is None:
             return {}
         reference = point.reference
-        previous, change = _year_over_year(series, point)
-        ranking = _ranking(series, point)
-        out = _provenance(point, series, today)
+        out = _annual_core_attrs(series, point, today, "eur")
         out.update(
             {
-                "reference_year": reference.start.year,
-                "pct_gdp": _pct_value(
+                "pct_gdp": scaled(
                     _focus_value(series, f"{metric_id}_pct_gdp", reference)
                 ),
                 "nac_million": scaled(
                     _focus_value(series, f"{metric_id}_nac", reference)
                 ),
-                "previous_year_eur": scaled(previous, MILLION),
-                "change_pct": _pct_value(change),
-                "rank": None if ranking is None else ranking.focus_rank,
                 "pct_gdp_rank": _focus_rank(
                     series, f"{metric_id}_pct_gdp", "PCT_GDP", reference
                 ),
-                "population": None if ranking is None else ranking.population,
             }
         )
         return out
@@ -590,8 +640,9 @@ NATO_EQUIPMENT_SHARE = "equipment_share_pct"
 NATO_EQUIPMENT_USD = "equipment_expenditure_usd_current"
 
 
-def _latest_actual(series: SourceSeries, metric_id: str) -> SpendingDataPoint | None:
-    annual = annual_series(series.datapoints, metric_id, FOCUS_COUNTRY)
+def _latest_actual(
+    annual: dict[int, SpendingDataPoint],
+) -> SpendingDataPoint | None:
     actual = [p for p in annual.values() if p.status is DatapointStatus.ACTUAL]
     return max(actual, key=lambda p: p.reference.start) if actual else None
 
@@ -603,71 +654,29 @@ def _nato_value_attrs(
     if point is None:
         return {}
     reference = point.reference
-    previous, change = _year_over_year(series, point)
-    ranking = _ranking(series, point)
+    annual = annual_series(series.datapoints, NATO_USD, FOCUS_COUNTRY, unit=point.unit)
     constant = latest_year(series.datapoints, NATO_USD_CONSTANT, FOCUS_COUNTRY)
     constant_value = (
         constant.value
         if constant is not None and constant.reference == reference
         else None
     )
-    actual = _latest_actual(series, NATO_USD)
-    out = _provenance(point, series, today)
+    actual = _latest_actual(annual)
+    out = _annual_core_attrs(series, point, today, "usd", annual)
     out.update(
         {
-            "reference_year": reference.start.year,
             "nac_million": scaled(_focus_value(series, NATO_NAC, reference)),
             "usd_constant": scaled(constant_value, MILLION),
-            "price_base_year": price_base_year(constant.unit) if constant else None,
-            "pct_gdp": _pct_value(_focus_value(series, NATO_PCT_GDP, reference)),
+            "price_base_year": None
+            if constant is None or constant_value is None
+            else price_base_year(constant.unit),
+            "pct_gdp": scaled(_focus_value(series, NATO_PCT_GDP, reference)),
             "latest_actual": None
             if actual is None
             else {
                 "year": actual.reference.start.year,
                 "usd": scaled(actual.value, MILLION),
             },
-            "previous_year_usd": scaled(previous, MILLION),
-            "change_pct": _pct_value(change),
-            "rank": None if ranking is None else ranking.focus_rank,
-            "population": None if ranking is None else ranking.population,
-        }
-    )
-    return out
-
-
-def _nato_pct_attrs(series: SourceSeries, today: date, now: datetime) -> dict[str, Any]:
-    point = _latest(series, NATO_PCT_GDP)
-    ranking = _ranking(series, point) if point else None
-    if point is None or ranking is None:
-        return {}
-    out = _provenance(point, series, today)
-    out.update(
-        {
-            "reference_year": point.reference.start.year,
-            "rank": ranking.focus_rank,
-            "population": ranking.population,
-            "alliance_median_pct_gdp": _pct_value(ranking.median),
-        }
-    )
-    return out
-
-
-def _nato_equipment_attrs(
-    series: SourceSeries, today: date, now: datetime
-) -> dict[str, Any]:
-    point = _latest(series, NATO_EQUIPMENT_SHARE)
-    ranking = _ranking(series, point) if point else None
-    if point is None or ranking is None:
-        return {}
-    out = _provenance(point, series, today)
-    out.update(
-        {
-            "reference_year": point.reference.start.year,
-            "equipment_usd": scaled(
-                _focus_value(series, NATO_EQUIPMENT_USD, point.reference), MILLION
-            ),
-            "rank": ranking.focus_rank,
-            "population": ranking.population,
         }
     )
     return out
@@ -707,7 +716,9 @@ NATO_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
         "nato_defence_expenditure_pct_gdp",
         NATO,
         _annual_value(NATO_PCT_GDP, 1),
-        _nato_pct_attrs,
+        _pct_rank_attrs(
+            NATO_PCT_GDP, lambda s, p, r: {"alliance_median_pct_gdp": scaled(r.median)}
+        ),
     ),
     _rank(
         "nato_defence_expenditure_pct_gdp_rank",
@@ -719,7 +730,14 @@ NATO_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
         "nato_equipment_share_pct",
         NATO,
         _annual_value(NATO_EQUIPMENT_SHARE, 1),
-        _nato_equipment_attrs,
+        _pct_rank_attrs(
+            NATO_EQUIPMENT_SHARE,
+            lambda s, p, r: {
+                "equipment_usd": scaled(
+                    _focus_value(s, NATO_EQUIPMENT_USD, p.reference), MILLION
+                )
+            },
+        ),
     ),
     _text("nato_position_text", NATO, _nato_position, _nato_position_attrs),
 )
@@ -741,24 +759,17 @@ def _eda_value_attrs(
     if point is None:
         return {}
     reference = point.reference
-    previous, change = _year_over_year(series, point)
-    ranking = _ranking(series, point)
-    out = _provenance(point, series, today)
+    out = _annual_core_attrs(series, point, today, "eur")
     out.update(
         {
-            "reference_year": reference.start.year,
-            "pct_gdp": _pct_value(_focus_value(series, EDA_PCT_GDP, reference)),
-            "pct_government": _pct_value(
+            "pct_gdp": scaled(_focus_value(series, EDA_PCT_GDP, reference)),
+            "pct_government": scaled(
                 _focus_value(series, EDA_PCT_GOVERNMENT, reference)
             ),
             "per_capita_eur": scaled(_focus_value(series, EDA_PER_CAPITA, reference)),
             "investment_eur": scaled(
                 _focus_value(series, EDA_INVESTMENT, reference), MILLION
             ),
-            "previous_year_eur": scaled(previous, MILLION),
-            "change_pct": _pct_value(change),
-            "rank": None if ranking is None else ranking.focus_rank,
-            "population": None if ranking is None else ranking.population,
         }
     )
     return out
@@ -810,7 +821,7 @@ def _sipri_value_attrs(
     annual = annual_series(
         series.datapoints, SIPRI_CONSTANT, FOCUS_COUNTRY, unit=point.unit
     )
-    previous, change = _year_over_year(series, point)
+    previous, change = _year_over_year(series, point, annual)
     decade = change_over_years(annual, year, TEN_YEARS)
     ranking = _ranking(series, point)
     out = _provenance(point, series, today)
@@ -819,32 +830,14 @@ def _sipri_value_attrs(
             "reference_year": year,
             "price_base_year": price_base_year(point.unit),
             "flags": list(point.flags),
-            "pct_gdp": _pct_value(_focus_value(series, SIPRI_PCT_GDP, reference)),
+            "pct_gdp": scaled(_focus_value(series, SIPRI_PCT_GDP, reference)),
             "previous_year_usd": scaled(previous, MILLION),
-            "change_pct": _pct_value(change),
+            "change_pct": scaled(change),
             "value_10y_ago_usd": None if decade is None else scaled(decade[0], MILLION),
-            "change_10y_pct": None if decade is None else _pct_value(decade[1]),
+            "change_10y_pct": None if decade is None else scaled(decade[1]),
             "annual_series": annual_series_attrs(annual, "usd", MILLION),
             "rank": None if ranking is None else ranking.focus_rank,
             "population": None if ranking is None else ranking.population,
-        }
-    )
-    return out
-
-
-def _sipri_pct_attrs(
-    series: SourceSeries, today: date, now: datetime
-) -> dict[str, Any]:
-    point = _latest(series, SIPRI_PCT_GDP)
-    ranking = _ranking(series, point) if point else None
-    if point is None or ranking is None:
-        return {}
-    out = _provenance(point, series, today)
-    out.update(
-        {
-            "reference_year": point.reference.start.year,
-            "rank": ranking.focus_rank,
-            "population": ranking.population,
         }
     )
     return out
@@ -868,7 +861,7 @@ SIPRI_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
         "sipri_military_expenditure_pct_gdp",
         SIPRI,
         _annual_value(SIPRI_PCT_GDP, 1),
-        _sipri_pct_attrs,
+        _pct_rank_attrs(SIPRI_PCT_GDP),
     ),
 )
 
@@ -877,8 +870,7 @@ SIPRI_SENSORS: tuple[SpendingSensorEntityDescription, ...] = (
 
 
 def _latest_reference_end(series: SourceSeries) -> date | None:
-    ends = [p.reference.end for p in series.datapoints]
-    return max(ends) if ends else None
+    return max((p.reference.end for p in series.datapoints), default=None)
 
 
 def _published(series: SourceSeries) -> date | None:

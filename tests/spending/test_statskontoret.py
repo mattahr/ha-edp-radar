@@ -370,3 +370,29 @@ def test_short_rows_are_counted_as_a_warning() -> None:
     lines.insert(2, "06;Försvar;0601003;kort rad")
     result = parse_outturn_csv("\n".join(lines).encode("utf-8"), release)
     assert result.warnings == ("1 row shorter than the header was skipped",)
+
+
+def test_corrupt_zip_member_stream_is_unavailable() -> None:
+    """A structurally valid Zip whose compressed *stream* is corrupted must
+    surface as ``SourceUnavailableError``, not a raw ``zlib``/``zipfile`` error
+    (whether the corruption is caught on open or partway through the read)."""
+    from custom_components.edp_radar.spending.providers.base import (
+        SourceUnavailableError,
+    )
+
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("utfall.csv", b"0" * 200_000)
+    payload = bytearray(buffer.getvalue())
+    header_index = payload.index(b"PK\x03\x04")
+    name_length = int.from_bytes(
+        payload[header_index + 26 : header_index + 28], "little"
+    )
+    data_start = header_index + 30 + name_length
+    for offset in range(50, 70):
+        payload[data_start + offset] ^= 0xFF
+    with pytest.raises(SourceUnavailableError, match="corrupt"):
+        parse_outturn_csv(bytes(payload), release)
