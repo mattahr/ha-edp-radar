@@ -295,7 +295,7 @@ def _rank_line(points: tuple[SpendingDataPoint, ...], metric_id: str, unit: str)
         return f"- {metric_id}: no reference period with ≥ 2 countries"
     ranking = rank(points, metric_id=metric_id, unit=unit, reference=ref)
     if ranking is None:
-        return f"- {metric_id} {ref.label}: Sweden missing"
+        return f"- {metric_id} {ref.label}: Sweden missing or zero"
     nordic = ", ".join(
         f"{e.country} #{e.rank} {_fmt(e.value)}" for e in nordic_subset(ranking)
     )

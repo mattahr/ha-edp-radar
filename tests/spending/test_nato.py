@@ -120,6 +120,36 @@ def test_parse_2025_workbook_layout_variant() -> None:
     assert result.layout_fingerprint.startswith("Table 1: Defence expenditure")
 
 
+def test_base_year_comes_from_the_table_subtitle() -> None:
+    import io
+
+    import openpyxl
+
+    book = openpyxl.load_workbook(FIXTURES / "def-exp-2026-en.xlsx")
+    sheet = book["Table 2"]
+    target = None
+    for row in sheet.iter_rows():
+        for cell in row[:4]:
+            value = cell.value
+            if isinstance(value, str) and "onstant 2021" in value.casefold():
+                target = cell
+                break
+        if target is not None:
+            break
+    assert target is not None, "no cell mentioning 'onstant 2021' found in Table 2"
+    target.value = target.value.replace("2021", "2019")
+    buffer = io.BytesIO()
+    book.save(buffer)
+    result = parse_nato_workbook(buffer.getvalue(), _release())
+    constant_points = [
+        p
+        for p in result.datapoints
+        if p.metric_id == "defence_expenditure_usd_constant"
+    ]
+    assert constant_points
+    assert all(p.unit == "USD_MILLION_CONSTANT_2019" for p in constant_points)
+
+
 def test_layout_change_fails() -> None:
     import io
 

@@ -134,8 +134,6 @@ def test_empty_series_default() -> None:
 
 
 def test_release_round_trips_the_layout_fingerprint() -> None:
-    from custom_components.edp_radar.spending.models import SourceRelease
-
     release = SourceRelease(
         "nato",
         "2026:x",

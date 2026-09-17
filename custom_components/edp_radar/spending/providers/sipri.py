@@ -21,7 +21,7 @@ from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 
-from ..countries import SKIP_LABELS, normalise_label, resolve_country
+from ..countries import is_skipped_label, resolve_country
 from ..models import (
     DatapointStatus,
     ReferencePeriod,
@@ -126,7 +126,7 @@ def _parse_sheet(
     points: list[SpendingDataPoint] = []
     for row in rows[header_index + 1 :]:
         label = text(row[0]) if row else ""
-        if not label or normalise_label(label) in SKIP_LABELS:
+        if not label or is_skipped_label(label):
             continue
         cells = {column: row[column] for column in years if column < len(row)}
         if not any(number(cell.value) is not None for cell in cells.values()):

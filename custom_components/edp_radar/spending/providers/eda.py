@@ -107,7 +107,7 @@ def _normalise(header: str) -> str:
 
 def _columns(
     header_row: tuple[Any, ...],
-    wanted: tuple[tuple[str, str, str, bool], ...],
+    wanted: tuple[Column, ...],
     sheet: str,
 ) -> dict[str, int]:
     names = [_normalise(text(cell)) for cell in header_row]
@@ -132,7 +132,7 @@ def _member_states_sheet(book: Any) -> str:
 def _emit(
     rows: list[tuple[Any, ...]],
     columns: dict[str, int],
-    wanted: tuple[tuple[str, str, str, bool], ...],
+    wanted: tuple[Column, ...],
     release: SourceRelease,
     *,
     sheet: str,

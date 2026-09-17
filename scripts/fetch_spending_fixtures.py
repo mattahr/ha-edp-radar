@@ -256,6 +256,8 @@ def trim_sipri_workbook(data: bytes) -> bytes:
             for i in range(header + 1, sheet.max_row + 1)
         }
         europe, keep = rows[KEEP_FROM], rows[KEEP_ROW]
+        if not keep < europe:
+            raise SystemExit(f"{KEEP_ROW!r} must precede {KEEP_FROM!r} in {name}")
         # Delete from the bottom up so earlier indexes stay valid.
         sheet.delete_rows(keep + 1, europe - (keep + 1))
         sheet.delete_rows(header + 2, keep - (header + 2))

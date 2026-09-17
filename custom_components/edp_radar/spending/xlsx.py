@@ -90,7 +90,7 @@ def year_header(row: tuple[Any, ...]) -> dict[int, tuple[int, bool]]:
     return years
 
 
-_BASE_YEAR = re.compile(r"constant\D{0,3}(\d{4})", re.IGNORECASE)
+_BASE_YEAR = re.compile(r"\bconstant\D{0,3}(\d{4})", re.IGNORECASE)
 
 
 def constant_base_year(label: str) -> int:
@@ -102,12 +102,16 @@ def constant_base_year(label: str) -> int:
 
 
 def sheet_by_prefix(book: Workbook, prefix: str) -> str:
-    for name in book.sheetnames:
-        if str(name).startswith(prefix):
-            return str(name)
-    raise SchemaChangedError(
-        f"no sheet starting with {prefix!r}; found {book.sheetnames}"
-    )
+    matches = [str(name) for name in book.sheetnames if str(name).startswith(prefix)]
+    if not matches:
+        raise SchemaChangedError(
+            f"no sheet starting with {prefix!r}; found {book.sheetnames}"
+        )
+    if len(matches) > 1:
+        raise SchemaChangedError(
+            f"{len(matches)} sheets start with {prefix!r}: {matches}"
+        )
+    return matches[0]
 
 
 def font_colour_index(cell: Any) -> int | None:

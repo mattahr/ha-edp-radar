@@ -18,7 +18,7 @@ from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 
-from ..countries import SKIP_LABELS, normalise_label, resolve_country
+from ..countries import is_skipped_label, resolve_country
 from ..models import (
     DatapointStatus,
     ReferencePeriod,
@@ -143,8 +143,7 @@ def _parse_table(
         label = text(row[0]) if row else ""
         if not label or label.casefold().startswith("notes"):
             break
-        plain = normalise_label(label)
-        if plain in SKIP_LABELS:
+        if is_skipped_label(label):
             continue
         country = resolve_country(label)
         if country is None:

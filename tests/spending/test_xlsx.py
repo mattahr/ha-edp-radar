@@ -78,8 +78,13 @@ def test_constant_base_year_and_sheet_prefix() -> None:
     assert constant_base_year("constant 2021 prices and exchange rates") == 2021
     with pytest.raises(SchemaChangedError, match="base year"):
         constant_base_year("Current US$")
+    with pytest.raises(SchemaChangedError):
+        constant_base_year("inconstant 1999")
     book = Workbook()
     book.active.title = "Constant (2025) US$"
     assert sheet_by_prefix(book, "Constant (") == "Constant (2025) US$"
     with pytest.raises(SchemaChangedError, match="Share of"):
         sheet_by_prefix(book, "Share of")
+    book.create_sheet("Constant (2024) US$")
+    with pytest.raises(SchemaChangedError, match="2 sheets"):
+        sheet_by_prefix(book, "Constant (")
