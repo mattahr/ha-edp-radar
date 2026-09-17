@@ -13,6 +13,7 @@ import csv
 import io
 import re
 import zipfile
+import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
@@ -207,7 +208,12 @@ def _declared_member_size(info: zipfile.ZipInfo) -> int:
 
 def _csv_text(payload: bytes) -> str:
     if payload[:2] == b"PK":
-        archive = zipfile.ZipFile(io.BytesIO(payload))
+        try:
+            archive = zipfile.ZipFile(io.BytesIO(payload))
+        except (zipfile.BadZipFile, zlib.error) as err:
+            raise SourceUnavailableError(
+                f"Statskontoret zip is corrupt: {err}"
+            ) from err
         names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
         if not names:
             raise SchemaChangedError("Statskontoret zip contains no CSV")
@@ -219,14 +225,19 @@ def _csv_text(payload: bytes) -> str:
             )
         chunks: list[bytes] = []
         total = 0
-        with archive.open(names[0]) as member:
-            while chunk := member.read(65536):
-                total += len(chunk)
-                if total > base.MAX_PAYLOAD_BYTES:
-                    raise SourceUnavailableError(
-                        f"{names[0]} is larger than {base.MAX_PAYLOAD_BYTES} bytes"
-                    )
-                chunks.append(chunk)
+        try:
+            with archive.open(names[0]) as member:
+                while chunk := member.read(65536):
+                    total += len(chunk)
+                    if total > base.MAX_PAYLOAD_BYTES:
+                        raise SourceUnavailableError(
+                            f"{names[0]} is larger than {base.MAX_PAYLOAD_BYTES} bytes"
+                        )
+                    chunks.append(chunk)
+        except (zipfile.BadZipFile, zlib.error) as err:
+            raise SourceUnavailableError(
+                f"Statskontoret zip is corrupt: {err}"
+            ) from err
         payload = b"".join(chunks)
     return payload.decode("utf-8-sig")
 
@@ -345,6 +356,9 @@ class StatskontoretProvider:
         self.spec = source_spec(STATSKONTORET)
         self._today = today
         self._previous_december_definitive = True
+        # Once a year's December is definitive it never becomes preliminary
+        # again, so its page never needs a second look (S38).
+        self._definitive_decembers: set[int] = set()
 
     async def async_discover_latest(self, session: ClientSession) -> SourceRelease:
         year = self._today().year
@@ -353,11 +367,17 @@ class StatskontoretProvider:
             releases = await self._async_releases(session, page_url)
             if releases:
                 latest = select_latest(releases)
-                previous_url = f"{DISCOVERY_URL}?year={latest.year - 1}"
-                previous = await self._async_releases(session, previous_url)
-                self._previous_december_definitive = december_is_definitive(
-                    previous, latest.year - 1
-                )
+                previous_year = latest.year - 1
+                if previous_year in self._definitive_decembers:
+                    self._previous_december_definitive = True
+                else:
+                    previous_url = f"{DISCOVERY_URL}?year={previous_year}"
+                    previous = await self._async_releases(session, previous_url)
+                    self._previous_december_definitive = december_is_definitive(
+                        previous, previous_year
+                    )
+                    if self._previous_december_definitive:
+                        self._definitive_decembers.add(previous_year)
                 return release_from(latest, page_url)
         raise SchemaChangedError(
             "Statskontoret lists no Utgifter releases for this or last year"

@@ -126,6 +126,40 @@ def test_expected_reference_end_with_zero_lag_is_the_period_end() -> None:
     assert expected_reference_end(nato, date(2026, 12, 30)) == date(2025, 12, 31)
 
 
+def test_reference_overdue_makes_monthly_and_annual_late() -> None:
+    # (a) Monthly (statskontoret): far past deadline+grace is LATE outright.
+    spec = source_spec("statskontoret")
+    assert (
+        freshness_state(spec, date(2026, 7, 31), date(2026, 8, 24), date(2026, 10, 20))
+        is FreshnessState.LATE
+    )
+    # Isolate the overdue signal from the deadline signal: with zero lag the
+    # deadline (last business day of September) has NOT passed, yet the
+    # reference is already overdue, so the state is still LATE.
+    zero_lag = replace(source_spec("statskontoret"), expected_lag_days=0)
+    assert next_release_deadline(
+        zero_lag, date(2026, 7, 31), date(2026, 9, 25)
+    ) == date(2026, 9, 30)
+    assert (
+        freshness_state(
+            zero_lag, date(2026, 7, 31), date(2026, 9, 25), date(2026, 9, 29)
+        )
+        is FreshnessState.LATE
+    )
+
+    # (b) Annual (nato): 2025 is overdue once its lag + grace has passed,
+    # even though the last release is recent and its own deadline is not due.
+    nato = source_spec("nato")
+    assert (
+        freshness_state(nato, date(2024, 12, 31), date(2026, 7, 10), date(2026, 9, 14))
+        is FreshnessState.LATE
+    )
+    assert (
+        freshness_state(nato, date(2025, 12, 31), date(2026, 7, 10), date(2026, 9, 14))
+        is FreshnessState.CURRENT
+    )
+
+
 def test_reference_overdue_and_period_complete() -> None:
     statskontoret = source_spec("statskontoret")
     assert not reference_overdue(statskontoret, date(2026, 7, 31), date(2026, 9, 14))

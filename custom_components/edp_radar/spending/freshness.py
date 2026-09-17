@@ -48,8 +48,12 @@ def retrieval_age_days(retrieved_at: datetime | None, now: datetime) -> int | No
     return None if retrieved_at is None else (now - retrieved_at).days
 
 
+def _month_end(year: int, month: int) -> date:
+    return date(year, month, calendar.monthrange(year, month)[1])
+
+
 def last_business_day(year: int, month: int) -> date:
-    day = date(year, month, calendar.monthrange(year, month)[1])
+    day = _month_end(year, month)
     while day.weekday() >= 5:
         day -= timedelta(days=1)
     return day
@@ -58,10 +62,6 @@ def last_business_day(year: int, month: int) -> date:
 def _add_months(day: date, months: int) -> tuple[int, int]:
     index = day.year * 12 + (day.month - 1) + months
     return index // 12, index % 12 + 1
-
-
-def _month_end(year: int, month: int) -> date:
-    return date(year, month, calendar.monthrange(year, month)[1])
 
 
 def expected_reference_end(spec: SourceSpec, today: date) -> date:

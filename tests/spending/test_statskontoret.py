@@ -246,6 +246,19 @@ def test_future_month_is_not_emitted_as_a_datapoint() -> None:
     assert len(result.datapoints) == 57
 
 
+def test_corrupt_zip_is_unavailable() -> None:
+    from custom_components.edp_radar.spending.providers.base import (
+        SourceUnavailableError,
+    )
+
+    release = release_from(
+        select_latest(parse_discovery_page(_page(2026), PAGE_2026)), PAGE_2026
+    )
+    payload = b"PK\x03\x04" + b"garbage" * 10
+    with pytest.raises(SourceUnavailableError, match="corrupt"):
+        parse_outturn_csv(payload, release)
+
+
 def test_oversized_zip_member_is_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     from custom_components.edp_radar.spending.providers import base
     from custom_components.edp_radar.spending.providers.base import (
@@ -332,6 +345,20 @@ async def test_provider_labels_december_from_the_previous_year_page(
         PAGE_2026,
         PAGE_2025,
     ]
+
+
+async def test_previous_year_page_is_not_refetched_once_december_is_definitive(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    aioclient_mock.get(PAGE_2026, text=_page(2026))
+    aioclient_mock.get(PAGE_2025, text=_page(2025))
+    provider = StatskontoretProvider(today=lambda: date(2026, 9, 12))
+    session = async_get_clientsession(hass)
+    await provider.async_discover_latest(session)
+    await provider.async_discover_latest(session)
+    calls = [str(call[1]) for call in aioclient_mock.mock_calls]
+    assert calls.count(PAGE_2025) == 1
+    assert provider._previous_december_definitive is True
 
 
 def test_short_rows_are_counted_as_a_warning() -> None:

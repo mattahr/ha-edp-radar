@@ -87,13 +87,12 @@ class SpendingCoordinator(DataUpdateCoordinator[SpendingSnapshot]):
             await self._async_refresh_provider(provider, now)
         await self.store.async_save()
         configured = [provider.spec.source_id for provider in self.providers]
-        if configured and not any(
-            self.store.get(source_id).datapoints for source_id in configured
-        ):
+        stored = {source_id: self.store.get(source_id) for source_id in configured}
+        if configured and not any(series.datapoints for series in stored.values()):
             errors = {
-                source_id: self.store.get(source_id).health.last_error
-                for source_id in configured
-                if self.store.get(source_id).health.last_error
+                source_id: series.health.last_error
+                for source_id, series in stored.items()
+                if series.health.last_error
             }
             raise UpdateFailed(f"No spending source available: {errors}")
         return self._snapshot(now)

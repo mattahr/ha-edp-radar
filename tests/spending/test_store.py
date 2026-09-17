@@ -479,6 +479,47 @@ async def test_unit_change_supersedes_the_old_series(hass: HomeAssistant) -> Non
     )
 
 
+async def test_release_can_supersede_one_key_and_carry_over_another(
+    hass: HomeAssistant,
+) -> None:
+    store = SpendingStore(hass, ENTRY)
+    await store.async_load()
+    v1 = SourceRelease(
+        "sipri", "v1", date(2026, 4, 27), "d", "c", "xlsx", checksum="v1"
+    )
+    p2024 = SpendingDataPoint(
+        "sipri",
+        "military_expenditure_usd_constant",
+        "SE",
+        ReferencePeriod.year(2024),
+        Decimal("12046"),
+        "USD_MILLION_CONSTANT_2024",
+        DatapointStatus.ACTUAL,
+        "v1",
+        v1.published_at,
+        "u",
+    )
+    p2023 = dataclasses.replace(
+        p2024, reference=ReferencePeriod.year(2023), value=Decimal("11500")
+    )
+    store.apply_release("sipri", v1, [p2024, p2023], now=NOW)
+
+    v2 = SourceRelease(
+        "sipri", "v2", date(2027, 4, 26), "d", "c", "xlsx", checksum="v2"
+    )
+    p2024_new_unit = dataclasses.replace(
+        p2024, value=Decimal("12400"), unit="USD_MILLION_CONSTANT_2025", release_id="v2"
+    )
+    result = store.apply_release(
+        "sipri", v2, [p2024_new_unit], now=NOW + timedelta(days=365)
+    )
+    assert result.superseded == 1
+    assert result.carried_over == 1
+    series = store.get("sipri")
+    assert {p.key for p in series.datapoints} == {p2023.key, p2024_new_unit.key}
+    assert len(result.revisions) == 1
+
+
 async def test_duplicate_keys_within_a_release_are_counted(hass: HomeAssistant) -> None:
     store = SpendingStore(hass, ENTRY)
     await store.async_load()

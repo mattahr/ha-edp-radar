@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -51,6 +51,12 @@ def health_storage_key(entry_id: str) -> str:
     return f"{DOMAIN}.{entry_id}.spending.health"
 
 
+def _constant(payload: dict[str, Any]) -> Callable[[], dict[str, Any]]:
+    """A zero-argument callable for ``Store.async_delay_save`` that always
+    returns the same, already-computed payload."""
+    return lambda: payload
+
+
 @dataclass(frozen=True, slots=True)
 class ApplyResult:
     added: int
@@ -59,6 +65,83 @@ class ApplyResult:
     carried_over: int
     revisions: tuple[Revision, ...]
     superseded: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class _ReleaseDiff:
+    """Pure result of merging one release's datapoints into the existing ones."""
+
+    merged: dict[DatapointKey, SpendingDataPoint]
+    added: int
+    updated: int
+    unchanged: int
+    superseded: int
+    revisions: tuple[Revision, ...]
+    unit_changes: dict[tuple[str, str], int]
+
+
+def _diff_release(
+    existing: dict[DatapointKey, SpendingDataPoint],
+    incoming: dict[DatapointKey, SpendingDataPoint],
+    now: datetime,
+) -> _ReleaseDiff:
+    # S39: a datapoint whose key differs from a new one only in ``unit``
+    # (constant-price base year moved) is replaced, not kept beside it.
+    by_base: dict[tuple[str, ...], list[DatapointKey]] = {}
+    for key in existing:
+        by_base.setdefault(key[:5], []).append(key)
+    merged = dict(existing)
+    added = updated = unchanged = superseded = 0
+    revisions: list[Revision] = []
+    unit_changes: dict[tuple[str, str], int] = {}
+    for key, point in incoming.items():
+        previous = existing.get(key)
+        if previous is None:
+            old_keys = [
+                k for k in by_base.get(key[:5], ()) if k not in incoming and k in merged
+            ]
+            if not old_keys:
+                added += 1
+            else:
+                for old_key in old_keys:
+                    old = merged.pop(old_key)
+                    superseded += 1
+                    change = (old.unit, point.unit)
+                    unit_changes[change] = unit_changes.get(change, 0) + 1
+                    revisions.append(
+                        Revision(
+                            key=point.key,
+                            previous_value=old.value,
+                            previous_release_id=old.release_id,
+                            new_value=point.value,
+                            release_id=point.release_id,
+                            detected_at=now,
+                        )
+                    )
+        elif previous.value != point.value:
+            updated += 1
+            revisions.append(
+                Revision(
+                    key=point.key,
+                    previous_value=previous.value,
+                    previous_release_id=previous.release_id,
+                    new_value=point.value,
+                    release_id=point.release_id,
+                    detected_at=now,
+                )
+            )
+        else:
+            unchanged += 1
+        merged[key] = point
+    return _ReleaseDiff(
+        merged=merged,
+        added=added,
+        updated=updated,
+        unchanged=unchanged,
+        superseded=superseded,
+        revisions=tuple(revisions),
+        unit_changes=unit_changes,
+    )
 
 
 class SpendingStore:
@@ -152,70 +235,21 @@ class SpendingStore:
     ) -> ApplyResult:
         current = self.series[source_id]
         existing = {point.key: point for point in current.datapoints}
-        # S39: a datapoint whose key differs from a new one only in ``unit``
-        # (constant-price base year moved) is replaced, not kept beside it.
-        by_base: dict[tuple[str, ...], list[DatapointKey]] = {}
-        for key in existing:
-            by_base.setdefault(key[:5], []).append(key)
         incoming: dict[DatapointKey, SpendingDataPoint] = {}
         duplicates = 0
         for point in datapoints:
             if point.key in incoming:
                 duplicates += 1
             incoming[point.key] = point
-        merged = dict(existing)
-        added = updated = unchanged = superseded = 0
-        revisions: list[Revision] = []
-        unit_changes: dict[tuple[str, str], int] = {}
-        for key, point in incoming.items():
-            previous = existing.get(key)
-            if previous is None:
-                old_keys = [
-                    k
-                    for k in by_base.get(key[:5], ())
-                    if k not in incoming and k in merged
-                ]
-                if not old_keys:
-                    added += 1
-                else:
-                    for old_key in old_keys:
-                        old = merged.pop(old_key)
-                        superseded += 1
-                        change = (old.unit, point.unit)
-                        unit_changes[change] = unit_changes.get(change, 0) + 1
-                        revisions.append(
-                            Revision(
-                                key=point.key,
-                                previous_value=old.value,
-                                previous_release_id=old.release_id,
-                                new_value=point.value,
-                                release_id=point.release_id,
-                                detected_at=now,
-                            )
-                        )
-            elif previous.value != point.value:
-                updated += 1
-                revisions.append(
-                    Revision(
-                        key=point.key,
-                        previous_value=previous.value,
-                        previous_release_id=previous.release_id,
-                        new_value=point.value,
-                        release_id=point.release_id,
-                        detected_at=now,
-                    )
-                )
-            else:
-                unchanged += 1
-            merged[key] = point
-        carried_over = len(merged) - len(incoming)
+        diff = _diff_release(existing, incoming, now)
+        carried_over = len(diff.merged) - len(incoming)
         notes = list(warnings)
         if duplicates:
             notes.append(
                 f"{duplicates} duplicate keys within release {release.release_id} "
                 "(last value kept)"
             )
-        for (old_unit, new_unit), count in sorted(unit_changes.items()):
+        for (old_unit, new_unit), count in sorted(diff.unit_changes.items()):
             notes.append(f"unit changed {old_unit} → {new_unit} for {count} datapoints")
         health = dataclasses.replace(
             current.health,
@@ -230,14 +264,19 @@ class SpendingStore:
             source_id=source_id,
             release=release,
             health=health,
-            datapoints=tuple(merged[key] for key in sorted(merged)),
-            revisions=(*current.revisions, *revisions)[-MAX_REVISIONS:],
+            datapoints=tuple(diff.merged[key] for key in sorted(diff.merged)),
+            revisions=(*current.revisions, *diff.revisions)[-MAX_REVISIONS:],
             retrieved_at=now,
         )
         self._dirty.add(source_id)
         self._health_dirty = True
         return ApplyResult(
-            added, updated, unchanged, carried_over, tuple(revisions), superseded
+            diff.added,
+            diff.updated,
+            diff.unchanged,
+            carried_over,
+            diff.revisions,
+            diff.superseded,
         )
 
     def set_health(self, source_id: str, health: ProviderHealth) -> None:
@@ -262,10 +301,11 @@ class SpendingStore:
     async def async_save(self, *, immediate: bool = False) -> None:
         """Write changed sources (delayed by default, as D12).
 
-        Serialisation runs in the executor. Sources with a delayed write still
-        pending are rewritten by an immediate save (shutdown), so an unload
-        never loses the last release. Health is small and written whenever it
-        changed, without touching the series files (S40).
+        Series payloads are serialised in the executor; the health payload is
+        small and built inline. Sources with a delayed write still pending
+        are rewritten by an immediate save (shutdown), so an unload never
+        loses the last release. Health is written whenever it changed,
+        without touching the series files (S40).
         """
         dirty = sorted(self._dirty | (self._pending if immediate else set()))
         self._dirty.clear()
@@ -277,11 +317,7 @@ class SpendingStore:
                 await store.async_save(payload)
             else:
                 self._pending.add(source_id)
-
-                def _static(payload: dict[str, Any] = payload) -> dict[str, Any]:
-                    return payload
-
-                store.async_delay_save(_static, SAVE_DELAY_SECONDS)
+                store.async_delay_save(_constant(payload), SAVE_DELAY_SECONDS)
         if self._health_dirty or (immediate and self._health_pending):
             self._health_dirty = False
             health = self._health_payload()
@@ -290,13 +326,9 @@ class SpendingStore:
                 await self._health_store.async_save(health)
             else:
                 self._health_pending = True
-
-                def _static_health(
-                    payload: dict[str, Any] = health,
-                ) -> dict[str, Any]:
-                    return payload
-
-                self._health_store.async_delay_save(_static_health, SAVE_DELAY_SECONDS)
+                self._health_store.async_delay_save(
+                    _constant(health), SAVE_DELAY_SECONDS
+                )
 
     async def async_remove(self) -> None:
         for store in self._stores.values():

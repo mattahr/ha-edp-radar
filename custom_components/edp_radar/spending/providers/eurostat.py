@@ -51,6 +51,10 @@ FLAG_STATUS: dict[str, DatapointStatus] = {
     "e": DatapointStatus.ESTIMATE,
     "f": DatapointStatus.PROJECTION,
 }
+# Dimensions this request pins to a single code: looked up explicitly so an
+# absent key (a dimension with no pinned code) is never conflated with a
+# falsy one.
+PINNED_CODES: dict[str, str] = {"expend": EXPEND, "freq": "A"}
 
 
 def _load(payload: bytes) -> dict[str, Any]:
@@ -104,10 +108,12 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
     for required in ("expend", "na_item", "unit", "geo", "time"):
         if required not in ids:
             raise SchemaChangedError(f"Eurostat dimension {required!r} missing")
-    if "freq" in ids and set(_index(data, "freq")) != {"A"}:
-        raise SchemaChangedError(
-            f"Eurostat freq dimension is {sorted(_index(data, 'freq'))}, expected ['A']"
-        )
+    if "freq" in ids:
+        freq_codes = set(_index(data, "freq"))
+        if freq_codes != {"A"}:
+            raise SchemaChangedError(
+                f"Eurostat freq dimension is {sorted(freq_codes)}, expected ['A']"
+            )
     indexes = {dim: _index(data, dim) for dim in ids}
     if EXPEND not in indexes["expend"]:
         raise SchemaChangedError("Eurostat expend code DEF missing")
@@ -132,7 +138,7 @@ def parse_jsonstat(payload: bytes, release: SourceRelease) -> ParseResult:
     }
     fixed_offset = 0
     for dim, index in fixed.items():
-        code = {"expend": EXPEND, "freq": "A"}.get(dim) or next(iter(index))
+        code = PINNED_CODES[dim] if dim in PINNED_CODES else next(iter(index))
         fixed_offset += index[code] * strides[dim]
     warnings: list[str] = []
     # A ``geo`` code survives only as an exact two-letter country code; an
