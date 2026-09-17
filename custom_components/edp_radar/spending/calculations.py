@@ -220,7 +220,12 @@ def annual_series(
     *,
     unit: str | None = None,
 ) -> dict[int, SpendingDataPoint]:
-    """``{year: point}`` for calendar-year references of one metric/country."""
+    """``{year: point}`` for calendar-year references of one metric/country.
+
+    Without ``unit`` a later point for the same year silently replaces an
+    earlier one; pass ``unit`` whenever a metric can carry more than one
+    unit.
+    """
     series: dict[int, SpendingDataPoint] = {}
     for point in points:
         if point.metric_id != metric_id or point.country != country:

@@ -19,27 +19,35 @@ def _round(value: Decimal, decimals: int) -> str:
 
 
 def _pct_text(value: Decimal, *, signed: bool) -> str:
-    """One decimal, half-up; ``signed`` renders an explicit sign (``+0.0%`` at zero)."""
+    """One decimal, half-up; ``signed`` renders an explicit sign (``+0.0%`` at zero).
+
+    The sign follows the *rounded* magnitude, not the raw value, so a value
+    that rounds to zero (e.g. ``-0.04``) renders ``+0.0%``, never ``-0.0%``.
+    """
     if not signed:
         return f"{_round(value, 1)}%"
-    sign = "-" if value < 0 else "+"
-    return f"{sign}{_round(abs(value), 1)}%"
+    magnitude = _round(abs(value), 1)
+    sign = "-" if value < 0 and Decimal(magnitude) != 0 else "+"
+    return f"{sign}{magnitude}%"
 
 
 def format_amount(currency: str, amount: Decimal | None) -> str:
     """``"SEK 48.2bn"`` — the magnitude thresholds of ``periods.format_eur``,
-    rounded half-up in ``Decimal`` for any currency."""
+    rounded half-up in ``Decimal`` for any currency. A negative amount formats
+    its magnitude the same way, prefixed with ``-``."""
     if amount is None:
         return f"{currency} n/a"
-    if amount >= Decimal("1e9"):
-        return f"{currency} {_round(amount / Decimal(10**9), 1)}bn"
-    if amount >= Decimal("1e7"):
-        return f"{currency} {_round(amount / Decimal(10**6), 0)}m"
-    if amount >= Decimal("1e6"):
-        return f"{currency} {_round(amount / Decimal(10**6), 1)}m"
-    if amount >= Decimal("1e3"):
-        return f"{currency} {_round(amount / Decimal(10**3), 0)}k"
-    return f"{currency} {_round(amount, 0)}"
+    sign = "-" if amount < 0 else ""
+    magnitude = abs(amount)
+    if magnitude >= Decimal("1e9"):
+        return f"{currency} {sign}{_round(magnitude / Decimal(10**9), 1)}bn"
+    if magnitude >= Decimal("1e7"):
+        return f"{currency} {sign}{_round(magnitude / Decimal(10**6), 0)}m"
+    if magnitude >= Decimal("1e6"):
+        return f"{currency} {sign}{_round(magnitude / Decimal(10**6), 1)}m"
+    if magnitude >= Decimal("1e3"):
+        return f"{currency} {sign}{_round(magnitude / Decimal(10**3), 0)}k"
+    return f"{currency} {sign}{_round(magnitude, 0)}"
 
 
 def _yoy(pct: Decimal | None) -> str:

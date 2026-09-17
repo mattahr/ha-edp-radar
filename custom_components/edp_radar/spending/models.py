@@ -68,6 +68,11 @@ def _opt_datetime(value: str | None) -> datetime | None:
     return None if value is None else datetime.fromisoformat(value)
 
 
+def month_abbreviation(month: int) -> str:
+    """Three-letter English abbreviation of ``month`` (1-12), e.g. ``"Jan"``."""
+    return _MONTH_ABBREVIATIONS[month - 1]
+
+
 @dataclass(frozen=True, slots=True)
 class ReferencePeriod:
     """The period a value describes; ``label`` is for display only."""
@@ -86,7 +91,7 @@ class ReferencePeriod:
         return cls(
             date(year, month, 1),
             date(year, month, last_day),
-            f"{_MONTH_ABBREVIATIONS[month - 1]} {year}",
+            f"{month_abbreviation(month)} {year}",
         )
 
     def to_dict(self) -> dict[str, str]:

@@ -25,6 +25,7 @@ from .models import (
     ReferencePeriod,
     SourceSpec,
     SpendingDataPoint,
+    month_abbreviation,
 )
 from .registry import FOCUS_COUNTRY
 
@@ -40,6 +41,8 @@ def iso(value: date | datetime | None) -> str | None:
     return None if value is None else value.isoformat()
 
 
+# float() is exact for any integer magnitude below 2**53; no current metric
+# comes near that many whole currency units.
 def scaled(value: Decimal | None, scale: int = 1) -> float | None:
     return None if value is None else float(value * scale)
 
@@ -145,7 +148,7 @@ def monthly_series_attrs(
     """One row per stored month of ``year`` (plan §52 chart), January first."""
     return [
         {
-            "month": point.reference.label.split(" ")[0],
+            "month": month_abbreviation(point.reference.start.month),
             value_key: scaled(point.value, scale),
             "status": point.status.value,
         }

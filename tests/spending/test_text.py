@@ -24,6 +24,8 @@ def test_format_amount_thresholds() -> None:
     assert format_amount("SEK", Decimal("12500")) == "SEK 13k"
     assert format_amount("SEK", Decimal("999")) == "SEK 999"
     assert format_amount("SEK", None) == "SEK n/a"
+    assert format_amount("SEK", Decimal("-48200000000")) == "SEK -48.2bn"
+    assert format_amount("EUR", Decimal("-999")) == "EUR -999"
 
 
 def test_statskontoret_snapshot_text() -> None:
@@ -48,6 +50,18 @@ def test_statskontoret_snapshot_text() -> None:
     tie_text = statskontoret_snapshot_text(tie, "Jul 2026")
     assert tie_text is not None
     assert "+30.2% YoY" in tie_text
+    rounds_to_zero = YtdChange(
+        Decimal("100"), Decimal("100"), Decimal("0"), Decimal("-0.04"), 7
+    )
+    rounds_to_zero_text = statskontoret_snapshot_text(rounds_to_zero, "Jul 2026")
+    assert rounds_to_zero_text is not None
+    assert "+0.0% YoY" in rounds_to_zero_text
+    small_negative = YtdChange(
+        Decimal("100"), Decimal("100"), Decimal("0"), Decimal("-0.06"), 7
+    )
+    small_negative_text = statskontoret_snapshot_text(small_negative, "Jul 2026")
+    assert small_negative_text is not None
+    assert "-0.1% YoY" in small_negative_text
 
 
 def test_nato_position_text() -> None:

@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 
 from custom_components.edp_radar.spending.calculations import (
+    MonthChange,
     NordicSummary,
     annual_series,
     change_over_years,
@@ -255,6 +256,14 @@ def test_ytd_change_and_month_change() -> None:
     assert month_change(MONTHLY_TWO_YEARS, "materiel_outturn", "SE", 2024, 1) is None
 
 
+def test_month_change_without_a_previous_year() -> None:
+    points_2025_only = [p for p in MONTHLY_TWO_YEARS if p.reference.start.year == 2025]
+    current = next(p for p in points_2025_only if p.reference.start.month == 3)
+    assert month_change(
+        points_2025_only, "materiel_outturn", "SE", 2025, 3
+    ) == MonthChange(current=current, previous=None, pct=None)
+
+
 def test_annual_series_latest_year_and_value_at() -> None:
     points = [
         _annual("sipri", "milex", "SE", 2023, "10", unit="USD_MILLION_CONSTANT_2024"),
@@ -276,6 +285,14 @@ def test_annual_series_latest_year_and_value_at() -> None:
     assert value_at(points, "milex_pct", "SE", ReferencePeriod.year(2024)) is None
     assert change_over_years(series, 2025, 2) == (Decimal(10), Decimal(20))
     assert change_over_years(series, 2025, 10) is None
+
+
+def test_change_over_years_with_a_zero_base() -> None:
+    series = {
+        2015: _annual("sipri", "milex", "SE", 2015, "0"),
+        2025: _annual("sipri", "milex", "SE", 2025, "10"),
+    }
+    assert change_over_years(series, 2025, 10) == (Decimal(0), None)
 
 
 def test_coverage_reports_missing_reporters() -> None:
